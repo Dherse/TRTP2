@@ -2,26 +2,27 @@
 
 #include "../headers/global.h"
 
+uint8_t ack_packet[11] = {
+    // Type + TR + Window
+    0b10001010,
+
+    // L + Length
+    0b00000000,
+
+    // Seqnum
+    0b10101010,
+
+    // timestamp
+    0b10101010,
+    0b00000000,
+    0b01010101,
+    0b00000000,
+
+    // CRC1
+    0, 0, 0, 0
+};
+
 void test_ack_decoding() {
-    uint8_t ack_packet[11] = {
-        // Type + TR + Window
-        0b10001010,
-
-        // L + Length
-        0b00000000,
-
-        // Seqnum
-        0b10101010,
-
-        // timestamp
-        0b10101010,
-        0b00000000,
-        0b01010101,
-        0b00000000,
-
-        // CRC1
-        0, 0, 0, 0
-    };
 
     uint32_t crc1 = crc32(0, (void*) ack_packet, 7);
     uint32_t crc = htonl(crc1);
@@ -40,6 +41,29 @@ void test_ack_decoding() {
     CU_ASSERT(packet.timestamp == 0b10101010000000000101010100000000);
     CU_ASSERT(packet.crc1 == crc1);
 }
+
+void test_ack_encoding() {
+    packet_t packet;
+    packet.type = ACK;
+    packet.truncated = false;
+    packet.window = 0b01010;
+    packet.long_length = false;
+    packet.length = 0;
+    packet.seqnum = 0b10101010;
+    packet.timestamp = 0b10101010000000000101010100000000;
+    packet.payload = NULL;
+    packet.crc2 = 0;
+
+    uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
+    CU_ASSERT(pack(packed, &packet, false) == 0);
+
+    for(int i = 0; i < sizeof(ack_packet); i++) {
+        CU_ASSERT(ack_packet[i] == (*packed++));
+    }
+}
+
+//10001010
+//10101010
 
 void test_data_decoding() {
     char *str = "hello, world!";
@@ -117,6 +141,11 @@ int add_packet_tests() {
     }
 
     if (NULL == CU_add_test(pSuite, "test_data_decoding", test_data_decoding)) {
+        CU_cleanup_registry();
+        return CU_get_error();
+    }
+
+    if (NULL == CU_add_test(pSuite, "test_ack_encoding", test_ack_encoding)) {
         CU_cleanup_registry();
         return CU_get_error();
     }

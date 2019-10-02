@@ -119,4 +119,24 @@ int dealloc_packet(packet_t* packet);
  */
 int unpack(uint8_t *packet, packet_t *out, uint8_t *payload);
 
+/**
+ * ## Use :
+ *
+ * Packs a packet_t into a uint8_t buffer coming to send on the network.
+ * Uses network byte order.
+ * 
+ * ## Arguments :
+ *
+ * - `packet` - a pointer to a packet buffer
+ * - `in` - a ponter to a packet
+ * - `recompute_crc2` - true to recompute the payload CRC, 
+ *      false to use the existing one
+ *
+ * ## Return value:
+ * 
+ * 0 if the process completed successfully. -1 otherwise.
+ * If it failed, errno is set to an appropriate error.
+ */
+int pack(uint8_t *packet, packet_t *in, bool recompute_crc2);
+
 #endif
