@@ -1,0 +1,15 @@
+#ifndef ERRORS_H
+
+#define ERRORS_H
+
+enum Errors {
+    ALREADY_ALLOCATED,
+    ALREADY_DEALLOCATED,
+    FAILED_TO_ALLOCATE,
+    FAILED_TO_COPY,
+
+    TYPE_IS_WRONG,
+
+};
+
+#endif
