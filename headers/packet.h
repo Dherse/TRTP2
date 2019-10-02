@@ -11,6 +11,7 @@ typedef int bool;
 #include <stdint.h>
 
 typedef enum PType {
+    IGNORE = 0,
     DATA = 1,
     ACK = 2,
     NACK = 3

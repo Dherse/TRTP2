@@ -52,23 +52,23 @@ int dealloc_packet(packet_t* packet) {
 int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
     {
         uint8_t ttrwin = *packet++;
-        uint8_t _type = (uint8_t) (ttrwin & 0b11000000 >> 6);
-        out->truncated = ttrwin & 0b00100000 >> 5;
+        uint8_t type = (ttrwin & 0b11000000) >> 6;
+        out->truncated = (ttrwin & 0b00100000) >> 5;
         out->window = ttrwin & 0b00011111;
 
-        if (_type == 0) {
+        if (type == 0) {
             errno = TYPE_IS_WRONG;
             return -1;
         }
 
-        out->type = _type;
+        out->type = type;
     }
 
     {
         uint8_t length = *packet++;
-        out->long_length = length & 0b10000000 >> 8;
+        out->long_length = (length & 0b10000000) >> 8;
         if (out->long_length) {
-            out->length = (length & 0b01111111) | ((*packet++) << 7);
+            out->length = (length & 0b01111111) | (*packet++ << 7);
             out->length = ntohs(out->length);
         } else {
             out->length = length & 0b01111111;
@@ -80,16 +80,12 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
     }
 
     {
-        memcpy(&out->timestamp, packet, sizeof(uint32_t));
-        packet += sizeof(uint32_t);
-
+        out->timestamp = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
         out->timestamp = ntohl(out->timestamp);
     }
 
     {
-        memcpy(&out->crc1, packet, sizeof(uint32_t));
-        packet += sizeof(uint32_t);
-
+        out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
         out->crc1 = ntohl(out->crc1);
     }
 
@@ -99,7 +95,7 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
                 free(out->payload);
             }
             out->payload = payload;
-        } 
+        }
 
         if (out->type == DATA && !out->truncated) {
             if(out->payload == NULL) {
@@ -115,9 +111,9 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
                 return -1;
             }
 
-            memcpy(&out->crc2, packet, sizeof(uint32_t));
-            packet += sizeof(uint32_t);
+            packet += out->length;
 
+            out->crc2 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
             out->crc2 = ntohl(out->crc2);
         }
     }
