@@ -1,0 +1,14 @@
+[book]
+authors = [
+    "Sébastien d'Herbais de Thun - 2875-16-00",
+    "Thomas Heuschling - 2887-16-00"
+    ]
+language = "en"
+multilingual = false
+src = "src"
+title = "LINGI1341 - Rapport de projet"
+
+[output.latex]
+latex    = true  # default = true
+pdf      = true  # default = false
+markdown = true  # default = false

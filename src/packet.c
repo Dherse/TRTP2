@@ -177,11 +177,6 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     (*packet++) = (uint8_t) (timestamp >> 16);
     (*packet++) = (uint8_t) (timestamp >> 24);
 
-
-    /*{
-        out->timestamp = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-        out->timestamp = ntohl(out->timestamp);
-    }*/
     uint32_t crc1 = htonl(crc32(0, (void *) raw, length));
 
     (*packet++) = (uint8_t) (crc1);

@@ -62,9 +62,6 @@ void test_ack_encoding() {
     }
 }
 
-//10001010
-//10101010
-
 void test_data_decoding() {
     char *str = "hello, world!";
 

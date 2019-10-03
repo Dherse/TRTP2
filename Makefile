@@ -32,7 +32,7 @@ FLAGS = -Werror
 RELEASE_FLAGS = -O3
 DEBUG_FLAGS = -O0 -ggdb
 
-.PHONY: clean
+.PHONY: clean report
 
 all: clean
 all: 
@@ -79,3 +79,15 @@ clean:
 
 clean_win:
 	$(DEL) $(BIN_DEL)
+
+stat:
+	git log --stat > gitlog.stat
+
+# Read mdbook & mdbook-latex github repos for dependencies
+install_mdbook:
+	cargo install mdbook
+	cargo install mdbook-latex
+
+report:
+	cd report && mdbook build
+	cp report/book/LINGI1341\ -\ Rapport\ de\ projet.pdf ./report.pdf
