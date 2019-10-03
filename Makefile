@@ -32,7 +32,7 @@ FLAGS = -Werror
 RELEASE_FLAGS = -O3
 DEBUG_FLAGS = -O0 -ggdb
 
-.PHONY: clean report
+.PHONY: clean report stat install_mdbook
 
 all: clean
 all: 

@@ -52,72 +52,61 @@ int dealloc_packet(packet_t* packet) {
  */
 int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
     uint8_t *raw = packet;
-    {
-        uint8_t ttrwin = *packet++;
-        uint8_t type = (ttrwin & 0b11000000) >> 6;
-        out->truncated = (ttrwin & 0b00100000) >> 5;
-        out->window = ttrwin & 0b00011111;
 
-        if (type == 0) {
-            errno = TYPE_IS_WRONG;
+    uint8_t ttrwin = *packet++;
+    uint8_t type = (ttrwin & 0b11000000) >> 6;
+    out->truncated = (ttrwin & 0b00100000) >> 5;
+    out->window = ttrwin & 0b00011111;
+
+    if (type == 0) {
+        errno = TYPE_IS_WRONG;
+        return -1;
+    }
+
+    out->type = type;
+
+    uint8_t length = *packet++;
+    out->long_length = (length & 0b10000000) >> 8;
+    if (out->long_length) {
+        out->length = (length & 0b01111111) | (*packet++ << 7);
+        out->length = ntohs(out->length);
+    } else {
+        out->length = length & 0b01111111;
+    }
+
+    out->seqnum = *packet++;
+
+    out->timestamp = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
+    out->timestamp = ntohl(out->timestamp);
+
+    out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
+    out->crc1 = ntohl(out->crc1);
+
+    if (payload != NULL) {
+        if (out->payload != NULL) {
+            free(out->payload);
+        }
+        out->payload = payload;
+    }
+
+    if (out->type == DATA && !out->truncated) {
+        if(out->payload == NULL) {
+            out->payload = calloc(sizeof(uint8_t), 512);
+            if (out->payload == NULL) {
+                errno = FAILED_TO_ALLOCATE;
+                return -1;
+            }
+        }
+
+        if (out->payload != memcpy(out->payload, packet, out->length)) {
+            errno = FAILED_TO_COPY;
             return -1;
         }
 
-        out->type = type;
-    }
+        packet += out->length;
 
-    {
-        uint8_t length = *packet++;
-        out->long_length = (length & 0b10000000) >> 8;
-        if (out->long_length) {
-            out->length = (length & 0b01111111) | (*packet++ << 7);
-            out->length = ntohs(out->length);
-        } else {
-            out->length = length & 0b01111111;
-        }
-    }
-
-    {
-        out->seqnum = *packet++;
-    }
-
-    {
-        out->timestamp = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-        out->timestamp = ntohl(out->timestamp);
-    }
-
-    {
-        out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-        out->crc1 = ntohl(out->crc1);
-    }
-
-    {
-        if (payload != NULL) {
-            if (out->payload != NULL) {
-                free(out->payload);
-            }
-            out->payload = payload;
-        }
-
-        if (out->type == DATA && !out->truncated) {
-            if(out->payload == NULL) {
-                out->payload = calloc(sizeof(uint8_t), 512);
-                if (out->payload == NULL) {
-                    errno = FAILED_TO_ALLOCATE;
-                    return -1;
-                }
-            }
-
-            if (out->payload != memcpy(out->payload, packet, out->length)) {
-                errno = FAILED_TO_COPY;
-                return -1;
-            }
-
-            packet += out->length;
-
-            out->crc2 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-            out->crc2 = ntohl(out->crc2);
-        }
+        out->crc2 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
+        out->crc2 = ntohl(out->crc2);
     }
 
     size_t len = 7;
