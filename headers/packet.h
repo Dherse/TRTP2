@@ -139,6 +139,20 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload);
  */
 int pack(uint8_t *packet, packet_t *in, bool recompute_crc2);
 
-void toString(const packet_t* pkt);
+/**
+ * ## Use :
+ *
+ * Pretty-prints the packet contents including the payload.
+ * 
+ * ## Arguments :
+ *
+ * - `packet` - a pointer to a valid packet buffer
+ *
+ * ## Return value:
+ * 
+ * 0 if the process completed successfully. -1 otherwise.
+ * If it failed, errno is set to an appropriate error.
+ */
+int packet_to_string(const packet_t* packet);
 
 #endif

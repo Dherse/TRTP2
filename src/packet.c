@@ -32,10 +32,16 @@ int deallocate_void(void *data) {
     return 0;
 }
 
+/*
+ * Refer to headers/packet.h
+ */
 int alloc_packet(packet_t* packet) {
     return allocate_void((void *) packet, sizeof(packet_t));
 }
 
+/*
+ * Refer to headers/packet.h
+ */
 int dealloc_packet(packet_t* packet) {
     if (packet->payload == NULL) {
         if (deallocate_void((void *) packet->payload) == -1) {
@@ -194,29 +200,51 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     return 0;
 }
 
-void toString(const packet_t* pkt){
+/*
+ * Refer to headers/packet.h
+ */
+int packet_to_string(const packet_t* packet){
+    if (packet == NULL) {
+        errno = NULL_ARGUMENT;
+        return -1;
+    }
+
     char s_type[15];
     char s_trun[6];
     char s_longlength[9];
 
-    if(pkt->type == 0) strcpy(s_type, "IGNORE (00)");
-    else if(pkt->type == 1) strcpy(s_type, "DATA (01)");
-    else if(pkt->type == 2) strcpy(s_type, "ACK (10)");
-    else if(pkt->type == 3) strcpy(s_type, "NACK (11)");
+    switch(packet->type) {
+        case 0: strcpy(s_type, "IGNORE (00)"); break;
+        case 1: strcpy(s_type, "DATA (01)"); break;
+        case 2: strcpy(s_type, "ACK (10)"); break;
+        case 3: strcpy(s_type, "NACK (11)"); break;
+    }
     
-    if(pkt->truncated == 1) strcpy(s_trun, "true");
-    else strcpy(s_trun, "false");
+    if(packet->truncated == 1) {
+        strcpy(s_trun, "true");
+    } else {
+        strcpy(s_trun, "false");
+    }
 
-    if(pkt->long_length == 1) strcpy(s_longlength, "15 bits");
-    else strcpy(s_longlength, "7 bits");
+    if(packet->long_length == 1) {
+        strcpy(s_longlength, "15 bits");
+    } else {
+        strcpy(s_longlength, "7 bits");
+    }
     
     printf("type : %s\n truncated : %s\n window : %u\n length is %s long\n length : %u\n seqnum : %u\n timestamp : %u\n",
-     s_type, s_trun, pkt->window, s_longlength, pkt->length, pkt->seqnum, pkt->timestamp);
+     s_type, s_trun, packet->window, s_longlength, packet->length, packet->seqnum, packet->timestamp);
 
-    uint8_t* msg_hex = pkt->payload;
-    uint8_t* msg_char = pkt->payload;
-    for(uint i = 0; i < pkt->length ; i= i + 4){
-        printf("%02x %02x %02x %02x | %c %c %c %c\n", *msg_hex++, *msg_hex++,
-        *msg_hex++, *msg_hex++, *msg_char++, *msg_char++, *msg_char++, *msg_char++);
+    uint8_t* msg = packet->payload;
+    for(uint i = 0; i < packet->length ; i= i + 4) {
+        printf(
+            "%02x %02x %02x %02x | %c %c %c %c\n", 
+            *msg, *(msg + 1), *(msg + 2), *(msg + 3), 
+            (char) *msg, (char) *(msg + 1), (char) *(msg + 2), (char) *(msg + 3)
+        );
+
+        msg += 4;
     }
+
+    return 0;
 }
