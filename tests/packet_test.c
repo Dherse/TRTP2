@@ -124,6 +124,70 @@ void test_data_decoding() {
     CU_ASSERT(packet.crc2 == crc2);
 }
 
+void test_data_encoding() {
+    char *str = "hello, world!";
+
+    int len = strlen(str) + 1;
+    uint32_t crc2 = crc32(0, (void*) str, len);
+    uint32_t crc2_n = htonl(crc2);
+
+    uint8_t dat_packet[29] = {
+        // Type + TR + Window
+        0b01001010,
+
+        // L + Length
+        len,
+
+        // Seqnum
+        0b10101010,
+
+        // timestamp
+        0b10101010,
+        0b00000000,
+        0b01010101,
+        0b00000000,
+
+        // CRC1
+        0, 0, 0, 0,
+
+        // Payload
+        0, 0, 0, 0, 0, 0, 0,
+        0, 0, 0, 0, 0, 0, 0,
+
+        // CRC2
+        0, 0, 0, 0
+    };
+
+    // Copy CRC1
+    uint32_t crc1 = crc32(0, (void*) dat_packet, 7);
+    uint32_t crc1_n = htonl(crc1);
+    memcpy(dat_packet + 7, &crc1_n, sizeof(uint32_t));
+
+    // Copy the str
+    memcpy(dat_packet + 11, (uint8_t *)str, len);
+
+    // Copy CRC2
+    memcpy(dat_packet + 11 + len, &crc2_n, sizeof(uint32_t));
+
+    packet_t packet;
+    packet.type = DATA;
+    packet.truncated = false;
+    packet.window = 0b01010;
+    packet.long_length = false;
+    packet.length = strlen(str) + 1;
+    packet.seqnum = 0b10101010;
+    packet.timestamp = 0b10101010000000000101010100000000;
+    packet.payload = (uint8_t *) str;
+    packet.crc2 = crc2;
+
+    uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
+    CU_ASSERT(pack(packed, &packet, false) == 0);
+
+    for(int i = 0; i < sizeof(dat_packet); i++) {
+        CU_ASSERT(dat_packet[i] == (*packed++));
+    }
+}
+
 int add_packet_tests() {
     CU_pSuite pSuite = CU_add_suite("packet_test_suite", 0, 0);
 
@@ -143,6 +207,11 @@ int add_packet_tests() {
     }
 
     if (NULL == CU_add_test(pSuite, "test_ack_encoding", test_ack_encoding)) {
+        CU_cleanup_registry();
+        return CU_get_error();
+    }
+
+    if (NULL == CU_add_test(pSuite, "test_data_encoding", test_data_encoding)) {
         CU_cleanup_registry();
         return CU_get_error();
     }

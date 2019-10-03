@@ -191,7 +191,6 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
         }
         packet += in->length;
 
-
         uint32_t crc2 = ntohl(in->crc2);
         if (recompute_crc2) {
             crc2 = htonl(crc32(0, (void *) in->payload, in->length));

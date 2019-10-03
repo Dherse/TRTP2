@@ -77,9 +77,6 @@ $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
 clean: 
 	$(RM) -f $(BIN_DEL)
 
-clean_win:
-	$(DEL) $(BIN_DEL)
-
 stat:
 	git log --stat > gitlog.stat
 
