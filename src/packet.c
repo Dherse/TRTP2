@@ -193,3 +193,30 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 
     return 0;
 }
+
+void toString(const packet_t* pkt){
+    char s_type[15];
+    char s_trun[6];
+    char s_longlength[9];
+
+    if(pkt->type == 0) strcpy(s_type, "IGNORE (00)");
+    else if(pkt->type == 1) strcpy(s_type, "DATA (01)");
+    else if(pkt->type == 2) strcpy(s_type, "ACK (10)");
+    else if(pkt->type == 3) strcpy(s_type, "NACK (11)");
+    
+    if(pkt->truncated == 1) strcpy(s_trun, "true");
+    else strcpy(s_trun, "false");
+
+    if(pkt->long_length == 1) strcpy(s_longlength, "15 bits");
+    else strcpy(s_longlength, "7 bits");
+    
+    printf("type : %s\n truncated : %s\n window : %u\n length is %s long\n length : %u\n seqnum : %u\n timestamp : %u\n",
+     s_type, s_trun, pkt->window, s_longlength, pkt->length, pkt->seqnum, pkt->timestamp);
+
+    uint8_t* msg_hex = pkt->payload;
+    uint8_t* msg_char = pkt->payload;
+    for(uint i = 0; i < pkt->length ; i= i + 4){
+        printf("%02x %02x %02x %02x | %c %c %c %c\n", *msg_hex++, *msg_hex++,
+        *msg_hex++, *msg_hex++, *msg_char++, *msg_char++, *msg_char++, *msg_char++);
+    }
+}

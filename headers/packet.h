@@ -139,4 +139,6 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload);
  */
 int pack(uint8_t *packet, packet_t *in, bool recompute_crc2);
 
+void toString(const packet_t* pkt);
+
 #endif
