@@ -94,7 +94,7 @@ int dealloc_packet(packet_t* packet);
  * ## Arguments :
  *
  * - `packet` - a pointer to a packet buffer
- * - `out` - a ponter to a packet
+ * - `out` - a pointer to a packet
  * - `payload` - NULL or pointer to a 512 bytes long uint8_t buffer
  *
  * ## Payload :
