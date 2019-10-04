@@ -12,14 +12,14 @@
 int recv_and_handle_message(const struct sockaddr *src_addr, socklen_t addrlen, packet_t* packet, struct sockaddr * sender_addr, socklen_t* sender_addr_len) {
     // TODO: Create a IPv6 socket supporting datagrams
     int sock = socket(AF_INET6, SOCK_DGRAM,0);
-    if(sock < 0){
+    if(sock < 0){ // j'ai pas fait de errno parce que ca restera probablement pas ici
         return -1;
     }
 
     // TODO: Bind it to the source
     int err = bind(sock, src_addr, addrlen);
     if(err == -1){
-        return -1;
+        return -1; // j'ai pas fait de errno parce que ca restera probablement pas ici
     }
 
     // TODO: Receive a message through the socket
@@ -27,15 +27,15 @@ int recv_and_handle_message(const struct sockaddr *src_addr, socklen_t addrlen, 
 
     ssize_t n_received = recvfrom(sock, packet_received, sizeof(packet_t), 0, sender_addr, sender_addr_len);
     if(n_received == -1){
-        return -1;
+        return -1; 
     }
     
     if(alloc_packet(packet) == -1 && errno != ALREADY_ALLOCATED){ //checking if packet has been allocated
-        return -1;
+        return -1;  // j'ai pas fait de errno parce que la fonction le fait déjà
     }
 
     if(unpack(packet_received, packet, NULL) != 0){
-        return -1;
+        return -1; // j'ai pas fait de errno parce que la fonction le fait déjà
     }
 
     return 0;
