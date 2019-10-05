@@ -17,5 +17,6 @@ typedef int bool;
 
 #include "errors.h"
 #include "packet.h"
+#include "cli.h"
 
 #endif
