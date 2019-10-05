@@ -31,12 +31,12 @@ int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen);
  * ## Arguments :
  *
  * - `src_addr` - a pointer to the address you want to listen to
- * - `addrlen` - the size of the address contained in 'src_addr'
+ * - `addrlen` - the size of the address contained in `src_addr`
  * - `packet` - pointer to a packet that has been allocated
  * - `sender_addr` - pointer to a buffer in which the source of the packet will be stored
  * - `sender_addr_len` - before the call : points to the size of the buffer sender_addr
  *                     - after the call : points to the size of the address stored in sender_addr
- * - 'packet_received' - a buffer capable of containing a packet (this is so that we don't need to reallocate memory)
+ * - `packet_received` - a buffer capable of containing a packet (this is so that we don`t need to reallocate memory)
  * 
  * ## Return value:
  *
@@ -48,12 +48,12 @@ int recv_and_handle_message(const struct sockaddr *src_addr, socklen_t addrlen, 
 /**
  * ## Use :
  *
- * allocates a list containing 'number' 528 byte uint8_t* buffers to store incoming packets
+ * allocates a list containing `number` 528 byte uint8_t* buffers to store incoming packets
  * 
  * ## Arguments :
  *
  * - `number` - the number of buffer you want to allocate
- * - 'buffers' - the pointer to the list where the buffers will be stored
+ * - `buffers` - the pointer to the list where the buffers will be stored
  *
  * ## Return value:
  * 
@@ -70,7 +70,7 @@ int recv_and_handle_message(const struct sockaddr *src_addr, socklen_t addrlen, 
  * ## Arguments :
  *
  * - `number` - the number of buffer that were allocated
- * - 'buffers' - pointer to the list of buffers to dealocate
+ * - `buffers` - pointer to the list of buffers to dealocate
  *
  * ## Return value:
  * 
