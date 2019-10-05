@@ -6,11 +6,12 @@
  */
 int create_cll(size_t length, node_t *head) {
     if(length < 1) {
+        errono = INVALID_LENGTH;
         return 0;
     }
 
     if(allocate_cll(length, head) == -1) {
-        //set errno
+        // no need to set errono has it's already set by allocate_cll
         return -1;
     }
 
