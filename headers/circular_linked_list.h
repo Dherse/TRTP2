@@ -1,7 +1,6 @@
 #include "../headers/packet.h"
 
 typedef struct node {
-
    int seqnum;
    packet_t* packet;
 	
@@ -13,14 +12,14 @@ typedef struct node {
  *
  *
  */
-int create_circular_linked_list(int number, node_t* list);
+int create_circular_linked_list(size_t number, node_t* list);
 
 /**
  * 
  *
  *
  */
-int allocate_circular_linked_list(int number, node_t* head);
+int allocate_circular_linked_list(size_t number, node_t* head);
 
 /**
  * deallocates the list and the packets contained in it
