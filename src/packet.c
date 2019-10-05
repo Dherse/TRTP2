@@ -59,15 +59,12 @@ int dealloc_packet(packet_t* packet) {
 int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
     uint8_t *raw = packet;
 
-    uint8_t ttrwin = *packet++;
+    uint8_t *header = packet++;
+
+    uint8_t ttrwin = *header;
     uint8_t type = (ttrwin & 0b11000000) >> 6;
     out->truncated = (ttrwin & 0b00100000) >> 5;
     out->window = ttrwin & 0b00011111;
-
-    if (type == 0) {
-        errno = TYPE_IS_WRONG;
-        return -1;
-    }
 
     out->type = type;
 
@@ -120,9 +117,22 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
         len += 1;
     }
 
+    *header = *header & 0b11011111;
     uint32_t crc = crc32(0, (void*) raw, len);
     if (out->crc1 != crc) {
         errno = CRC_VALIDATION_FAILED;
+
+        return -1;
+    }
+
+    if (type == 0) {
+        errno = TYPE_IS_WRONG;
+
+        return -1;
+    }
+
+    if (type != DATA && out->truncated) {
+        errno = NON_DATA_TRUNCATED;
 
         return -1;
     }
@@ -150,7 +160,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
         return -1;
     }
 
-    (*packet++) = (in->type << 6) | (in->truncated << 5) | (in->window & 0b00011111);
+    uint8_t *header = packet++;
 
     uint8_t length = 7;
     if (in->long_length) {
@@ -172,7 +182,11 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     (*packet++) = (uint8_t) (timestamp >> 16);
     (*packet++) = (uint8_t) (timestamp >> 24);
 
+    *header = (in->type << 6) | (in->window & 0b00011111);
+
     uint32_t crc1 = htonl(crc32(0, (void *) raw, length));
+
+    *header = *header | (in->truncated << 5);
 
     (*packet++) = (uint8_t) (crc1);
     (*packet++) = (uint8_t) (crc1 >> 8);
