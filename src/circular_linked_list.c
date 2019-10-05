@@ -1,12 +1,15 @@
 #include "../headers/global.h"
 #include "../headers/circular_linked_list.h"
 
-int create_circular_linked_list(size_t length, node_t* head) {
+/*
+ * Refer to headers/circular_linked_list.h
+ */
+int create_cll(size_t length, node_t *head) {
     if(length < 1) {
         return 0;
     }
 
-    if(allocate_circular_linked_list(length, head) == -1) {
+    if(allocate_cll(length, head) == -1) {
         //set errno
         return -1;
     }
@@ -14,15 +17,15 @@ int create_circular_linked_list(size_t length, node_t* head) {
     node_t* current = head;
     current->seqnum = 0;
     if(alloc_packet(current->packet) == -1) {
-        dealloc_circular_linked_list(head);
+        dealloc_cll(head);
         return -1;
     }
 
     for(int i = 1; i < length; i++) {
         current->next = ++current;
         current->seqnum = i;
-        if( alloc_packet(current->packet) == -1){
-            dealloc_circular_linked_list(head);
+        if(alloc_packet(current->packet) == -1){
+            dealloc_cll(head);
             return -1;
         }
     }
@@ -31,7 +34,10 @@ int create_circular_linked_list(size_t length, node_t* head) {
 }
 
 
-int allocate_circular_linked_list(size_t length, node_t* head){
+/*
+ * Refer to headers/circular_linked_list.h
+ */
+int allocate_cll(size_t length, node_t *head){
     if(length < 1) {
         errno = INVALID_LENGTH;
         return 0;
@@ -44,12 +50,10 @@ int allocate_circular_linked_list(size_t length, node_t* head){
     }
 }
 
-/**
- * deallocates the list and the packets contained in it
- *
- *
+/*
+ * Refer to headers/circular_linked_list.h
  */
-int dealloc_circular_linked_list(node_t* head){
+int dealloc_cll(node_t *head){
     node_t* current = head;
 
     while(current != NULL && dealloc_packet(current->packet) != -1) {
