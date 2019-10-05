@@ -7,16 +7,16 @@
 #include "../headers/packet.h"
 
 int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen){
-    int socket = socket(AF_INET6, SOCK_DGRAM,0);
-    if(socket < 0){ //errno handeled by socket
+    int sock = socket(AF_INET6, SOCK_DGRAM,0);
+    if(sock < 0){ //errno handeled by socket
         return -1;
     }
 
-    int err = bind(socket, src_addr, addrlen);
+    int err = bind(sock, src_addr, addrlen);
     if(err == -1){
         return -1; // errno handeled by bind
     }
-    return socket;
+    return sock;
 }
 
 /*
@@ -32,7 +32,7 @@ int alloc_reception_buffers(int number, uint8_t** buffers){
         if(*(buffers+i*528) == NULL){
             dealloc_reception_buffers(i-1, buffers);
             errno = FAILED_TO_ALLOCATE;
-            return -1
+            return -1;
         }
     }
 
@@ -42,7 +42,7 @@ int alloc_reception_buffers(int number, uint8_t** buffers){
 /*
  * Refer to headers/receiver.h
  */
-int dealloc_reception_buffers(int number, uint8_t** buffers){
+void dealloc_reception_buffers(int number, uint8_t** buffers){
     if(number > 1){
         for(int i = 0; i < number; i++){
             free(*(buffers+i*528));
@@ -55,7 +55,7 @@ int dealloc_reception_buffers(int number, uint8_t** buffers){
  */
 int recv_and_handle_message(const struct sockaddr *src_addr, socklen_t addrlen, packet_t* packet, struct sockaddr * sender_addr, socklen_t* sender_addr_len, uint8_t* packet_received) {
 
-     int socket = socket(src_addr, addrlen);
+     int sock = make_listen_socket(src_addr, addrlen);
 
     // TODO: Receive a message through the socket
     ssize_t n_received = recvfrom(sock, packet_received, sizeof(packet_t), 0, sender_addr, sender_addr_len);
