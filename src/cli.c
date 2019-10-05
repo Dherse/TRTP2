@@ -62,8 +62,27 @@ int str2int(int *out, char *s, int base) {
     return 0;
 }
 
-void* get_socket_addr(const struct sockaddr *sa)
-{
+/**
+ * ## Use :
+ *
+ * Turns a sockaddr into either an IPv4 addr or IPv6 addr.
+ * 
+ * ## Arguments
+ *
+ * - `sa` - a socket_addr
+ *
+ * ## Return value
+ * 
+ * a pointer to either an IPv4 addr or IPv6
+ * 
+ * ## Source
+ * 
+ * We found it last year (2018-2019) and can't find the source
+ * so credits to the original author whoever that may be.
+ * Sorry :)
+ *
+ */
+void* get_socket_addr(const struct sockaddr *sa) {
     // Cast socketaddr to sockaddr_in to get address and port values from data
 
     if (sa->sa_family == PF_INET) {
