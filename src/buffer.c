@@ -15,7 +15,7 @@ int create_buffer(buf_t *buf) {
     buf->last_read = 0;
     buf->last_written = 0;
 
-    for(int i = 0; i < MAX_WINDOW_SIZE; i++){
+    for(int i = 0; i < MAX_WINDOW_SIZE; i++) {
         if(pthread_mutex_init(&(buf->nodes[i].mut), NULL) != 0) {
             deallocate_buffer(buf);
             //errno
@@ -35,7 +35,7 @@ int create_buffer(buf_t *buf) {
 void deallocate_buffer(buf_t *buf) {
     if(buf == NULL) {
         errno = NULL_ARGUMENT;
-        return ;
+        return;
     }
 }
 
