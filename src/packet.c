@@ -52,7 +52,6 @@ int dealloc_packet(packet_t* packet) {
     return deallocate_void((void *) packet);
 }
 
-
 /*
  * Refer to headers/packet.h
  */
