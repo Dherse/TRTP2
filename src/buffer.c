@@ -6,7 +6,7 @@
 /*
  * Refer to headers/buffer.h
  */
-int create_buffer(buf_t *buf) {
+int allocated_buffer(buf_t *buf) {
     buf = (buf_t *) calloc((size_t) 1, sizeof(buf_t));
     if(buf == NULL) {
         errno = FAILED_TO_ALLOCATE;
