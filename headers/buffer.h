@@ -42,10 +42,6 @@ int create_buffer(buf_t *buf);
  *
  * - `buf` - 
  *
- * ## Return value:
- * 
- * 0 if the process completed successfully. -1 otherwise.
- * If it failed, errno is set to an appropriate error.
  */
 void deallocate_buffer(buf_t *buf);
 
