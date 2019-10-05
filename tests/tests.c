@@ -2,6 +2,7 @@
 #include "CUnit/Basic.h"
 #include "packet_test.c"
 #include "cli_test.c"
+#include "buffer_test.c"
 
 int main() {
     if (CUE_SUCCESS != CU_initialize_registry()) {
@@ -13,6 +14,8 @@ int main() {
     add_packet_tests();
 
     add_cli_tests();
+
+    add_buffer_tests();
 
     CU_basic_run_tests();
 
