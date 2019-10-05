@@ -64,3 +64,19 @@ int dealloc_cll(node_t *head){
 
     return 0;
 }
+
+int resize_cll(node_t *head, size_t new_size){
+    return 0;
+}
+
+int push_cll(node_t *head, packet_t *packet){
+    return 0;
+}
+
+packet_t *pop(node_t *head){
+    return NULL;
+}
+
+packet_t *peak(node_t *head){
+    return NULL;
+}
