@@ -2,7 +2,9 @@
 
 #define ERRORS_H
 
-enum Errors {
+#include <errno.h>
+
+typedef enum Errors {
     NULL_ARGUMENT,
     
     ALREADY_ALLOCATED,
@@ -17,8 +19,25 @@ enum Errors {
 
     INVALID_LENGTH,
 
+    REGEX_COMPILATION_FAILED,
+
+    CLI_O_VALUE_MISSING,
+    CLI_UNKNOWN_OPTION,
+    CLI_IP_MISSING,
+    CLI_PORT_MISSING,
+    CLI_TOO_MANY_ARGUMENTS,
+    CLI_FORMAT_VALIDATION_FAILED,
+    CLI_IP_INVALID,
+    CLI_MAX_INVALID,
+    CLI_PORT_INVALID,
+
+    STR2INT_INCONVERTIBLE,
+    STR2INT_OVERFLOW,
+    STR2INT_UNDERFLOW,
+    STR2INT_NOT_END,
+
     UNKNOWN
 
-};
+} errors_t;
 
 #endif
