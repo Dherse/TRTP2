@@ -11,7 +11,7 @@ int create_cll(size_t length, node_t *head) {
     }
 
     if(allocate_cll(length, head) == -1) {
-        // no need to set errono has it's already set by allocate_cll
+        // no need to set errno has it's already set by allocate_cll
         return -1;
     }
 
