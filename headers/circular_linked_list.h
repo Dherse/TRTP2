@@ -4,29 +4,45 @@
 
 #include "packet.h"
 
+#define MAX_WINDOW_VALUE 31
+
 typedef struct node {
-   int seqnum;
-   packet_t *packet;
-	
-   struct node *next;
+    int seqnum;
+    bool used;
+    packet_t *packet;
+    struct node *next;
 } node_t;
+
+typedef struct cll{
+    //the number of nodes containing a packet
+    int used_nodes;
+
+    //pointer to the allocated buffer (kept for freeing purposes)
+    node_t * const head; // the pointer is constant, no what is pointed
+
+    //last nodes written or read
+    node_t *last_written;
+    node_t *last_read;
+}cll_t;
+
+//TODO: add semaphore protection on EVERYTHING
 
 /**
  * ## Use :
  *
- * Create an intialized CLL with some length
+ * Create an intialized CLL with MAX_WINDOW_VALUE nodes
+ * and allocates it's packets
  * 
  * ## Arguments :
  *
- * - `length` - the length of the CLL
- * - `list` - a pointer where the CLL should be created
+ * - `cll` - a pointer where the CLL should be created
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int create_cll(size_t length, node_t *head);
+int create_cll(cll_t *cll);
 
 /**
  * ## Use :
@@ -35,98 +51,56 @@ int create_cll(size_t length, node_t *head);
  * 
  * ## Arguments :
  *
- * - `length` - the length of the CLL
- * - `head` - a pointer where the CLL should be created
+ * - `cll` - a NULL pointer where the CLL should be stored
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocate_cll(size_t length, node_t *head);
+int allocate_cll(cll_t *cll);
 
 /**
  * ## Use :
  *
- * Deallocated a CLL and its contents
+ * Deallocates a CLL and its contents
  * 
  * ## Arguments :
  *
- * - `head` - a pointer to an allocated CLL
+ * - `cll` - a pointer to a CLL
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int dealloc_cll(node_t *head);
+int dealloc_cll(cll_t *cll);
 
 /**
  * ## Use :
  *
- * Resizes the CLL to have `new_length` elements.
- * 
- * ## new_length > old_length
- * 
- * Allocates more space and allocates new packets, no loss of information
- *
- * ## new_length < old_length
- *
- * Will not deallocate actively used packets. The function will return a number
- * between `old_packet` and `new_length`. This difference is the number
- * of packets still waiting to be popped. The operation can be retried after
- * emptying those entries.
- * 
- * ## Arguments :
- *
- * - `head` - a pointer to an allocated CLL
- * - `new_length` - the new length of the CLL
- *
- * ## Return value:
- * 
- * `new_length` if the operation is a success, -1 if it failed
- * and a number between `old_length` and `new_length` if one or more
- * packet_t could not be deleted (already in use)
- */
-int resize_cll(node_t *head, size_t new_length);
-
-/**
- * ## Use :
- *
- * Pushes an element onto the CLL.
- *
- * Should NOT be used
- * 
- * ## Arguments :
- *
- * - `head` - a pointer to an allocated CLL
- * - `packet` - the packet to push
- *
- * ## Return value:
- * 
- * 0 if the process completed successfully. -1 otherwise.
- * If it failed, errno is set to an appropriate error.
- */
-int push_cll(node_t *head, packet_t *packet);
-
-/**
- * ## Use :
- *
- * Points to the next **unused** packet in the CLL.
+ * Returns the pointer to the next **unused** packet in the CLL.
  * The structure is already allocated and can be used to
  * unpack a network packet.
  * 
+ * sets used boolean of the node to true
+ * 
+ * increments used_nodes in case of success
+ * 
+ * in case of failure the cll is left untouched
+ * 
  * ## Arguments :
  *
- * - `head` - a pointer to an allocated CLL
- * - `packet` - the packet to push
+ * - `cll` - a pointer to an allocated CLL
  *
  * ## Return value:
  * 
- * a non-used packet, NULL otherwise
- *
+ * a non-used packet in case of success, NULL otherwise
+ * If it failed, errno is set to an appropriate error.
  */
-packet_t *next(node_t *head);
+packet_t *next(cll_t *cll);
+
+//uses semaphore
 
 /**
  * ## Use :
@@ -136,30 +110,41 @@ packet_t *next(node_t *head);
  * 
  * ## Arguments :
  *
- * - `head` - a pointer to an allocated CLL
+ * - `last_read` - a pointer to an allocated CLL
  *
  * ## Return value:
  * 
  * a used packet, NULL otherwise
  *
  */
-packet_t *pop(node_t *head);
+node_t *pop(cll_t *cll);
 
+/**
+ * 
+ * release mutex on a node
+ * 
+ */
+int unlock(node_t*);
+
+
+//incrémente pas last_read
+//renvoie->next
+//mutex lock le next
 /**
  * ## Use :
  *
  * Returns the first **used** packet in the CLL.
- * Contrary to `pop` it does **not** increment the counter.
+ * Contrary to `pop` it does **not** decrement the counter.
  * 
  * ## Arguments :
  *
- * - `head` - a pointer to an allocated CLL
+ * - `last_read` - a pointer to an allocated CLL
  *
  * ## Return value:
  * 
  * a used packet, NULL otherwise
  *
  */
-packet_t *peak(node_t *head);
+packet_t *peak(cll_t *cll);
 
 #endif

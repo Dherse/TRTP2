@@ -16,6 +16,8 @@ enum Errors {
     PAYLOAD_VALIDATION_FAILED,
 
     INVALID_LENGTH,
+    CLL_FULL, // try to write to a cll node when there are none left
+    CLL_EMPTY,
 
     UNKNOWN
 

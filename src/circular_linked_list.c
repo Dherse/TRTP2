@@ -4,33 +4,31 @@
 /*
  * Refer to headers/circular_linked_list.h
  */
-int create_cll(size_t length, node_t *head) {
-    if(length < 1) {
-        errno = INVALID_LENGTH;
-        return 0;
-    }
+int create_cll(cll_t *cll) {
 
-    if(allocate_cll(length, head) == -1) {
-        // no need to set errno has it's already set by allocate_cll
+    if(allocate_cll(cll) == -1) {
         return -1;
     }
 
-    node_t* current = head;
+    node_t* current = cll->head;
     current->seqnum = 0;
     if(alloc_packet(current->packet) == -1) {
-        dealloc_cll(head);
+        dealloc_cll(cll);
+        errno = FAILED_TO_ALLOCATE;
         return -1;
     }
 
     for(int i = 1; i < length; i++) {
         current->next = ++current;
         current->seqnum = i;
-        if(alloc_packet(current->packet) == -1){
-            dealloc_cll(head);
+        if(alloc_packet(current->packet) == -1) {
+            dealloc_cll(cll);
+            errno = FAILED_TO_ALLOCATE;
             return -1;
         }
     }
     current->next = head;
+    cll->used_nodes = 0;
     return 0;
 }
 
@@ -38,46 +36,134 @@ int create_cll(size_t length, node_t *head) {
 /*
  * Refer to headers/circular_linked_list.h
  */
-int allocate_cll(size_t length, node_t *head){
-    if(length < 1) {
-        errno = INVALID_LENGTH;
-        return 0;
+int allocate_cll(cll_t *cll){
+    cll = (cll_t *) calloc((size_t) 1, sizeof(cll_t));
+    if(cll == NULL){
+        errno = FAILED_TO_ALLOCATE;
+        return -1
     }
 
-    head = (node_t*) calloc(length, sizeof(node_t));
+    cll->head = (node_t *) calloc(MAX_WINDOW_VALUE, sizeof(node_t));
     if(head == NULL) {
+        free(cll);
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
+    cll->last_written = head;
+    cll->last_read = head;
+
+    return 0;
 }
 
 /*
  * Refer to headers/circular_linked_list.h
  */
-int dealloc_cll(node_t *head){
-    node_t* current = head;
+int dealloc_cll(cll_t *cll){
+    if(cll == NULL){
+        errno = ALREADY_DEALLOCATED;
+        return 0;
+    }
 
-    while(current != NULL && dealloc_packet(current->packet) != -1) {
+    node_t* current = cll->head;
+
+    while(current != NULL) {
+        dealloc_packet(current->packet);
         current++;
     }
 
-    free(head);
-
+    free(cll->head);
+    free(cll);
     return 0;
 }
 
-int resize_cll(node_t *head, size_t new_size){
-    return 0;
-}
+/*
+ * Refer to headers/circular_linked_list.h
+ */
+packet_t *next(cll_t *cll){
+    if(cll == NULL || cll->last_written == NULL}{
+        errno = NULL_ARGUMENT;
+        return NULL;
+    }
 
-int push_cll(node_t *head, packet_t *packet){
-    return 0;
-}
+    if(cll->used_nodes == MAX_WINDOW_VALUE){
+        errno = CLL_FULL;
+        return NULL;
+    }
 
-packet_t *pop(node_t *head){
+    node_t *current = cll->last_written->next;
+    for(int i = 0; i < 30; i++){ // last written ++
+        if(current->used == false){
+            current->used = true;
+            cll->used_nodes += 1;
+            cll->last_written = current;
+            return current->packet
+        }
+        current = current->next;
+    }
+
     return NULL;
 }
 
-packet_t *peak(node_t *head){
+/*
+ * Refer to headers/circular_linked_list.h
+ */
+packet_t *pop(cll_t *cll){
+    if(cll == NULL || cll->last_read == NULL}{
+        errno = NULL_ARGUMENT;
+        return NULL;
+    }
+
+    if(cll->used_nodes == 0){
+        errno = CLL_EMPTY;
+        return NULL;
+    }
+
+    node_t *current = cll->last_read->next;
+    for(int i = 0; i < 30; i++){ // last_read ++
+        if(current->used == true){
+            current->used = false;
+            cll->used_nodes -= 1;
+            cll->last_read = current;
+            //TODO : add mutex to current->packet
+            return current->packet
+        }
+        current = current->next;
+    }
+    return NULL;
+}
+
+/*
+ * Refer to headers/circular_linked_list.h
+ */
+int unlock(node_t*){
+    return 0;
+}
+
+/*
+ * Refer to headers/circular_linked_list.h
+ */
+packet_t *peak(cll_t *cll){
+    if(cll == NULL || cll->last_read == NULL}{
+        errno = NULL_ARGUMENT;
+        return NULL;
+    }
+
+    if(cll->used_nodes == 0){
+        errno = CLL_FULL;
+        return NULL;
+    }
+
+    node_t *current = cll->last_read->next;
+    for(int i = 0; i < 30; i++){ //
+        if(current->used == false){
+            current->used = true;
+            cll->used_nodes += 1;
+            cll->last_written = current;
+            return current->packet
+        }
+        current = current->next;
+    }
+
     return NULL;
 }
