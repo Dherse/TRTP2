@@ -1,4 +1,8 @@
-#include "../headers/packet.h"
+#ifndef CLL_H
+
+#define CLL_H
+
+#include "packet.h"
 
 typedef struct node {
    int seqnum;
@@ -157,3 +161,5 @@ packet_t *pop(node_t *head);
  *
  */
 packet_t *peak(node_t *head);
+
+#endif
