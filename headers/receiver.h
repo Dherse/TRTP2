@@ -17,13 +17,17 @@ typedef struct receive_config {
     rcv_common_t *common;
 } rcv_cfg_t;
 
-void socket_receive_loop(void *);
+void *socket_receive_loop(void *);
 
 typedef struct writeback_config {
     rcv_common_t *common;
 } wb_cfg_t;
 
 void socket_writeback_loop(void *);
+
+int deallocate_rcv_config(rcv_cfg_t *cfg);
+
+
 
 /**
  * ## Use :
