@@ -92,7 +92,7 @@ node_t *next(buf_t *buffer);
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
-node_t *peak(buf_t *buffer, bool wait, bool inc);
+node_t *peek(buf_t *buffer, bool wait, bool inc);
 
 /**
  * ## Use :
@@ -112,7 +112,7 @@ node_t *peak(buf_t *buffer, bool wait, bool inc);
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
-node_t *peak_n(buf_t *buffer, uint8_t increment, bool wait, bool inc);
+node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc);
 
 /**
  * ## Use :

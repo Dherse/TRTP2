@@ -61,14 +61,14 @@ node_t *next(buf_t *buffer) {
 /*
  * Refer to headers/buffer.h
  */
-node_t *peak(buf_t *buffer, bool wait, bool inc) {
+node_t *peek(buf_t *buffer, bool wait, bool inc) {
     return peak_n(buffer, 0, wait, inc);
 }
 
 /*
  * Refer to headers/buffer.h
  */
-node_t *peak_n(buf_t *buffer, uint8_t increment, bool wait, bool inc) {
+node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
         return NULL;
