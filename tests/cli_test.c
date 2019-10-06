@@ -30,7 +30,6 @@ void test_cli_all_opt() {
     char *params[] = { p_1, p0, p1, p2, p3, p4, p5};
 
     CU_ASSERT(parse(7, params, &config) == 0);
-    printf("\n%d\n", errno);
     CU_ASSERT(strcmp(config.format, "my_file_with_space_%d") == 0);
     CU_ASSERT(config.max_connections == 128);
     CU_ASSERT(config.port == 1234);

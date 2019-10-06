@@ -13,13 +13,19 @@ typedef struct node {
 
     bool used;
 
-    pthread_mutex_t mut;
+    pthread_mutex_t *lock;
+
+    pthread_cond_t *notifier;
 } node_t;
 
 typedef struct buf {
     uint8_t last_read;
 
+    pthread_mutex_t *read_lock;
+
     uint8_t last_written;
+
+    pthread_mutex_t *write_lock;
 
     node_t nodes[MAX_WINDOW_SIZE];
 } buf_t;
@@ -28,26 +34,96 @@ typedef struct buf {
 /**
  * ## Use :
  * 
+ * Allocated a new buffer.
+ * 
  * ## Arguments :
  *
- * - `buf` - 
+ * - `buffer` - a pointer to an already-allocated buffer
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocated_buffer(buf_t *buf);
+int allocate_buffer(buf_t *buffer);
 
 /**
  * ## Use :
  * 
+ * Deallocated an existing buffer.
+ * 
  * ## Arguments :
  *
- * - `buf` - 
+ * - `buffer` - a pointer to an already-allocated buffer.
+ *  The buffer does not have to be initialized fully!
  *
  */
-void deallocate_buffer(buf_t *buf);
+void deallocate_buffer(buf_t *buffer);
+
+/**
+ * ## Use :
+ * 
+ * Gets the next writable node in the buffer.
+ * Waits for one to become available.
+ * 
+ * ## Arguments :
+ *
+ * - `buffer` - a pointer to an already-allocated buffer
+ *
+ * ## Return value:
+ * 
+ * NULL if it failed, an initialized node otherwise
+ */
+node_t *next(buf_t *buffer);
+
+/**
+ * ## Use :
+ * 
+ * Peaks the next readable element in the buffer
+ * 
+ * ## Arguments :
+ *
+ * - `buffer` - a pointer to an already-allocated buffer
+ * - `wait` - whether to wait for a readable value to be available
+ * - `inc` - whether to increment last_read or not
+ *
+ * ## Return value:
+ * 
+ * - wait == true : NULL if it failed, an initialized node otherwise
+ * - wait == false : NULL if it failed or empty, an initialized node otherwise
+ */
+node_t *peak(buf_t *buffer, bool wait, bool inc);
+
+/**
+ * ## Use :
+ * 
+ * Peaks the nth readable element in the buffer. 
+ * Starting from 0.
+ * 
+ * ## Arguments :
+ *
+ * - `buffer` - a pointer to an already-allocated buffer
+ * - `increment` - how many steps forward (0 = 1 step forward)
+ * - `wait` - whether to wait for a readable value to be available
+ * - `inc` - whether to increment last_read or not
+ *
+ * ## Return value:
+ * 
+ * - wait == true : NULL if it failed, an initialized node otherwise
+ * - wait == false : NULL if it failed or empty, an initialized node otherwise
+ */
+node_t *peak_n(buf_t *buffer, uint8_t increment, bool wait, bool inc);
+
+/**
+ * ## Use :
+ * 
+ * Unlocks the node for future read/write
+ * 
+ * ## Arguments :
+ *
+ * - `node` - a node owned by a buffer
+ */
+void unlock(node_t* node);
 
 /**
  * ## Use :
@@ -79,23 +155,23 @@ void deallocate_buffer(buf_t *buf);
  * The main area where a collide could happen is in the interval 240 -> 16.
  * Here are the LSB of each of those 32 values :
  * 
- *  |Decimal |  LSBs  |Decimal |	LSBs  |	Conflict ? |
- *  |    240 |  11110 |	0      | 	00000 |	FALSE      |
- *  |    241 |  11110 |	1      | 	00001 |	FALSE      |
- *  |    242 |	11110 |	2      |    00010 |	FALSE      |
- *  |    243 |	11110 |	3      |    00011 |	FALSE      |
- *  |    244 |	11110 |	4      |    00100 |	FALSE      |
- *  |    245 |	11110 |	5      |    00101 |	FALSE      |
- *  |    246 |	11110 |	6      |    00110 |	FALSE      |
- *  |    247 |	11110 |	7      |    00111 |	FALSE      |
- *  |    248 |	11111 |	8      |    01000 |	FALSE      |
- *  |    249 |	11111 |	9      |    01001 |	FALSE      |
- *  |    250 |	11111 |	10     |    01010 |	FALSE      |
- *  |    251 |	11111 |	11     |    01011 |	FALSE      |
- *  |    252 |	11111 |	12     |    01100 |	FALSE      |
- *  |    253 |	11111 |	13     |    01101 |	FALSE      |
- *  |    254 |	11111 |	14     |    01110 |	FALSE      |
- *  |    255 |	11111 |	15     |    01111 |	FALSE      |
+ *  |Decimal |  LSBs  || Decimal |    LSBs  ||	Conflict ? |
+ *  |    240 |  11110 ||       0 |    00000 ||	FALSE      |
+ *  |    241 |  11110 ||       1 | 	  00001 ||	FALSE      |
+ *  |    242 |	11110 ||       2 |    00010 ||	FALSE      |
+ *  |    243 |	11110 ||       3 |    00011 ||	FALSE      |
+ *  |    244 |	11110 ||       4 |    00100 ||	FALSE      |
+ *  |    245 |	11110 ||       5 |    00101 ||	FALSE      |
+ *  |    246 |	11110 ||       6 |    00110 ||	FALSE      |
+ *  |    247 |	11110 ||       7 |    00111 ||	FALSE      |
+ *  |    248 |	11111 ||       8 |    01000 ||	FALSE      |
+ *  |    249 |	11111 ||       9 |    01001 ||	FALSE      |
+ *  |    250 |	11111 ||      10 |    01010 ||	FALSE      |
+ *  |    251 |	11111 ||      11 |    01011 ||	FALSE      |
+ *  |    252 |	11111 ||      12 |    01100 ||	FALSE      |
+ *  |    253 |	11111 ||      13 |    01101 ||	FALSE      |
+ *  |    254 |	11111 ||	  14 |    01110 ||	FALSE      |
+ *  |    255 |	11111 ||      15 |    01111 ||	FALSE      |
  * 
  * It's easy to extend this test (in Excel for example) to
  * any group of 32 consecutive binary numbers. Since out-of-order
@@ -125,6 +201,12 @@ void deallocate_buffer(buf_t *buf);
  * 
  * (foolproof I tell you! I swear)
  * 
+ * ## ""I still don't belive you!""
+ * 
+ * Well, just look at test/buffer_test.c where we programmed a test
+ * testing all of the possible windows (by increments of 16) and you'll
+ * see that it works flawlessly.
+ * 
  * ## Arguments :
  *
  * - `seqnum` - the input sequence number (from a packet)
@@ -134,6 +216,6 @@ void deallocate_buffer(buf_t *buf);
  * the hash, a uint8_t from 0 to 31.
  * 
  */
-inline uint8_t hash(uint8_t seqnum) __attribute__((always_inline));
+uint8_t hash(uint8_t seqnum);
 
 #endif

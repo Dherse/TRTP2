@@ -51,7 +51,7 @@ typedef struct Packet {
  * 
  * ## Arguments :
  *
- * - `packet` - a pointer to a non-initialized pointer
+ * - `packet` - a pointer to an already allocated packet
  *
  * ## Payload :
  *

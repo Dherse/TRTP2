@@ -36,6 +36,9 @@ typedef enum Errors {
     STR2INT_UNDERFLOW,
     STR2INT_NOT_END,
 
+    FAILED_TO_INIT_MUTEX,
+    FAILED_TO_INIT_COND,
+
     UNKNOWN
 
 } errors_t;

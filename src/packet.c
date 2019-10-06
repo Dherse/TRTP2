@@ -13,11 +13,13 @@ int allocate_void(void *data, size_t length) {
         return -1;
     }
 
-    data = calloc(1, length);
-    if (data == NULL) {
+    void *d = calloc(1, length);
+    if (d == NULL) {
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
+    data = d;
 
     return 0;
 }
@@ -36,7 +38,21 @@ int deallocate_void(void *data) {
  * Refer to headers/packet.h
  */
 int alloc_packet(packet_t* packet) {
-    return allocate_void((void *) packet, sizeof(packet_t));
+    packet_t* temp = calloc(1, sizeof(packet_t));
+    if (temp == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return -1;
+    }
+
+    *packet = *temp;
+
+    packet->payload = calloc(512, sizeof(uint8_t));
+    if (packet->payload == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return -1;
+    }
+
+    return 0;
 }
 
 /*
