@@ -155,23 +155,23 @@ void unlock(node_t* node);
  * The main area where a collide could happen is in the interval 240 -> 16.
  * Here are the LSB of each of those 32 values :
  * 
- *  |Decimal |  LSBs  || Decimal |    LSBs  ||	Conflict ? |
- *  |    240 |  10000 ||       0 |    00000 ||	FALSE      |
- *  |    241 |  10001 ||       1 | 	  00001 ||	FALSE      |
- *  |    242 |	10010 ||       2 |    00010 ||	FALSE      |
- *  |    243 |	10011 ||       3 |    00011 ||	FALSE      |
- *  |    244 |	10100 ||       4 |    00100 ||	FALSE      |
- *  |    245 |	10101 ||       5 |    00101 ||	FALSE      |
- *  |    246 |	10110 ||       6 |    00110 ||	FALSE      |
- *  |    247 |	10111 ||       7 |    00111 ||	FALSE      |
- *  |    248 |	11000 ||       8 |    01000 ||	FALSE      |
- *  |    249 |	11001 ||       9 |    01001 ||	FALSE      |
- *  |    250 |	11010 ||      10 |    01010 ||	FALSE      |
- *  |    251 |	11011 ||      11 |    01011 ||	FALSE      |
- *  |    252 |	11100 ||      12 |    01100 ||	FALSE      |
- *  |    253 |	11101 ||      13 |    01101 ||	FALSE      |
- *  |    254 |	11110 ||	  14 |    01110 ||	FALSE      |
- *  |    255 |	11111 ||      15 |    01111 ||	FALSE      |
+ *  |Decimal |  LSBs  || Decimal |    LSBs  ||  Conflict ? |
+ *  |    240 |  10000 ||       0 |    00000 ||  FALSE      |
+ *  |    241 |  10001 ||       1 |    00001 ||  FALSE      |
+ *  |    242 |  10010 ||       2 |    00010 ||  FALSE      |
+ *  |    243 |  10011 ||       3 |    00011 ||  FALSE      |
+ *  |    244 |  10100 ||       4 |    00100 ||  FALSE      |
+ *  |    245 |  10101 ||       5 |    00101 ||  FALSE      |
+ *  |    246 |  10110 ||       6 |    00110 ||  FALSE      |
+ *  |    247 |  10111 ||       7 |    00111 ||  FALSE      |
+ *  |    248 |  11000 ||       8 |    01000 ||  FALSE      |
+ *  |    249 |  11001 ||       9 |    01001 ||  FALSE      |
+ *  |    250 |  11010 ||      10 |    01010 ||  FALSE      |
+ *  |    251 |  11011 ||      11 |    01011 ||  FALSE      |
+ *  |    252 |  11100 ||      12 |    01100 ||  FALSE      |
+ *  |    253 |  11101 ||      13 |    01101 ||  FALSE      |
+ *  |    254 |  11110 ||      14 |    01110 ||  FALSE      |
+ *  |    255 |  11111 ||      15 |    01111 ||  FALSE      |
  * 
  * It's easy to extend this test (in Excel for example) to
  * any group of 32 consecutive binary numbers. Since out-of-order
