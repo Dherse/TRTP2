@@ -8,6 +8,9 @@ inline uint16_t ht_hash(ht_t *table, uint16_t port) {
     return port % table->size;
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 int allocate_ht(ht_t *table) {
     ht_t *temp = calloc(1, sizeof(ht_t));
     if (temp == NULL) {
@@ -30,6 +33,9 @@ int allocate_ht(ht_t *table) {
     return 0;
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 int dealloc_ht(ht_t *table) {
     if (table == NULL) {
         errno = ALREADY_DEALLOCATED;
@@ -53,6 +59,9 @@ int dealloc_ht(ht_t *table) {
     return 0;
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 bool ht_contains(ht_t* table, uint16_t port) {
     uint16_t index = ht_hash(table, port);
     while(table->items[index].used) {
@@ -66,6 +75,9 @@ bool ht_contains(ht_t* table, uint16_t port) {
     return false;
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 rcv_cfg_t *ht_get(ht_t *table, uint16_t port) {
     uint16_t index = ht_hash(table, port);
     while(table->items[index].used) {
@@ -79,6 +91,9 @@ rcv_cfg_t *ht_get(ht_t *table, uint16_t port) {
     return NULL;
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item) {
     if (table->length > (table->size / 2)) {
         if (ht_resize(table, table->size * 2) != 0) {
@@ -113,10 +128,16 @@ rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item) {
     return old;
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 rcv_cfg_t *ht_remove(ht_t *table, uint16_t port) {
     return ht_put(table, port, NULL);
 }
 
+/*
+ * Refer to headers/hash_table.h
+ */
 int ht_resize(ht_t *table, size_t new_size) {
     item_t *old_values = table->items;
     size_t old_size = table->size;
@@ -141,6 +162,9 @@ int ht_resize(ht_t *table, size_t new_size) {
     return 0;
 }
 
-size_t length(ht_t *table) {
+/*
+ * Refer to headers/hash_table.h
+ */
+size_t ht_length(ht_t *table) {
     return table->length;
 }

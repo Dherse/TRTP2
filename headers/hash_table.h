@@ -259,6 +259,6 @@ int ht_resize(ht_t *table, size_t new_size);
  * the number of elements in the hash table
  * 
  */
-size_t length(ht_t *table);
+size_t ht_length(ht_t *table);
 
 #endif
