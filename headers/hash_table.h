@@ -63,9 +63,9 @@ typedef struct item {
  * ## Linear probing
  * 
  * The idea behind linear probing is simple, after computing
- * the hash of the index we're trying to insert, we try to
- * insert it at that index in the array. If there is already
- * a value at that index we move over by one until
+ * the hash of the key we're trying to insert, we try to
+ * insert the value at that index in the array. If there is 
+ * already a value at that index we move over by one until
  * we find an empty space.
  * 
  * And for reading, we repeat this process: we compute the
@@ -88,8 +88,7 @@ typedef struct item {
  * of our implementation.
  * 
  * The spatial complexity of this method is O(N) which is
- * also good as it avoid having to create a 65k long array
- * to do port lookup.
+ * also good.
  * 
  * ## For anybody still reading
  * 
