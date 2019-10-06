@@ -41,7 +41,7 @@ node_t *next(buf_t *buffer) {
      * The reason why there is no deadlock is because pthread_cond_wait unlocks
      * the mutex before going to sleep!
      */
-    if (node->used) {
+    while (node->used) {
         pthread_cond_wait(node->notifier, node->lock);
     }
 
@@ -87,12 +87,12 @@ node_t *peak_n(buf_t *buffer, uint8_t increment, bool wait, bool inc) {
 
     pthread_mutex_lock(node->lock);
 
-    if (!node->used) {
-        if (wait) {
+    if (wait) {
+        while(!node->used) {
             pthread_cond_wait(node->notifier, node->lock);
-        } else {
-            return NULL;
         }
+    } else if (!node->used) {
+        return NULL;
     }
 
     node->used = false;
