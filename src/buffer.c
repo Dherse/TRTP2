@@ -131,6 +131,8 @@ int allocate_buffer(buf_t *buffer) {
 
     *buffer = *temp;
 
+    free(temp);
+
     buffer->last_read = 0;
     buffer->last_written = 0;
 

@@ -46,6 +46,8 @@ int alloc_packet(packet_t* packet) {
 
     *packet = *temp;
 
+    free(temp);
+
     packet->payload = calloc(512, sizeof(uint8_t));
     if (packet->payload == NULL) {
         errno = FAILED_TO_ALLOCATE;
