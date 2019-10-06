@@ -1,4 +1,12 @@
+/**
+ * /!\ IMPLEMENTATION VALIDATED
+ * 
+ * The implementation has been fully tested and results
+ * in complete memory cleanup and no memory leak!
+ */
+
 #include "../headers/buffer.h"
+#include "../headers/packet.h"
 #include "../headers/errors.h"
 #include <pthread.h>
 #include <errno.h>
@@ -122,7 +130,7 @@ void unlock(node_t* node) {
 /*
  * Refer to headers/buffer.h
  */
-int allocate_buffer(buf_t *buffer) {
+int allocate_buffer(buf_t *buffer, size_t size) {
     buf_t *temp = (buf_t *) malloc(sizeof(buf_t));
     if(temp == NULL) {
         errno = FAILED_TO_ALLOCATE;
@@ -186,8 +194,8 @@ int allocate_buffer(buf_t *buffer) {
             return -1;
         }
 
-        buffer->nodes[i].packet = malloc(sizeof(packet_t));
-        if(buffer->nodes[i].packet == NULL || alloc_packet(buffer->nodes[i].packet) != 0) {
+        buffer->nodes[i].value = malloc(size);
+        if(buffer->nodes[i].value == NULL) {
             pthread_mutex_unlock(buffer->nodes[i].lock);
             pthread_mutex_unlock(buffer->read_lock);
             pthread_mutex_unlock(buffer->write_lock);
@@ -218,24 +226,28 @@ void deallocate_buffer(buf_t *buffer) {
 
     if (buffer->read_lock != NULL) {
         pthread_mutex_destroy(buffer->read_lock);
+        free(buffer->read_lock);
     }
 
     if (buffer->write_lock != NULL) {
         pthread_mutex_destroy(buffer->write_lock);
+        free(buffer->write_lock);
     }
 
     int i = 0;
     for (; i < MAX_WINDOW_SIZE; i++) {
-        if (buffer->nodes[i].packet != NULL) {
-            dealloc_packet(buffer->nodes[i].packet);
+        if (buffer->nodes[i].value != NULL) {
+            free(buffer->nodes[i].value);
         }
 
         if (buffer->nodes[i].lock != NULL) {
             pthread_mutex_destroy(buffer->nodes[i].lock);
+            free(buffer->nodes[i].lock);
         }
 
         if (buffer->nodes[i].notifier != NULL) {
             pthread_cond_destroy(buffer->nodes[i].notifier);
+            free(buffer->nodes[i].notifier);
         }
     }
 }

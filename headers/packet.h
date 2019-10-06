@@ -38,9 +38,11 @@ typedef struct Packet {
 
     uint32_t crc1;
 
-    uint8_t *payload;
-
     uint32_t crc2;
+
+    double received_time;
+
+    uint8_t payload[528];
 } packet_t;
 
 
@@ -95,29 +97,13 @@ int dealloc_packet(packet_t* packet);
  *
  * - `packet` - a pointer to a packet buffer
  * - `out` - a pointer to a packet
- * - `payload` - NULL or pointer to a 512 bytes long uint8_t buffer
- *
- * ## Payload :
- *
- * If the `payload` argument is non null, the payload pointer of the packet
- * will be replaced with this new pointer. If the packet already had a
- * non-null payload, it will be freed. (careful for double free)
- * 
- * If the `payload` is null, the current packet payload will be reused.
- *
- * If the current payload of the packet is also null, a new 512 bytes
- * long buffer will be allocated.
- *
- * This behaviour although a bit convoluted is designed to make it easy
- * to allocated once and reuse the same buffers and struct in order to
- * make a near allocation free code.
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int unpack(uint8_t *packet, packet_t *out, uint8_t *payload);
+int unpack(uint8_t *packet, packet_t *out);
 
 /**
  * ## Use :

@@ -8,10 +8,15 @@ void test_fill_and_empty() {
     int i = 0;
     int j = 0;
     for (j = 0; j < 256; j += 16) {
-        int alloc = allocate_buffer(&buf);
+        int alloc = allocate_buffer(&buf, sizeof(packet_t));
         CU_ASSERT(alloc == 0);
         if (alloc != 0) {
             return;
+        }
+
+        int k = 0;
+        for (k = 0; k < 32; k++) {
+            CU_ASSERT(alloc_packet((packet_t *) buf.nodes[k].value) == 0);
         }
 
         node_t *node;
@@ -19,7 +24,7 @@ void test_fill_and_empty() {
             node = next(&buf);
             CU_ASSERT(node != NULL);
 
-            node->packet->seqnum = (uint8_t) i; 
+            ((packet_t *) node->value)->seqnum = (uint8_t) i; 
 
             unlock(node);
         }
@@ -28,7 +33,7 @@ void test_fill_and_empty() {
             node_t *node = peek(&buf, false, true);
             CU_ASSERT(node != NULL);
 
-            CU_ASSERT(node->packet->seqnum == (uint8_t) i); 
+            CU_ASSERT(((packet_t *) node->value)->seqnum == (uint8_t) i); 
 
             unlock(node);
         }

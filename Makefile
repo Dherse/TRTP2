@@ -61,6 +61,7 @@ $(BIN_DIR)/%.o: $(SRC_DIR)/%.c
 
 debug: FLAGS += $(DEBUG_FLAGS)
 debug: build
+	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
 
 test: debug
 test: FLAGS += $(DEBUG_FLAGS)

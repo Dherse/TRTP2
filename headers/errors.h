@@ -42,6 +42,10 @@ typedef enum Errors {
     FAILED_TO_RESIZE,
     WRONG_SIZE,
 
+    FAILED_TO_PACK,
+    FAILED_TO_OUTPUT,
+    FAILED_TO_SEND,
+
     UNKNOWN
 
 } errors_t;

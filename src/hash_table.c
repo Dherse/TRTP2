@@ -1,5 +1,11 @@
-#include "../headers/hash_table.h"
+/**
+ * /!\ IMPLEMENTATION VALIDATED
+ * 
+ * The implementation has been fully tested and results
+ * in complete memory cleanup and no memory leak!
+ */
 
+#include "../headers/hash_table.h"
 
 /**
  * /!\ REALLY IMPORTANT, REFER TO headers/hash_table.h !
@@ -33,6 +39,15 @@ int allocate_ht(ht_t *table) {
     return 0;
 }
 
+int dealloc_items(size_t len, item_t *items) {
+    int i = 0;
+    for (; i < len; i++) {
+        if (items[i].value != NULL) {
+            deallocate_rcv_config(items[i].value);
+        }
+    }
+}
+
 /*
  * Refer to headers/hash_table.h
  */
@@ -42,19 +57,12 @@ int dealloc_ht(ht_t *table) {
         return -1;
     }
 
-    int i = 0;
-    for (; i < table->size; i++) {
-        if (table->items[i].used && table->items[i].value != NULL) {
-            deallocate_rcv_config(table->items[i].value);
-        }
-    }
+    dealloc_items(table->size, table->items);
 
     free(table->items);
 
     table->size = 0;
     table->length = 0;
-
-    free(table);
 
     return 0;
 }
@@ -154,9 +162,11 @@ int ht_resize(ht_t *table, size_t new_size) {
     for(; i < old_size; i++) {
         if (old_values[i].used) {
             ht_put(table, old_values[i].port, old_values[i].value);
+            old_values[i].value = NULL;
         }
     }
 
+    dealloc_items(old_size, old_values);
     free(old_values);
     
     return 0;

@@ -30,7 +30,7 @@ void test_ack_decoding() {
 
     packet_t packet;
 
-    CU_ASSERT(unpack((uint8_t *) &ack_packet, &packet, NULL) == 0);
+    CU_ASSERT(unpack((uint8_t *) &ack_packet, &packet) == 0);
 
     CU_ASSERT(packet.type == ACK);
     CU_ASSERT(!packet.truncated);
@@ -51,7 +51,6 @@ void test_ack_encoding() {
     packet.length = 0;
     packet.seqnum = 0b10101010;
     packet.timestamp = 0b10101010000000000101010100000000;
-    packet.payload = NULL;
     packet.crc2 = 0;
 
     uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
@@ -110,7 +109,7 @@ void test_data_decoding() {
 
     packet_t packet;
 
-    CU_ASSERT(unpack((uint8_t *) &dat_packet, &packet, NULL) == 0);
+    CU_ASSERT(unpack((uint8_t *) &dat_packet, &packet) == 0);
 
     CU_ASSERT(packet.type == DATA);
     CU_ASSERT(!packet.truncated);
@@ -177,7 +176,7 @@ void test_data_encoding() {
     packet.length = strlen(str) + 1;
     packet.seqnum = 0b10101010;
     packet.timestamp = 0b10101010000000000101010100000000;
-    packet.payload = (uint8_t *) str;
+    memcpy(&packet.payload, (uint8_t *) str, strlen(str));
     packet.crc2 = crc2;
 
     uint8_t *packed = malloc(sizeof(uint8_t) * 1024);

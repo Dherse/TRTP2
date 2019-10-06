@@ -4,6 +4,7 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <zlib.h>
+#include <time.h>
 #include "../headers/packet.h"
 #include "../headers/errors.h"
 
@@ -47,13 +48,6 @@ int alloc_packet(packet_t* packet) {
     *packet = *temp;
 
     free(temp);
-
-    packet->payload = calloc(512, sizeof(uint8_t));
-    if (packet->payload == NULL) {
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
     return 0;
 }
 
@@ -61,19 +55,13 @@ int alloc_packet(packet_t* packet) {
  * Refer to headers/packet.h
  */
 int dealloc_packet(packet_t* packet) {
-    if (packet->payload == NULL) {
-        if (deallocate_void((void *) packet->payload) == -1) {
-            return -1;
-        }
-    }
-
     return deallocate_void((void *) packet);
 }
 
 /*
  * Refer to headers/packet.h
  */
-int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
+int unpack(uint8_t *packet, packet_t *out) {
     uint8_t *raw = packet;
 
     uint8_t *header = packet++;
@@ -102,23 +90,8 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
     out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
     out->crc1 = ntohl(out->crc1);
 
-    if (payload != NULL) {
-        if (out->payload != NULL) {
-            free(out->payload);
-        }
-        out->payload = payload;
-    }
-
     if (out->type == DATA && !out->truncated) {
-        if(out->payload == NULL) {
-            out->payload = calloc(sizeof(uint8_t), 512);
-            if (out->payload == NULL) {
-                errno = FAILED_TO_ALLOCATE;
-                return -1;
-            }
-        }
-
-        if (out->payload != memcpy(out->payload, packet, out->length)) {
+        if (&out->payload != memcpy(&out->payload, packet, out->length)) {
             errno = FAILED_TO_COPY;
             return -1;
         }
@@ -162,6 +135,8 @@ int unpack(uint8_t *packet, packet_t *out, uint8_t *payload) {
             return -1;
         }
     }
+
+    out->received_time = ((double) clock()) / CLOCKS_PER_SEC;
 
     return 0;
 }
@@ -210,8 +185,8 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     (*packet++) = (uint8_t) (crc1 >> 16);
     (*packet++) = (uint8_t) (crc1 >> 24);
 
-    if (in->payload != NULL && !in->truncated && in->type == DATA) {
-        if (packet != memcpy(packet, in->payload, in->length)) {
+    if (!in->truncated && in->type == DATA) {
+        if (packet != memcpy(packet, &in->payload, in->length)) {
             errno = FAILED_TO_COPY;
             return -1;
         }
@@ -219,7 +194,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 
         uint32_t crc2 = ntohl(in->crc2);
         if (recompute_crc2) {
-            crc2 = htonl(crc32(0, (void *) in->payload, in->length));
+            crc2 = htonl(crc32(0, (void *) &in->payload, in->length));
         }
 
         (*packet++) = (uint8_t) (crc2);
@@ -266,15 +241,18 @@ int packet_to_string(const packet_t* packet){
     printf("type : %s\n truncated : %s\n window : %u\n length is %s long\n length : %u\n seqnum : %u\n timestamp : %u\n",
      s_type, s_trun, packet->window, s_longlength, packet->length, packet->seqnum, packet->timestamp);
 
-    uint8_t* msg = packet->payload;
-    for(uint i = 0; i < packet->length ; i= i + 4) {
+    for(uint16_t i = 0; i < packet->length ; i= i + 4) {
         printf(
             "%02x %02x %02x %02x | %c %c %c %c\n", 
-            *msg, *(msg + 1), *(msg + 2), *(msg + 3), 
-            (char) *msg, (char) *(msg + 1), (char) *(msg + 2), (char) *(msg + 3)
+            packet->payload[i], 
+            packet->payload[i + 1], 
+            packet->payload[i + 2], 
+            packet->payload[i + 3], 
+            (char) packet->payload[i], 
+            (char) packet->payload[i + 1], 
+            (char) packet->payload[i + 2], 
+            (char) packet->payload[i + 3]
         );
-
-        msg += 4;
     }
 
     return 0;

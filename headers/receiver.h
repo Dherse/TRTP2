@@ -1,29 +1,23 @@
 #include "../headers/global.h"
 
-typedef struct receive_common {
-    /** signifies the threads have to stop */
-    bool stop;
+typedef struct receive_config {
+    pthread_t *handle_thread;
 
-    buf_t *buffer;
+    bool running;
 
-    uint8_t sender_window;
+    buf_t buf;
 
-    pthread_mutex_t *window_lock;
+    int out;
 
     struct sockaddr *clt_addr;
-} rcv_common_t;
 
-typedef struct receive_config {
-    rcv_common_t *common;
+    int socket_fd;
 } rcv_cfg_t;
 
-void *socket_receive_loop(void *);
+void *recv_loop(void *);
 
-typedef struct writeback_config {
-    rcv_common_t *common;
-} wb_cfg_t;
+void *handle_loop(void *);
 
-void socket_writeback_loop(void *);
 
 int deallocate_rcv_config(rcv_cfg_t *cfg);
 

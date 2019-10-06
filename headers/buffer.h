@@ -2,14 +2,20 @@
 
 #define BUFFER_H
 
-#define MAX_WINDOW_SIZE 32
+#include "../headers/packet.h"
+#include "../headers/errors.h"
 
-#include "packet.h"
+#include <pthread.h>
+#include <errno.h>
+#include <stdio.h>
 #include <pthread.h>
 #include <stdlib.h>
+#include <stdint.h>
+
+#define MAX_WINDOW_SIZE 32
 
 typedef struct node {
-    packet_t *packet;
+    void *value;
 
     bool used;
 
@@ -38,14 +44,15 @@ typedef struct buf {
  * 
  * ## Arguments :
  *
- * - `buffer` - a pointer to an already-allocated buffer
+ * - `buffer`  - a pointer to an already-allocated buffer
+ * - `element` - the size of each element given by sizeof
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocate_buffer(buf_t *buffer);
+int allocate_buffer(buf_t *buffer, size_t element);
 
 /**
  * ## Use :
