@@ -180,8 +180,6 @@ void test_data_encoding() {
     packet.payload = (uint8_t *) str;
     packet.crc2 = crc2;
 
-    packet_to_string(&packet);
-
     uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
     CU_ASSERT(pack(packed, &packet, false) == 0);
 
