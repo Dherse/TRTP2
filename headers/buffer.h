@@ -79,7 +79,7 @@ node_t *next(buf_t *buffer);
 /**
  * ## Use :
  * 
- * Peaks the next readable element in the buffer
+ * Peeks the next readable element in the buffer
  * 
  * ## Arguments :
  *
@@ -97,7 +97,7 @@ node_t *peek(buf_t *buffer, bool wait, bool inc);
 /**
  * ## Use :
  * 
- * Peaks the nth readable element in the buffer. 
+ * Peeks the nth readable element in the buffer. 
  * Starting from 0.
  * 
  * ## Arguments :

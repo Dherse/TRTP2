@@ -52,7 +52,7 @@ node_t *next(buf_t *buffer) {
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->write_lock);
 
-    /* We notify any peak waiting that it is available*/
+    /* We notify any peek waiting that it is available*/
     pthread_cond_signal(node->notifier);
 
     return node;
@@ -62,7 +62,7 @@ node_t *next(buf_t *buffer) {
  * Refer to headers/buffer.h
  */
 node_t *peek(buf_t *buffer, bool wait, bool inc) {
-    return peak_n(buffer, 0, wait, inc);
+    return peek_n(buffer, 0, wait, inc);
 }
 
 /*
