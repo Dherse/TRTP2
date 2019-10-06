@@ -79,7 +79,7 @@ node_t *next(buf_t *buffer);
 /**
  * ## Use :
  * 
- * Peaks the next readable element in the buffer
+ * Peeks the next readable element in the buffer
  * 
  * ## Arguments :
  *
@@ -92,12 +92,12 @@ node_t *next(buf_t *buffer);
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
-node_t *peak(buf_t *buffer, bool wait, bool inc);
+node_t *peek(buf_t *buffer, bool wait, bool inc);
 
 /**
  * ## Use :
  * 
- * Peaks the nth readable element in the buffer. 
+ * Peeks the nth readable element in the buffer. 
  * Starting from 0.
  * 
  * ## Arguments :
@@ -112,7 +112,7 @@ node_t *peak(buf_t *buffer, bool wait, bool inc);
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
-node_t *peak_n(buf_t *buffer, uint8_t increment, bool wait, bool inc);
+node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc);
 
 /**
  * ## Use :
@@ -156,21 +156,21 @@ void unlock(node_t* node);
  * Here are the LSB of each of those 32 values :
  * 
  *  |Decimal |  LSBs  || Decimal |    LSBs  ||	Conflict ? |
- *  |    240 |  11110 ||       0 |    00000 ||	FALSE      |
- *  |    241 |  11110 ||       1 | 	  00001 ||	FALSE      |
- *  |    242 |	11110 ||       2 |    00010 ||	FALSE      |
- *  |    243 |	11110 ||       3 |    00011 ||	FALSE      |
- *  |    244 |	11110 ||       4 |    00100 ||	FALSE      |
- *  |    245 |	11110 ||       5 |    00101 ||	FALSE      |
- *  |    246 |	11110 ||       6 |    00110 ||	FALSE      |
- *  |    247 |	11110 ||       7 |    00111 ||	FALSE      |
- *  |    248 |	11111 ||       8 |    01000 ||	FALSE      |
- *  |    249 |	11111 ||       9 |    01001 ||	FALSE      |
- *  |    250 |	11111 ||      10 |    01010 ||	FALSE      |
- *  |    251 |	11111 ||      11 |    01011 ||	FALSE      |
- *  |    252 |	11111 ||      12 |    01100 ||	FALSE      |
- *  |    253 |	11111 ||      13 |    01101 ||	FALSE      |
- *  |    254 |	11111 ||	  14 |    01110 ||	FALSE      |
+ *  |    240 |  10000 ||       0 |    00000 ||	FALSE      |
+ *  |    241 |  10001 ||       1 | 	  00001 ||	FALSE      |
+ *  |    242 |	10010 ||       2 |    00010 ||	FALSE      |
+ *  |    243 |	10011 ||       3 |    00011 ||	FALSE      |
+ *  |    244 |	10100 ||       4 |    00100 ||	FALSE      |
+ *  |    245 |	10101 ||       5 |    00101 ||	FALSE      |
+ *  |    246 |	10110 ||       6 |    00110 ||	FALSE      |
+ *  |    247 |	10111 ||       7 |    00111 ||	FALSE      |
+ *  |    248 |	11000 ||       8 |    01000 ||	FALSE      |
+ *  |    249 |	11001 ||       9 |    01001 ||	FALSE      |
+ *  |    250 |	11010 ||      10 |    01010 ||	FALSE      |
+ *  |    251 |	11011 ||      11 |    01011 ||	FALSE      |
+ *  |    252 |	11100 ||      12 |    01100 ||	FALSE      |
+ *  |    253 |	11101 ||      13 |    01101 ||	FALSE      |
+ *  |    254 |	11110 ||	  14 |    01110 ||	FALSE      |
  *  |    255 |	11111 ||      15 |    01111 ||	FALSE      |
  * 
  * It's easy to extend this test (in Excel for example) to

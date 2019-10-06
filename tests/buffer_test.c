@@ -23,7 +23,7 @@ void test_fill_and_empty() {
         }
 
         for (i = j; i < j + 32; i++) {
-            node_t *node = peak(&buf, false, true);
+            node_t *node = peek(&buf, false, true);
             CU_ASSERT(node != NULL);
 
             CU_ASSERT(node->packet->seqnum == (uint8_t) i); 
