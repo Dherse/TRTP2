@@ -1,16 +1,5 @@
 #include "../headers/cli.h"
-
-#include <ctype.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <regex.h>
-#include <limits.h>
-#include <sys/socket.h>
-#include <netdb.h>
-#include <arpa/inet.h>
-#include <string.h>
-
+#include "../headers/global.h"
 
 /**
  * ## Use :

@@ -1,6 +1,29 @@
-#include <sys/types.h>          
-#include <sys/socket.h>
-#include "../headers/packet.h"
+#include "../headers/global.h"
+
+typedef struct receive_common {
+    /** signifies the threads have to stop */
+    bool stop;
+
+    buf_t *buffer;
+
+    uint8_t sender_window;
+
+    pthread_mutex_t *window_lock;
+
+    struct sockaddr *clt_addr;
+} rcv_common_t;
+
+typedef struct receive_config {
+    rcv_common_t *common;
+} rcv_cfg_t;
+
+void socket_receive_loop(void *);
+
+typedef struct writeback_config {
+    rcv_common_t *common;
+} wb_cfg_t;
+
+void socket_writeback_loop(void *);
 
 /**
  * ## Use :
