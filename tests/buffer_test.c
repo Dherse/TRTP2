@@ -13,7 +13,7 @@ void test_fill_and_empty() {
         }
 
         node_t *node;
-        for (i = j; i < j + 31; i++) {
+        for (i = j; i < j + 32; i++) {
             node = next(&buf);
             CU_ASSERT(node != NULL);
 
@@ -22,7 +22,7 @@ void test_fill_and_empty() {
             unlock(node);
         }
 
-        for (i = j; i < j + 31; i++) {
+        for (i = j; i < j + 32; i++) {
             node_t *node = peak(&buf, false, true);
             CU_ASSERT(node != NULL);
 
