@@ -41,7 +41,7 @@ int receive_ack(int sock, packet_t *packet, uint8_t *buf) {
         return -1;
     }
 
-    if(unpack(buf, packet, NULL) == -1) {
+    if(unpack(buf, packet) == -1) {
         return -1;
     }
 
