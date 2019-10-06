@@ -6,6 +6,17 @@
 #include "../headers/receiver.h"
 #include "../headers/packet.h"
 
+void *socket_receive_loop(void *params) {
+    rcv_cfg_t *config = (rcv_cfg_t *) params;
+
+
+    return NULL;
+}
+
+int deallocate_rcv_config(rcv_cfg_t *cfg) {
+    return -1;
+}
+
 int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen){
     int sock = socket(AF_INET6, SOCK_DGRAM,0);
     if(sock < 0){ //errno handeled by socket

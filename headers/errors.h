@@ -39,6 +39,9 @@ typedef enum Errors {
     FAILED_TO_INIT_MUTEX,
     FAILED_TO_INIT_COND,
 
+    FAILED_TO_RESIZE,
+    WRONG_SIZE,
+
     UNKNOWN
 
 } errors_t;

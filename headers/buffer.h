@@ -55,7 +55,7 @@ int allocate_buffer(buf_t *buffer);
  * ## Arguments :
  *
  * - `buffer` - a pointer to an already-allocated buffer.
- *  The buffer does not have to be initialized fully!
+ *  The buffer does not have to be fully initialized!
  *
  */
 void deallocate_buffer(buf_t *buffer);
