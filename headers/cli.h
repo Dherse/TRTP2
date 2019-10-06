@@ -13,7 +13,7 @@
  * Contains a receiver configuration.
  * 
  */
-typedef struct config {
+typedef struct config_receiver {
     size_t format_len;
     char *format;
 
@@ -21,8 +21,17 @@ typedef struct config {
 
     struct addrinfo *addr_info;
     uint16_t port;    
-} config_t;
+} config_rcv_t;
 
-int parse(int argc, char *argv[], config_t *config);
+typedef struct config_sender {
+    char *filename;
+
+    struct addrinfo *addr_info;
+    uint16_t port;    
+} config_snd_t;
+
+int parse_receiver(int argc, char *argv[], config_rcv_t *config);
+
+int parse_sender(int argc, char *argv[], config_snd_t *config);
 
 #endif

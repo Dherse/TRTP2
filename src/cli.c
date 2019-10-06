@@ -81,7 +81,92 @@ void* get_socket_addr(const struct sockaddr *sa) {
     return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }
 
-int parse(int argc, char *argv[], config_t *config) {
+int parse_sender(int argc, char *argv[], config_snd_t *config) {
+    int c;
+
+    char *f = NULL;
+    char *ip = NULL;
+    char *port = NULL;
+
+    /* format and concurrent connection parameters */
+
+    optind = 0;
+    while((c = getopt(argc, argv, ":f:")) != -1) {
+        switch(c) {
+            case 'f':
+                f = optarg;
+                break;
+
+            case ':':
+                errno = CLI_O_VALUE_MISSING;
+                return -1;
+
+            case '?':
+            default:
+                errno = CLI_UNKNOWN_OPTION;
+                return -1;
+        }
+    }
+
+    /* IP and port parameters */
+
+    if (optind < argc) {
+        ip = argv[optind++];
+    } else {
+        errno = CLI_IP_MISSING;
+        return -1;
+    }
+
+    if (optind < argc) {
+        port = argv[optind++];
+    } else {
+        errno = CLI_PORT_MISSING;
+        return -1;
+    }
+
+    if (optind < argc) {
+        errno = CLI_TOO_MANY_ARGUMENTS;
+        return -1;
+    }
+
+    config->filename = f;
+    /* port number validation */
+
+    int port_number;
+    if (str2int(&port_number, port, 10) == -1 || port_number < 0 || port_number > 49151) {
+        errno = CLI_PORT_INVALID;
+        return -1;
+    }
+
+    config->port = (uint16_t) port_number;
+
+    /* IPv6 validation */
+
+    struct addrinfo hints, *infoptr;
+
+    memset(&hints, 0, sizeof(struct addrinfo));
+    hints.ai_family = AF_INET6;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    int result = getaddrinfo(ip, port, &hints, &infoptr);
+    if (result) {
+        errno = CLI_IP_INVALID;
+
+        return -1;
+    }
+
+    struct addrinfo *addrIt;
+    for (addrIt = infoptr; addrIt != NULL; addrIt = addrIt->ai_next) {
+        char ipAddr[INET6_ADDRSTRLEN];
+        inet_ntop(addrIt->ai_family, get_socket_addr(addrIt->ai_addr), ipAddr, sizeof ipAddr); 
+    }
+    
+    config->addr_info = addrIt;
+
+    return 0;
+}
+
+int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     int c;
 
     char *m = "0";

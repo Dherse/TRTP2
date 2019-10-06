@@ -3,14 +3,14 @@
 #include "../headers/cli.h"
 
 void test_cli_noopt() {
-    config_t config;
+    config_rcv_t config;
 
     char *p_1 = "trtp_receiver";
     char *p0 = "::1";
     char *p1 = "1234";
     char *params[] = { p_1, p0, p1 };
 
-    CU_ASSERT(parse(3, params, &config) == 0);
+    CU_ASSERT(parse_receiver(3, params, &config) == 0);
     CU_ASSERT(config.format_len == 2);
     CU_ASSERT(strcmp(config.format, "%d") == 0);
     CU_ASSERT(config.max_connections == 0);
@@ -18,7 +18,7 @@ void test_cli_noopt() {
 }
 
 void test_cli_all_opt() {
-    config_t config;
+    config_rcv_t config;
 
     char *p_1 = "trtp_receiver";
     char *p0 = "-m";
@@ -29,7 +29,7 @@ void test_cli_all_opt() {
     char *p5 = "1234";
     char *params[] = { p_1, p0, p1, p2, p3, p4, p5};
 
-    CU_ASSERT(parse(7, params, &config) == 0);
+    CU_ASSERT(parse_receiver(7, params, &config) == 0);
     CU_ASSERT(strcmp(config.format, "my_file_with_space_%d") == 0);
     CU_ASSERT(config.max_connections == 128);
     CU_ASSERT(config.port == 1234);
