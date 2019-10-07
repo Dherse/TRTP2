@@ -4,6 +4,7 @@
 #include "cli_test.c"
 #include "buffer_test.c"
 #include "ht_test.c"
+#include "stream_test.c"
 
 int main() {
     if (CUE_SUCCESS != CU_initialize_registry()) {
@@ -19,6 +20,8 @@ int main() {
     add_buffer_tests();
 
     add_ht_tests();
+
+    add_stream_tests();
 
     CU_basic_run_tests();
 

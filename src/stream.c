@@ -83,7 +83,10 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
         stream->head = node;
     }
 
-    node->next = stream->tail;
+    if (stream->tail != NULL) {
+        stream->tail->next = node;
+    }
+
     stream->tail = node;
     stream->length++;
 
@@ -109,6 +112,7 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
     s_node_t *next = head->next;
     
     stream->head = next;
+    stream->length--;
 
     if (next == NULL) {
         stream->tail = NULL;
