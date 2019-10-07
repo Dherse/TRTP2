@@ -1,3 +1,9 @@
+/**
+ * /!\ IMPLEMENTATION VALIDATED
+ * 
+ * The implementation has been fully tested and results
+ * in complete memory cleanup and no memory leak!
+ */
 #include "../headers/stream.h"
 
 int allocate_stream(stream_t *stream, size_t max_len) {
