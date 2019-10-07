@@ -68,7 +68,7 @@ int dealloc_stream(stream_t *stream) {
     return 0;
 }
 
-bool stream_enqueue(stream_t *stream, s_node_t *snode, bool wait) {
+bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     pthread_mutex_lock(stream->lock);
 
     while(stream->length >= stream->max_length) {
@@ -80,11 +80,11 @@ bool stream_enqueue(stream_t *stream, s_node_t *snode, bool wait) {
     }
 
     if (stream->head == NULL) {
-        stream->head = snode;
+        stream->head = node;
     }
 
-    snode->next = stream->tail;
-    stream->tail = snode;
+    node->next = stream->tail;
+    stream->tail = node;
     stream->length++;
 
     pthread_cond_signal(stream->read_cond);

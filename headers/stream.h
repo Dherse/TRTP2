@@ -26,6 +26,6 @@ int allocate_stream(stream_t *stream, size_t max_len);
 
 int dealloc_stream(stream_t *stream);
 
-bool stream_enqueue(stream_t *stream, s_node_t *snode, bool wait);
+bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
 
 s_node_t *stream_pop(stream_t *stream, bool wait);

@@ -23,8 +23,8 @@ OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(BIN_DIR)/%.o, $(SRC))
 TESTS = $(TEST_DIR)/tests.c
 TEST_OBJECTS = $(patsubst $(TEST_DIR)/%.c, $(BIN_DIR)/%.o, $(TESTS))
 
-BIN = $(wildcard $(BIN_DIR)/*.o)
-BIN_TEST = $(filter-out $(BIN_DIR)/main.o,$(wildcard $(BIN_DIR)/*.o))
+BIN = $(filter-out $(BIN_DIR)/tests.o, $(wildcard $(BIN_DIR)/*.o))
+BIN_DEBUG = $(filter-out $(BIN_DIR)/main.o,$(wildcard $(BIN_DIR)/*.o))
 BIN_DEL = $(filter-out $(BIN_DIR)/.gitkeep, $(wildcard $(BIN_DIR)/*))
 
 LDFLAGS = -lz -lpthread
@@ -67,7 +67,8 @@ test: debug
 test: FLAGS += $(DEBUG_FLAGS)
 test: LDFLAGS += -lcunit
 test: $(TEST_OBJECTS)
-	$(GCC) $(FLAGS) $(BIN_TEST) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
+	@echo 'debug: $(BIN_DEBUG)'
+	$(GCC) $(FLAGS) $(BIN_DEBUG) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
 	$(BIN_DIR)/$(TEST)
 
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
