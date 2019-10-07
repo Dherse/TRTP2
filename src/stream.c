@@ -39,9 +39,9 @@ int allocate_stream(stream_t *stream, size_t max_len) {
 }
 
 int dealloc_stream(stream_t *stream) {
-    snode_t *node = stream->head;
+    s_node_t *node = stream->head;
     while (node != NULL) {
-        snode_t *old = node;
+        s_node_t *old = node;
         node = node->next;
         if (old->content != NULL) {
             free(old->content);
@@ -68,7 +68,7 @@ int dealloc_stream(stream_t *stream) {
     return 0;
 }
 
-bool stream_enqueue(stream_t *stream, snode_t *snode, bool wait) {
+bool stream_enqueue(stream_t *stream, s_node_t *snode, bool wait) {
     pthread_mutex_lock(stream->lock);
 
     while(stream->length >= stream->max_length) {
@@ -94,7 +94,7 @@ bool stream_enqueue(stream_t *stream, snode_t *snode, bool wait) {
     return true;
 }
 
-snode_t *stream_pop(stream_t *stream, bool wait) {
+s_node_t *stream_pop(stream_t *stream, bool wait) {
     pthread_mutex_lock(stream->lock);
 
     while (stream->length == 0 || stream->head == NULL) {
@@ -105,8 +105,8 @@ snode_t *stream_pop(stream_t *stream, bool wait) {
         pthread_cond_wait(stream->read_cond, stream->lock);
     }
 
-    snode_t *head = stream->head;
-    snode_t *next = head->next;
+    s_node_t *head = stream->head;
+    s_node_t *next = head->next;
     
     stream->head = next;
 

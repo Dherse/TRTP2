@@ -1,19 +1,19 @@
 #include "global.h"
 
-typedef struct snode {
+typedef struct s_node {
     void *content;
 
-    struct snode *next;
-} snode_t;
+    struct s_node *next;
+} s_node_t;
 
 typedef struct stream {
     size_t max_length;
 
     size_t length;
 
-    snode_t *head;
+    s_node_t *head;
 
-    snode_t *tail;
+    s_node_t *tail;
 
     pthread_mutex_t *lock;
 
@@ -26,6 +26,6 @@ int allocate_stream(stream_t *stream, size_t max_len);
 
 int dealloc_stream(stream_t *stream);
 
-bool stream_enqueue(stream_t *stream, snode_t *snode, bool wait);
+bool stream_enqueue(stream_t *stream, s_node_t *snode, bool wait);
 
-snode_t *stream_pop(stream_t *stream, bool wait);
+s_node_t *stream_pop(stream_t *stream, bool wait);
