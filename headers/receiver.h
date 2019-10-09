@@ -247,14 +247,6 @@ typedef struct receive_config {
     int socket_fd;
 } rcv_cfg_t;
 
-void *recv_loop(void *);
-
-void *handle_loop(void *);
-
-
-int deallocate_rcv_config(rcv_cfg_t *cfg);
-
-
 
 /**
  * ## Use :
