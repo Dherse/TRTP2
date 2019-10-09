@@ -25,11 +25,9 @@ typedef struct node {
 } node_t;
 
 typedef struct buf {
-    uint8_t last_read;
+    uint8_t window_low;
 
     pthread_mutex_t *read_lock;
-
-    uint8_t last_written;
 
     pthread_mutex_t *write_lock;
 
@@ -76,12 +74,13 @@ void deallocate_buffer(buf_t *buffer);
  * ## Arguments :
  *
  * - `buffer` - a pointer to an already-allocated buffer
+ * - `seqnum` - the sequence number to insert
  *
  * ## Return value:
  * 
  * NULL if it failed, an initialized node otherwise
  */
-node_t *next(buf_t *buffer);
+node_t *next(buf_t *buffer, uint8_t seqnum);
 
 /**
  * ## Use :
@@ -110,16 +109,16 @@ node_t *peek(buf_t *buffer, bool wait, bool inc);
  * ## Arguments :
  *
  * - `buffer` - a pointer to an already-allocated buffer
- * - `increment` - how many steps forward (0 = 1 step forward)
- * - `wait` - whether to wait for a readable value to be available
- * - `inc` - whether to increment last_read or not
+ * - `seqnum` - the sequence number to get
+ * - `wait`   - whether to wait for a readable value to be available
+ * - `inc`    - whether to increment last_read or not
  *
  * ## Return value:
  * 
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
-node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc);
+node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
 
 /**
  * ## Use :
