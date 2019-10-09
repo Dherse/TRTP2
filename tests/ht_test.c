@@ -27,14 +27,11 @@ void test_ht_put_and_get() {
         CU_ASSERT(errno == 0);
     }
 
-    for (uint16_t i = 0; i < N; i++) {
+    for (uint16_t i = N; i > 0; i--) {
+        printf("%d\n", i);
         uint8_t *ip = calloc(16, sizeof(uint8_t));
 
-        CU_ASSERT(ht_contains(&table, i, ip));
-
-        if (!ht_contains(&table, i, ip)) {
-            printf("\n%d => %d\n", i, ht_contains(&table, i, ip));
-        }
+        CU_ASSERT(ht_contains(&table, i-1, ip));
 
         free(ip);
     }

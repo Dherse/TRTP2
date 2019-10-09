@@ -42,7 +42,7 @@ typedef struct Packet {
 
     double received_time;
 
-    uint8_t payload[528];
+    uint8_t payload[512];
 } packet_t;
 
 

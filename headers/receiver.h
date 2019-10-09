@@ -74,6 +74,34 @@ typedef struct send_thread_config {
     int sockfd;
 } tx_cfg;
 
+typedef struct handle_request {
+    /** true = the loop should stop */
+    bool stop;
+
+    /** the client port */
+    uint16_t port;
+
+    /** the client IP */
+    uint8_t ip[16];
+
+    /** length of the data read from the network */
+    int length;
+
+    /** data read from the network */
+    uint8_t buffer[528];
+} hd_req;
+
+typedef struct send_request {
+    /** true = the loop should stop */
+    bool stop;
+
+    /** the IP to send to */
+    struct addrinfo_in6 *address;
+
+    /** the packet to send */
+    packet_t to_send;
+} tx_req;
+
 /**
  * /!\ This is a THREAD definition
  * 

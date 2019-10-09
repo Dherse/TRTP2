@@ -1,3 +1,677 @@
+commit 89b3cbcd37ca62bf230b18caa42e2569101ee17b
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Wed Oct 9 23:05:33 2019 +0200
+
+    Removed superfast, improved ht
+
+ headers/hash_table.h | 52 ++++++++++++++++++++++++++++-------------------
+ headers/superfast.h  | 35 --------------------------------
+ src/hash_table.c     | 43 +++++++++++++++++++--------------------
+ src/main.c           | 32 -----------------------------
+ src/superfast.c      | 57 ----------------------------------------------------
+ tests/ht_test.c      | 20 ++++++++++--------
+ tests/stream_test.c  |  9 ++++-----
+ 7 files changed, 68 insertions(+), 180 deletions(-)
+
+commit 207b0faba465aa77701e4a3a6780d252fb0b249f
+Author: Sébastien d'Herbais de Thun <dherse@pop-os.localdomain>
+Date:   Wed Oct 9 17:16:38 2019 +0200
+
+    Added receiver specs, improved hashing, superfast
+
+ .vscode/settings.json |   6 ++
+ README.md             |  88 ++++++++++++++++-----
+ headers/buffer.h      |   4 +-
+ headers/global.h      |   3 +-
+ headers/hash_table.h  |  40 ++++++----
+ headers/receiver.h    | 211 +++++++++++++++++++++++++++++++++++++++++++++++++-
+ headers/stream.h      |   8 +-
+ headers/superfast.h   |  35 +++++++++
+ src/hash_table.c      |  75 ++++++++++--------
+ src/main.c            |  36 +++++----
+ src/stream.c          |   4 +
+ src/superfast.c       |  57 ++++++++++++++
+ tests/ht_test.c       |  18 ++++-
+ tests/stream_test.c   |   6 +-
+ 14 files changed, 494 insertions(+), 97 deletions(-)
+
+commit bade2ae3aecd155735a22bf88b6107595716d223
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Mon Oct 7 17:41:30 2019 +0200
+
+    validated as fully watertight ( no leaks =p )
+
+ src/stream.c        | 6 ++++++
+ tests/stream_test.c | 4 ++++
+ 2 files changed, 10 insertions(+)
+
+commit 404028ed8f7648d1e3cd2e186652bcadc40164c9
+Author: Sébastien d'Herbais de Thun <dherse@pop-os.localdomain>
+Date:   Mon Oct 7 16:08:22 2019 +0200
+
+    Fixed stream & added test
+
+ src/stream.c        |  6 ++++-
+ tests/stream_test.c | 69 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/tests.c       |  3 +++
+ 3 files changed, 77 insertions(+), 1 deletion(-)
+
+commit d45dea68d92c7512f3aff1eaeaef40e26b292a3b
+Author: Sébastien d'Herbais de Thun <dherse@pop-os.localdomain>
+Date:   Mon Oct 7 09:33:04 2019 +0200
+
+    Fixed tests + typo
+
+ Makefile         | 7 ++++---
+ headers/stream.h | 2 +-
+ src/stream.c     | 8 ++++----
+ 3 files changed, 9 insertions(+), 8 deletions(-)
+
+commit 4519d5e6e6edb61360b45c0188b20b808da03c55
+Author: Sébastien d'Herbais de Thun <dherse@pop-os.localdomain>
+Date:   Mon Oct 7 09:29:35 2019 +0200
+
+    fixed spelling warning
+
+ headers/stream.h | 14 +++++++-------
+ src/stream.c     | 12 ++++++------
+ 2 files changed, 13 insertions(+), 13 deletions(-)
+
+commit 6cdfd4d79b4dfac2df45b9934529064663935db5
+Author: Sébastien d'Herbais de Thun <dherse@pop-os.localdomain>
+Date:   Mon Oct 7 09:09:02 2019 +0200
+
+    Added a simple one way stream based on linked list
+
+ headers/stream.h |  31 ++++++++++++++
+ src/stream.c     | 120 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 151 insertions(+)
+
+commit 4adab67b383d37ad0576dc8645bf7e27db8f45c8
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Mon Oct 7 00:46:48 2019 +0200
+
+    Code compiles after merge now
+
+ src/sender.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit b3e0d6d022a418b1a10a038fcd3a1690b8ccc0c1
+Merge: 87defb5 416fce9
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Mon Oct 7 00:46:11 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 87defb503c61e008d949660b8a672c3fb6ad7cb8
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Mon Oct 7 00:45:52 2019 +0200
+
+    Fixed memory leaks, work on receive loop
+
+ Makefile            |   1 +
+ headers/buffer.h    |  17 +++++--
+ headers/errors.h    |   4 ++
+ headers/packet.h    |  24 ++-------
+ headers/receiver.h  |  22 +++------
+ src/buffer.c        |  22 +++++++--
+ src/hash_table.c    |  28 +++++++----
+ src/main.c          |  32 +++++++++++-
+ src/packet.c        |  56 +++++++--------------
+ src/receiver.c      | 138 ++++++++++++++++++++++++++++++++++++++++++++++++++--
+ tests/buffer_test.c |  11 +++--
+ tests/packet_test.c |   7 ++-
+ 12 files changed, 260 insertions(+), 102 deletions(-)
+
+commit 416fce9cf81fba29193b32112b187f4220685b31
+Merge: 105ce73 bbe2dd6
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sun Oct 6 20:34:14 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 105ce73690e7c5946105316b05ecd7a68c182af9
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sun Oct 6 20:34:06 2019 +0200
+
+    added some code for a sender
+
+ headers/cli.h    | 15 ++++++++--
+ headers/sender.h | 27 ++++++++++++++++++
+ src/cli.c        | 87 +++++++++++++++++++++++++++++++++++++++++++++++++++++++-
+ src/sender.c     | 49 +++++++++++++++++++++++++++++++
+ tests/cli_test.c |  8 +++---
+ 5 files changed, 178 insertions(+), 8 deletions(-)
+
+commit bbe2dd6e9b73dbf539ab4a515837f410a486035d
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 19:20:07 2019 +0200
+
+    Project cleanup + typo fixed
+
+ .gitmodules          |  0
+ README.md            | 31 +++++++++++++++++++++++--------
+ headers/hash_table.h |  9 ++++-----
+ 3 files changed, 27 insertions(+), 13 deletions(-)
+
+commit a2a33b9b08ac10a5c36d43a6b943cb526b7eea27
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 19:13:12 2019 +0200
+
+    Added missing comments
+
+ headers/hash_table.h |  2 +-
+ src/hash_table.c     | 26 +++++++++++++++++++++++++-
+ 2 files changed, 26 insertions(+), 2 deletions(-)
+
+commit 08f7f2d1116fb844912e247649af80552b16cd2d
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 18:30:55 2019 +0200
+
+    Comment cleanup (derp)
+
+ headers/buffer.h | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
+
+commit ccbdd828b87dd47d9246e17f69be0cec1d6d1383
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 18:29:52 2019 +0200
+
+    Removed tabs
+
+ headers/buffer.h | 34 +++++++++++++++++-----------------
+ 1 file changed, 17 insertions(+), 17 deletions(-)
+
+commit 36a85f27679f3d30ae52112232e74b254bf4a3bd
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 18:22:49 2019 +0200
+
+    Added hash table (for client)
+
+ headers/buffer.h     |   2 +-
+ headers/errors.h     |   3 +
+ headers/hash_table.h | 264 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ headers/receiver.h   |   6 +-
+ src/hash_table.c     | 146 ++++++++++++++++++++++++++++
+ src/receiver.c       |  11 +++
+ tests/ht_test.c      |  43 +++++++++
+ tests/tests.c        |   3 +
+ 8 files changed, 476 insertions(+), 2 deletions(-)
+
+commit 0e6fae6b6a3d79e42e434d16d6c3ea9ea6ec06b1
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 13:39:03 2019 +0200
+
+    Added missing header
+
+ tests/buffer_test.c | 2 ++
+ 1 file changed, 2 insertions(+)
+
+commit 6f1effbaef895dee6e90d4dfa9e86e70297afc35
+Merge: 99fc3db 9adedb0
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 13:34:10 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 9adedb098875fef8777cc01dffc7957c4be4384e
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sun Oct 6 13:33:49 2019 +0200
+
+    corrected the fewe 'peak' i forgot
+
+ headers/buffer.h    | 4 ++--
+ src/buffer.c        | 4 ++--
+ tests/buffer_test.c | 2 +-
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+commit 99fc3db48456ba0fcf15340c0c184ffb47230f5c
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 13:32:55 2019 +0200
+
+    small cleanup
+
+ headers/global.h   | 12 ++++++++++++
+ headers/receiver.h | 29 ++++++++++++++++++++++++++---
+ src/cli.c          | 13 +------------
+ 3 files changed, 39 insertions(+), 15 deletions(-)
+
+commit 4f9bd4b728fb6bfa34abf9e39be22385ee7e5695
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sun Oct 6 13:17:44 2019 +0200
+
+    orthograph corrections
+
+ headers/buffer.h | 4 ++--
+ src/buffer.c     | 4 ++--
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+commit 17698df3f97c2ea65b587a6b109dd53fc410b4e7
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sun Oct 6 13:07:21 2019 +0200
+
+    corected an error in the comments
+
+ headers/buffer.h | 30 +++++++++++++++---------------
+ 1 file changed, 15 insertions(+), 15 deletions(-)
+
+commit 527ace7d1237b4dfc64f9661129f613cc82cda31
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 12:13:17 2019 +0200
+
+    Fixed tiny leak
+
+ src/buffer.c | 2 ++
+ src/packet.c | 2 ++
+ 2 files changed, 4 insertions(+)
+
+commit 63aa5bbc4d3f20daab77d25c233a8eca9cec5082
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 12:11:51 2019 +0200
+
+    Slight buffer improvement
+
+ src/buffer.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+commit 8ca80c67521ee4d2370621aa6c8bc5ad0d964c16
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 03:05:06 2019 +0200
+
+    Modified test to full size
+
+ tests/buffer_test.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+commit 1184292ae2244b365a00ee9e3c9d23e831ef9418
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 02:52:43 2019 +0200
+
+    Removed to_string from packet test
+
+ tests/packet_test.c | 2 --
+ 1 file changed, 2 deletions(-)
+
+commit c5e242aa3d0487748f60058b14b5bee86e03e214
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 02:52:08 2019 +0200
+
+    Fixed packet, implemented buffer fully & tests
+
+ headers/buffer.h    | 128 +++++++++++++++++++++++------
+ headers/errors.h    |   3 +
+ headers/packet.h    |   2 +-
+ src/buffer.c        | 228 +++++++++++++++++++++++++++++++++++++++++++++++-----
+ src/packet.c        |  22 ++++-
+ tests/buffer_test.c |  36 ++++++++-
+ tests/cli_test.c    |   1 -
+ 7 files changed, 372 insertions(+), 48 deletions(-)
+
+commit 7bd856b1fe60c18387545a83632f8ce14aa2bbb6
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 01:06:19 2019 +0200
+
+    Added detailed explanation of the buffer
+
+ headers/buffer.h | 99 ++++++++++++++++++++++++++++++++++++++++++++++++--------
+ src/buffer.c     |  2 +-
+ 2 files changed, 86 insertions(+), 15 deletions(-)
+
+commit 3fe67a3e21e46baafd8cd1dcc2a013b8cde983a7
+Merge: 4b04492 3173478
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 00:38:48 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 4b04492b0d3ee6afbcb350bfcd89222dda9bcaa5
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sun Oct 6 00:38:39 2019 +0200
+
+    Started work on buffer test
+
+ tests/buffer_test.c | 20 ++++++++++++++++++++
+ tests/tests.c       |  3 +++
+ 2 files changed, 23 insertions(+)
+
+commit 317347884fdd5f4d0626e9e0c26cb58e0f7d03fa
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sun Oct 6 00:32:41 2019 +0200
+
+    code cleanup
+
+ headers/buffer.h | 4 ----
+ 1 file changed, 4 deletions(-)
+
+commit 973807b6ad6fe811a9b82f8322ed900ffd3af738
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 20:36:06 2019 +0200
+
+    code cleanup
+
+ src/buffer.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+commit 7a278fdaa08c3b4b9bd49a0ba8199b3e5a57151d
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 20:34:10 2019 +0200
+
+    started the implementation. IM DONE FOR THE DAY
+
+ headers/buffer.h | 72 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ src/buffer.c     | 47 ++++++++++++++++++++++++++++++++++++
+ 2 files changed, 119 insertions(+)
+
+commit 9ca0f81fd83d38baf32d42cc9313e058ee20a454
+Merge: 0633da1 f1936f2
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 20:32:11 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 0633da1acd2e7a2fe2e83c4761fd06e00595a00f
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 20:31:49 2019 +0200
+
+    removed an empty line
+
+ src/packet.c | 1 -
+ 1 file changed, 1 deletion(-)
+
+commit f1936f26f854bc0e6c2a200c62e23a261e19bd80
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 20:08:05 2019 +0200
+
+    Added a bit of doc
+
+ src/cli.c | 23 +++++++++++++++++++++--
+ 1 file changed, 21 insertions(+), 2 deletions(-)
+
+commit 0f4e1c24a8064cc016bf9c5ba03eb287e44814d7
+Merge: efd040f 784db1c
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 19:57:05 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit efd040f18c23a3ab3d38cd9d00378f1930bf7165
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 19:56:54 2019 +0200
+
+    Added CLI parsing & tests
+
+ headers/cli.h    |  28 ++++++++
+ headers/errors.h |  23 +++++-
+ headers/global.h |   1 +
+ src/cli.c        | 216 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ tests/cli_test.c |  58 +++++++++++++++
+ tests/tests.c    |   5 +-
+ 6 files changed, 328 insertions(+), 3 deletions(-)
+
+commit 84d6ebd166a8776ebe2492731239d2d49633a0ec
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 18:13:27 2019 +0200
+
+    corrected 'false' definition
+
+ headers/packet.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit 784db1ccff421afcb0694c2ff4e663c4f8b084ec
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 17:50:55 2019 +0200
+
+    no need for cll errors since we don't use them
+
+ headers/errors.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+commit 79a15c9921dd145664ee07827686d70b9738048a
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 17:48:59 2019 +0200
+
+    change of plans! we'll now usesomething else =D
+
+ headers/buffer.h               |   0
+ headers/circular_linked_list.h | 150 ------------------------------------
+ src/buffer.c                   |   0
+ src/circular_linked_list.c     | 169 -----------------------------------------
+ 4 files changed, 319 deletions(-)
+
+commit 3320242e28ff5269a6cdadd68a6a0a100a3a0571
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 17:46:41 2019 +0200
+
+    implemented some more functions
+
+ headers/circular_linked_list.h | 123 ++++++++++++++++-------------------
+ headers/errors.h               |   2 +
+ src/circular_linked_list.c     | 142 +++++++++++++++++++++++++++++++++--------
+ 3 files changed, 170 insertions(+), 97 deletions(-)
+
+commit 4e05091958fbaac419613dfb16b9914f3b4d95de
+Merge: 8df41bb 7e72109
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 15:10:50 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 8df41bb746a533065a0941ec7628083a1cb82463
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 15:10:41 2019 +0200
+
+    changed ' to `
+
+ headers/receiver.h | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+commit 7e7210991facc9d0a6361d47c10d0e13ae73d949
+Merge: 2c65d9a e3bd9db
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 15:06:11 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 2c65d9a16cd6e6043559593b19f94de8303809d7
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 15:06:00 2019 +0200
+
+    CLL Header ifndef added
+
+ headers/circular_linked_list.h | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+commit e3bd9db46b151065ce2b98e858996129b290c609
+Merge: 898c517 8577b15
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 15:03:13 2019 +0200
+
+    Merge branch 'master' of https://github.com/Dherse/TRTP2
+
+commit 898c517a584fd9daed8f84185164df933e188975
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 15:02:52 2019 +0200
+
+    added all function from .h to .c
+
+ src/circular_linked_list.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+commit 8577b153a66f18817bb54a6e03f00f7dff59a54f
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 15:01:09 2019 +0200
+
+    Added validation to unpack
+
+ headers/errors.h |  1 +
+ src/packet.c     | 28 +++++++++++++++++++++-------
+ 2 files changed, 22 insertions(+), 7 deletions(-)
+
+commit e84717758578ff572c41ca14303e54813d7e091c
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 14:33:05 2019 +0200
+
+    Fixed another type *derp*
+
+ src/circular_linked_list.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit f03864d1dd59e0042e9decc7ec01c7e850ae0a4b
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 14:32:44 2019 +0200
+
+    Fixed a typo
+
+ src/circular_linked_list.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit a7e7d18ec6fb941062a74f145b086a112cd4ab6b
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 14:25:44 2019 +0200
+
+    Added doc to CLL
+
+ headers/circular_linked_list.h | 130 +++++++++++++++++++++++++++++++++++++++--
+ src/circular_linked_list.c     |   3 +-
+ 2 files changed, 128 insertions(+), 5 deletions(-)
+
+commit 07f6f63b6b292c3b42d98065d8be9f8a44ec2d8e
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 14:14:45 2019 +0200
+
+    More code cleanup
+
+ headers/circular_linked_list.h | 16 ++++++++++++----
+ headers/packet.h               |  2 +-
+ src/circular_linked_list.c     | 26 +++++++++++++++-----------
+ 3 files changed, 28 insertions(+), 16 deletions(-)
+
+commit 23b44ed7b4ee3c7f71e41edbd7b916d7603cfce0
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Sat Oct 5 14:10:50 2019 +0200
+
+    Quick code cleanup
+
+ headers/circular_linked_list.h |  5 ++---
+ headers/errors.h               |  2 ++
+ src/circular_linked_list.c     | 32 ++++++++++++++++++--------------
+ 3 files changed, 22 insertions(+), 17 deletions(-)
+
+commit f7f34ffd69ee1f5eade1d66ff07d7f3c24418ec8
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Sat Oct 5 14:04:52 2019 +0200
+
+    currected bugs added circular list to store packet
+
+ headers/circular_linked_list.h | 30 ++++++++++++++++++++++
+ src/circular_linked_list.c     | 58 ++++++++++++++++++++++++++++++++++++++++++
+ src/receiver.c                 | 14 +++++-----
+ 3 files changed, 95 insertions(+), 7 deletions(-)
+
+commit 421d596392b206755f14cd9ea0aa9b196f3ab0ea
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 4 22:59:40 2019 +0200
+
+    split recv into subfunctions, added buff allocator
+
+ headers/receiver.h | 55 +++++++++++++++++++++++++++++++++++++++++++++++++---
+ src/receiver.c     | 57 ++++++++++++++++++++++++++++++++++++++++++------------
+ 2 files changed, 97 insertions(+), 15 deletions(-)
+
+commit c14769b03f046fb87a3be3d2afaa894bcc8f1a6a
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 4 16:19:26 2019 +0200
+
+    added small comments
+
+ src/receiver.c | 10 +++++-----
+ 1 file changed, 5 insertions(+), 5 deletions(-)
+
+commit f7bd133e22c86f94411e01c010b777f553547482
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 4 16:16:05 2019 +0200
+
+    added a TODO
+
+ headers/receiver.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+commit c4b92f93c8a4cb7ec1b0dff8543d0b12fbb7fbae
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 4 16:14:15 2019 +0200
+
+    added function to receive message does naught yet
+
+ headers/packet.h   |  2 +-
+ headers/receiver.h | 28 ++++++++++++++++++++++++++++
+ src/receiver.c     | 42 ++++++++++++++++++++++++++++++++++++++++++
+ src/sender.c       |  0
+ 4 files changed, 71 insertions(+), 1 deletion(-)
+
+commit 2d6f06a2596faf6f3c5a6b2227cfffe3134b797e
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Thu Oct 3 22:15:51 2019 +0200
+
+    Added packet_to_string desc, cleanup, fixed bug
+
+ headers/packet.h    | 16 ++++++++++++++-
+ src/packet.c        | 58 +++++++++++++++++++++++++++++++++++++++--------------
+ tests/packet_test.c |  2 +-
+ 3 files changed, 59 insertions(+), 17 deletions(-)
+
+commit 631e4900140fcfbfa46fda4e32032ae01047fd93
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Thu Oct 3 21:58:48 2019 +0200
+
+    added a toString function
+
+ headers/packet.h    |   2 ++
+ report.pdf          | Bin 12319 -> 21611 bytes
+ src/packet.c        |  27 +++++++++++++++++++++++++++
+ tests/packet_test.c |   2 ++
+ 4 files changed, 31 insertions(+)
+
+commit e4e2cf61686198e06bac8c32f6b12e9c1ef4fbe6
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Thu Oct 3 15:32:22 2019 +0200
+
+    Removed unused gitmodule
+
+ .gitmodules  |  3 --
+ Makefile     |  2 +-
+ src/packet.c | 93 +++++++++++++++++++++++++++---------------------------------
+ 3 files changed, 42 insertions(+), 56 deletions(-)
+
+commit dd47a3560dd4ddfe7be09a161f2d128fd339bbb2
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Thu Oct 3 13:56:16 2019 +0200
+
+    Added date encoding test
+
+ Makefile            |  3 ---
+ src/packet.c        |  1 -
+ tests/packet_test.c | 69 +++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 3 files changed, 69 insertions(+), 4 deletions(-)
+
+commit 9122a21485c438d8f3aa065c643f9aea665cde35
+Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
+Date:   Thu Oct 3 03:01:14 2019 +0200
+
+    Added mdbook for report, code cleanup
+
+ .gitmodules             |   3 ++
+ Makefile                |  16 +++++++++--
+ README.md               |  17 ++++++++++-
+ gitlog.stat             |  74 ++++++++++++++++++++++++++++++++++++++++++++++++
+ report.pdf              | Bin 0 -> 12319 bytes
+ report/.gitignore       |   1 +
+ report/book.toml        |  14 +++++++++
+ report/src/SUMMARY.md   |   3 ++
+ report/src/chapter_1.md |   1 +
+ src/packet.c            |   5 ----
+ tests/packet_test.c     |   3 --
+ 11 files changed, 126 insertions(+), 11 deletions(-)
+
 commit d90f68d4736605cc84bfcd170af3009bc389b83b
 Author: Sébastien d'Herbais <sebastien.d.herbais@gmail.com>
 Date:   Thu Oct 3 01:56:56 2019 +0200
