@@ -3,6 +3,7 @@
 
 #include "../headers/hash_table.h"
 
+
 #define N 1024
 
 void test_ht_put_and_get() {
@@ -13,16 +14,27 @@ void test_ht_put_and_get() {
         return;
     }
 
-    rcv_cfg_t cfg;
+    char *cfg = "Hello, world!";
 
     for (uint16_t i = 0; i < N; i++) {
+        char *str = malloc(sizeof(char) * (strlen(cfg) + 1));
+        strcpy(str, cfg);
+
+        uint8_t *key = malloc(sizeof(uint8_t));
+        key[0] = i & 0xFF;
+        key[1] = i >> 8;
+
         errno = 0;
-        CU_ASSERT(ht_put(&table, i, &cfg) == NULL);
+        CU_ASSERT(ht_put(&table, key, 2, str) == NULL);
         CU_ASSERT(errno == 0);
     }
 
     for (uint16_t i = 0; i < N; i++) {
-        CU_ASSERT(ht_contains(&table, i));
+        uint8_t *key = malloc(sizeof(uint8_t));
+        key[0] = i & 0xFF;
+        key[1] = i >> 8;
+
+        CU_ASSERT(ht_contains(&table, key, 2));
     }
 }
 

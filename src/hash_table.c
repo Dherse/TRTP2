@@ -10,8 +10,8 @@
 /**
  * /!\ REALLY IMPORTANT, REFER TO headers/hash_table.h !
  */
-inline uint16_t ht_hash(ht_t *table, uint16_t port) {
-    return port % table->size;
+inline uint16_t ht_hash(ht_t *table, uint8_t *key, uint8_t len) {
+    return SuperFastHash((char *) key, (int) len) % table->size;
 }
 
 /*
@@ -43,7 +43,7 @@ int dealloc_items(size_t len, item_t *items) {
     int i = 0;
     for (; i < len; i++) {
         if (items[i].value != NULL) {
-            deallocate_rcv_config(items[i].value);
+            free(items[i].value);
         }
     }
 }
@@ -70,30 +70,32 @@ int dealloc_ht(ht_t *table) {
 /*
  * Refer to headers/hash_table.h
  */
-bool ht_contains(ht_t* table, uint16_t port) {
-    uint16_t index = ht_hash(table, port);
-    while(table->items[index].used) {
-        if (table->items[index].port == port) {
-            return true;
-        }
-
-        index = ht_hash(table, index + 1);
-    }
-
-    return false;
+bool ht_contains(ht_t* table, uint8_t *key, uint8_t len) {
+    return ht_get(table, key, len) != NULL;
 }
 
 /*
  * Refer to headers/hash_table.h
  */
-rcv_cfg_t *ht_get(ht_t *table, uint16_t port) {
-    uint16_t index = ht_hash(table, port);
+void *ht_get(ht_t *table, uint8_t *key, uint8_t len) {
+    uint16_t index = ht_hash(table, key, len);
     while(table->items[index].used) {
-        if (table->items[index].port == port) {
-            return table->items[index].value;
+
+        if (table->items[index].len = len) {
+            int i = 0;
+            bool equals = true;
+            for(; i < len && equals; i++) {
+                if (table->items[index].key[i] != key[i]) {
+                    equals = false;
+                }
+            }
+
+            if (equals) {
+                return table->items[index].value;
+            }
         }
 
-        index = ht_hash(table, index + 1);
+        index = (index + 1) % table->size;
     }
 
     return NULL;
@@ -102,29 +104,40 @@ rcv_cfg_t *ht_get(ht_t *table, uint16_t port) {
 /*
  * Refer to headers/hash_table.h
  */
-rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item) {
+void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item) {
     if (table->length > (table->size / 2)) {
         if (ht_resize(table, table->size * 2) != 0) {
             errno = FAILED_TO_RESIZE;
             return NULL;
         }
 
-        return ht_put(table, port, item);
+        return ht_put(table, key, len, item);
     }
 
-    uint16_t index = ht_hash(table, port);
-    rcv_cfg_t *old = NULL;
+    uint16_t index = ht_hash(table, key, len);
+    void *old = NULL;
     while(table->items[index].used) {
-        if (table->items[index].port == port) {
-            old = table->items[index].value;
-            break;
+        if (table->items[index].len == len) {
+            int i = 0;
+            bool equals = true;
+            for(; i < len && equals; i++) {
+                if (table->items[index].key[i] != key[i]) {
+                    equals = false;
+                }
+            }
+
+            if (equals) {
+                old = table->items[index].value;
+                break;
+            }
         }
 
-        index = ht_hash(table, index + 1);
+        index = (index + 1) % table->size;
     }
 
     table->items[index].used = item != NULL;
-    table->items[index].port = port;
+    table->items[index].key = key;
+    table->items[index].len = len;
     table->items[index].value = item;
 
     if (old == NULL && table->items[index].used) {
@@ -139,8 +152,8 @@ rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item) {
 /*
  * Refer to headers/hash_table.h
  */
-rcv_cfg_t *ht_remove(ht_t *table, uint16_t port) {
-    return ht_put(table, port, NULL);
+void *ht_remove(ht_t *table, uint8_t *key, uint8_t len) {
+    return ht_put(table, key, len, NULL);
 }
 
 /*
@@ -161,7 +174,7 @@ int ht_resize(ht_t *table, size_t new_size) {
     int i = 0;
     for(; i < old_size; i++) {
         if (old_values[i].used) {
-            ht_put(table, old_values[i].port, old_values[i].value);
+            ht_put(table, old_values[i].key, old_values[i].len, old_values[i].value);
             old_values[i].value = NULL;
         }
     }

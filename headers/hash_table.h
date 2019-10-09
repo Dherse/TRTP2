@@ -3,16 +3,17 @@
 #define HT_H
 
 #include "global.h"
-#include "receiver.h"
+#include "superfast.h"
 
 #define INITIAL_SIZE 16
 
 typedef struct item {
     bool used;
 
-    uint16_t port;
+    uint8_t *key;
+    uint8_t len;
 
-    rcv_cfg_t *value;
+    void *value;
 } item_t;
 
 /**
@@ -21,11 +22,11 @@ typedef struct item {
  * ## Problem
  * 
  * After looking at the documentation, it is clear that
- * the port the client connects with is the best way to
+ * the port and IP the client connects with is the best way to
  * identify different clients. But the problem persists
  * that the port "space" ranges from 0 to 65535 (16 bits)
- * and it would be ludicrous to create a single array
- * containing all 65535 entries.
+ * and the IP space is 128 bytes long nd it would be ludicrous 
+ * to create a single array all the many **MANY** entries.
  * 
  * The goal is then to map a `uint16_t` from this range
  * to a much smaller range (the size of the array). This
@@ -34,7 +35,7 @@ typedef struct item {
  * the modulo.
  * 
  * This method simply consists as doing the modulo of the
- * port by the maximum size of the hash table. It will
+ * port and IP by the maximum size of the hash table. It will
  * then give a number in the range 0 to `size - 1` which
  * is the same range as the indices in an array of length
  * `size`.
@@ -144,14 +145,15 @@ int dealloc_ht(ht_t *table);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `port`  - the port to hash
+ * - `key`   - the key to hash
+ * - `len`   - the key length
  *
  * ## Return value:
  * 
  * An index between 0 and `table->size-1`.
  * 
  */
-uint16_t ht_hash(ht_t *table, uint16_t port);
+uint16_t ht_hash(ht_t *table, uint8_t *key, uint8_t len);
 
 /**
  * ## Use :
@@ -161,14 +163,15 @@ uint16_t ht_hash(ht_t *table, uint16_t port);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `port`  - the port to find
+ * - `key`   - the key to hash
+ * - `len`   - the key length
  *
  * ## Return value:
  * 
  * 1 if the value is found, 0 otherwise.
  * 
  */
-bool ht_contains(ht_t* table, uint16_t port);
+bool ht_contains(ht_t* table, uint8_t *key, uint8_t len);
 
 /**
  * ## Use :
@@ -178,7 +181,8 @@ bool ht_contains(ht_t* table, uint16_t port);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `port`  - the port to get
+ * - `key`   - the key to hash
+ * - `len`   - the key length
  *
  * ## Return value:
  * 
@@ -186,7 +190,7 @@ bool ht_contains(ht_t* table, uint16_t port);
  * NULL otherwise
  * 
  */
-rcv_cfg_t *ht_get(ht_t *table, uint16_t port);
+void *ht_get(ht_t *table, uint8_t *key, uint8_t len);
 
 /**
  * ## Use :
@@ -196,7 +200,8 @@ rcv_cfg_t *ht_get(ht_t *table, uint16_t port);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `port`  - the port to put
+ * - `key`   - the key to hash
+ * - `len`   - the key length
  * - `item`  - the item to insert
  *
  * ## Return value:
@@ -205,7 +210,7 @@ rcv_cfg_t *ht_get(ht_t *table, uint16_t port);
  * NULL & errono != 0 if there was an error.
  * 
  */
-rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item);
+void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item);
 
 /**
  * ## Use :
@@ -215,7 +220,8 @@ rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `port`  - the port to remove
+ * - `key`   - the key to hash
+ * - `len`   - the key length
  *
  * ## Return value:
  * 
@@ -223,7 +229,7 @@ rcv_cfg_t *ht_put(ht_t *table, uint16_t port, rcv_cfg_t *item);
  * NULL otherwise
  * 
  */
-rcv_cfg_t *ht_remove(ht_t *table, uint16_t port);
+void *ht_remove(ht_t *table, uint8_t *key, uint8_t len);
 
 /**
  * ## Use :

@@ -45,6 +45,10 @@ int allocate_stream(stream_t *stream, size_t max_len) {
 }
 
 int dealloc_stream(stream_t *stream) {
+    if (stream == NULL) {
+        return 0;
+    }
+
     s_node_t *node = stream->head;
     while (node != NULL) {
         s_node_t *old = node;

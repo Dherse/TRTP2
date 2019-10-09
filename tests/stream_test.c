@@ -6,15 +6,17 @@ void test_single() {
     stream_t stream;
     allocate_stream(&stream, 1);
 
-    s_node_t node;
+    s_node_t *node = malloc(sizeof(s_node_t));
 
-    CU_ASSERT(stream_enqueue(&stream, &node, false) == true);
+    CU_ASSERT(stream_enqueue(&stream, node, false) == true);
     CU_ASSERT(stream.length == 1);
 
     CU_ASSERT(stream_pop(&stream, false) != NULL);
     CU_ASSERT(stream.length == 0);
 
     dealloc_stream(&stream);
+
+    free(node);
 }
 
 void test_many() {

@@ -26,9 +26,10 @@ typedef int bool;
 #include <netdb.h>
 #include <regex.h>
 
+#include <pthread.h>
+
 #include "errors.h"
 #include "packet.h"
 #include "cli.h"
-#include "buffer.h"
 
 #endif

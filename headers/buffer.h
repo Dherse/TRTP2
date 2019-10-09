@@ -153,7 +153,7 @@ void unlock(node_t* node);
  * as recommended for inlining or always inlined. This means that the
  * compiler will try to replace any call to this method with its actual
  * body. The point of this technique is to gain in performance
- * by avoiding unescessary instruction cache misses.
+ * by avoiding unecessary instruction cache misses.
  * 
  * Mind you, it can increase the binary size of the final executable.
  * 
@@ -208,7 +208,7 @@ void unlock(node_t* node);
  * 
  * (foolproof I tell you! I swear)
  * 
- * ## ""I still don't belive you!""
+ * ## ""I still don't believe you!""
  * 
  * Well, just look at test/buffer_test.c where we programmed a test
  * testing all of the possible windows (by increments of 16) and you'll

@@ -1,5 +1,9 @@
 #include "global.h"
 
+#ifndef STREAM_H
+
+#define STREAM_H
+
 typedef struct s_node {
     void *content;
 
@@ -29,3 +33,5 @@ int dealloc_stream(stream_t *stream);
 bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
 
 s_node_t *stream_pop(stream_t *stream, bool wait);
+
+#endif
