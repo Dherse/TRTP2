@@ -3,17 +3,17 @@
 #define HT_H
 
 #include "global.h"
-#include "superfast.h"
 
 #define INITIAL_SIZE 16
+#define IP_LEN 16
 
 typedef struct item {
     bool used;
 
-    uint8_t *key;
-    uint8_t len;
-
     void *value;
+
+    uint16_t port;
+    uint8_t *ip;
 } item_t;
 
 /**
@@ -25,7 +25,7 @@ typedef struct item {
  * the port and IP the client connects with is the best way to
  * identify different clients. But the problem persists
  * that the port "space" ranges from 0 to 65535 (16 bits)
- * and the IP space is 128 bytes long nd it would be ludicrous 
+ * and the IP space is 128 bits long and it would be ludicrous 
  * to create a single array all the many **MANY** entries.
  * 
  * The goal is then to map a `uint16_t` from this range
@@ -35,7 +35,7 @@ typedef struct item {
  * the modulo.
  * 
  * This method simply consists as doing the modulo of the
- * port and IP by the maximum size of the hash table. It will
+ * port by the maximum size of the hash table. It will
  * then give a number in the range 0 to `size - 1` which
  * is the same range as the indices in an array of length
  * `size`.
@@ -91,6 +91,16 @@ typedef struct item {
  * The spatial complexity of this method is O(N) which is
  * also good.
  * 
+ * ## Implementation problem
+ * 
+ * Hashing both the IP and the port makes the code a lot
+ * slower and more complicated to understand. For this reason,
+ * we dediced to only hash the port using a simple modulo
+ * and then to simply compare the IPs until we find the right
+ * values. This means the chances of collision for the keys
+ * is higher but in the vast majority of situations, the performance
+ * will be higher than a complex hashing algorithm.
+ * 
  * ## For anybody still reading
  * 
  * It's one of the algorithm teacher's favourite for the
@@ -145,15 +155,15 @@ int dealloc_ht(ht_t *table);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `key`   - the key to hash
- * - `len`   - the key length
+ * - `port`  - the port to hash
+ * - `ip`    - the ip to compare
  *
  * ## Return value:
  * 
  * An index between 0 and `table->size-1`.
  * 
  */
-uint16_t ht_hash(ht_t *table, uint8_t *key, uint8_t len);
+uint16_t ht_hash(ht_t *table, uint16_t port);
 
 /**
  * ## Use :
@@ -163,15 +173,15 @@ uint16_t ht_hash(ht_t *table, uint8_t *key, uint8_t len);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `key`   - the key to hash
- * - `len`   - the key length
+ * - `port`  - the port to hash
+ * - `ip`    - the ip to compare
  *
  * ## Return value:
  * 
  * 1 if the value is found, 0 otherwise.
  * 
  */
-bool ht_contains(ht_t* table, uint8_t *key, uint8_t len);
+bool ht_contains(ht_t* table, uint16_t port, uint8_t *ip);
 
 /**
  * ## Use :
@@ -181,8 +191,8 @@ bool ht_contains(ht_t* table, uint8_t *key, uint8_t len);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `key`   - the key to hash
- * - `len`   - the key length
+ * - `port`  - the port to hash
+ * - `ip`    - the ip to compare
  *
  * ## Return value:
  * 
@@ -190,7 +200,7 @@ bool ht_contains(ht_t* table, uint8_t *key, uint8_t len);
  * NULL otherwise
  * 
  */
-void *ht_get(ht_t *table, uint8_t *key, uint8_t len);
+void *ht_get(ht_t *table, uint16_t port, uint8_t *ip);
 
 /**
  * ## Use :
@@ -200,8 +210,8 @@ void *ht_get(ht_t *table, uint8_t *key, uint8_t len);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `key`   - the key to hash
- * - `len`   - the key length
+ * - `port`  - the port to hash
+ * - `ip`    - the ip to compare
  * - `item`  - the item to insert
  *
  * ## Return value:
@@ -210,7 +220,7 @@ void *ht_get(ht_t *table, uint8_t *key, uint8_t len);
  * NULL & errono != 0 if there was an error.
  * 
  */
-void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item);
+void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item);
 
 /**
  * ## Use :
@@ -220,8 +230,8 @@ void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item);
  * ## Arguments :
  *
  * - `table` - a pointer to a hash table
- * - `key`   - the key to hash
- * - `len`   - the key length
+ * - `port`  - the port to hash
+ * - `ip`    - the ip to compare
  *
  * ## Return value:
  * 
@@ -229,7 +239,7 @@ void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item);
  * NULL otherwise
  * 
  */
-void *ht_remove(ht_t *table, uint8_t *key, uint8_t len);
+void *ht_remove(ht_t *table, uint16_t port, uint8_t *ip);
 
 /**
  * ## Use :

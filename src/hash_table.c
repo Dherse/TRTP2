@@ -10,8 +10,8 @@
 /**
  * /!\ REALLY IMPORTANT, REFER TO headers/hash_table.h !
  */
-inline uint16_t ht_hash(ht_t *table, uint8_t *key, uint8_t len) {
-    return SuperFastHash((char *) key, (int) len) % table->size;
+inline uint16_t ht_hash(ht_t *table, uint16_t port) {
+    return port % table->size;
 }
 
 /*
@@ -70,22 +70,21 @@ int dealloc_ht(ht_t *table) {
 /*
  * Refer to headers/hash_table.h
  */
-bool ht_contains(ht_t* table, uint8_t *key, uint8_t len) {
-    return ht_get(table, key, len) != NULL;
+bool ht_contains(ht_t* table, uint16_t port, uint8_t *ip) {
+    return ht_get(table, port, ip) != NULL;
 }
 
 /*
  * Refer to headers/hash_table.h
  */
-void *ht_get(ht_t *table, uint8_t *key, uint8_t len) {
-    uint16_t index = ht_hash(table, key, len);
+void *ht_get(ht_t *table, uint16_t port, uint8_t *ip) {
+    uint16_t index = ht_hash(table, port);
     while(table->items[index].used) {
-
-        if (table->items[index].len = len) {
-            int i = 0;
+        if (table->items[index].port == port) {
             bool equals = true;
-            for(; i < len && equals; i++) {
-                if (table->items[index].key[i] != key[i]) {
+            int i = 0;
+            for(; i < IP_LEN && equals; i++) {
+                if (table->items[index].ip[i] != ip[i]) {
                     equals = false;
                 }
             }
@@ -104,24 +103,24 @@ void *ht_get(ht_t *table, uint8_t *key, uint8_t len) {
 /*
  * Refer to headers/hash_table.h
  */
-void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item) {
+void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
     if (table->length > (table->size / 2)) {
         if (ht_resize(table, table->size * 2) != 0) {
             errno = FAILED_TO_RESIZE;
             return NULL;
         }
 
-        return ht_put(table, key, len, item);
+        return ht_put(table, port, ip, item);
     }
 
-    uint16_t index = ht_hash(table, key, len);
+    uint16_t index = ht_hash(table, port);
     void *old = NULL;
     while(table->items[index].used) {
-        if (table->items[index].len == len) {
+        if (table->items[index].port == port) {
             int i = 0;
             bool equals = true;
-            for(; i < len && equals; i++) {
-                if (table->items[index].key[i] != key[i]) {
+            for(; i < IP_LEN && equals; i++) {
+                if (table->items[index].ip[i] != ip[i]) {
                     equals = false;
                 }
             }
@@ -136,8 +135,8 @@ void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item) {
     }
 
     table->items[index].used = item != NULL;
-    table->items[index].key = key;
-    table->items[index].len = len;
+    table->items[index].ip = ip;
+    table->items[index].port = port;
     table->items[index].value = item;
 
     if (old == NULL && table->items[index].used) {
@@ -152,8 +151,8 @@ void *ht_put(ht_t *table, uint8_t *key, uint8_t len, void *item) {
 /*
  * Refer to headers/hash_table.h
  */
-void *ht_remove(ht_t *table, uint8_t *key, uint8_t len) {
-    return ht_put(table, key, len, NULL);
+void *ht_remove(ht_t *table, uint16_t port, uint8_t *ip) {
+    return ht_put(table, port, ip, NULL);
 }
 
 /*
@@ -174,7 +173,7 @@ int ht_resize(ht_t *table, size_t new_size) {
     int i = 0;
     for(; i < old_size; i++) {
         if (old_values[i].used) {
-            ht_put(table, old_values[i].key, old_values[i].len, old_values[i].value);
+            ht_put(table, old_values[i].port, old_values[i].ip, old_values[i].value);
             old_values[i].value = NULL;
         }
     }

@@ -24,17 +24,16 @@ void test_many() {
     allocate_stream(&stream, 2048);
 
     for (int i = 0; i < 1024; i++) {
-        int *cnt = malloc(sizeof(int));
+        int *cnt = calloc(1, sizeof(int));
         *cnt = i;
-        s_node_t *node = malloc(sizeof(s_node_t));
+        
+        s_node_t *node = calloc(1, sizeof(s_node_t));
         node->content = cnt;
 
 
         CU_ASSERT(stream_enqueue(&stream, node, false) == true);
         CU_ASSERT(stream.length == i + 1);
     }
-
-    printf("\nfilled\n");
 
     for (int i = 0; i < 1024; i++) {
         s_node_t *node = stream_pop(&stream, false);
@@ -54,7 +53,7 @@ void test_many() {
 }
 
 int add_stream_tests() {
-    CU_pSuite pSuite = CU_add_suite("ht_stream_suite", 0, 0);
+    CU_pSuite pSuite = CU_add_suite("stream_test_suite", 0, 0);
 
     if (NULL == pSuite) {
         CU_cleanup_registry();
