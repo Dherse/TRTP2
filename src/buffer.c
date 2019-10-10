@@ -57,6 +57,8 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
 
     node->used = true;
 
+    buffer->length--;
+
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->write_lock);
 
@@ -113,6 +115,8 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     if (inc) {
         buffer->window_low = next_read;
     }
+
+    buffer->length++;
 
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->read_lock);
