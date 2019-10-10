@@ -28,7 +28,6 @@ void test_ht_put_and_get() {
     }
 
     for (uint16_t i = N; i > 0; i--) {
-        printf("%d\n", i);
         uint8_t *ip = calloc(16, sizeof(uint8_t));
 
         CU_ASSERT(ht_contains(&table, i-1, ip));

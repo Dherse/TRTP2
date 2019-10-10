@@ -36,6 +36,8 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
     
     node_t *node = &buffer->nodes[next_index];
     if (node == NULL) {
+        pthread_mutex_unlock(buffer->write_lock);
+
         errno = UNKNOWN;
         return NULL;
     }
@@ -68,7 +70,7 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
  * Refer to headers/buffer.h
  */
 node_t *peek(buf_t *buffer, bool wait, bool inc) {
-    return peek_n(buffer, buffer->window_low, wait, inc);
+    return get(buffer, buffer->window_low, wait, inc);
 }
 
 /*
@@ -87,6 +89,8 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     
     node_t *node = &buffer->nodes[next_index];
     if (node == NULL) {
+        pthread_mutex_unlock(buffer->read_lock);
+
         errno = UNKNOWN;
         return NULL;
     }
@@ -98,6 +102,9 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
             pthread_cond_wait(node->notifier, node->lock);
         }
     } else if (!node->used) {
+        pthread_mutex_unlock(buffer->read_lock);
+        pthread_mutex_unlock(node->lock);
+
         return NULL;
     }
 
