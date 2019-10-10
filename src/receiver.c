@@ -1,4 +1,4 @@
-#include <sys/types.h>          
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <errno.h>
 #include <stdlib.h> 
@@ -6,7 +6,58 @@
 #include "../headers/receiver.h"
 #include "../headers/packet.h"
 
-void *receive_thread(void *rx_cfg){
+/** 
+ *          struct sockaddr_in6 {
+ *              sa_family_t     sin6_family;   // AF_INET6
+ *              in_port_t       sin6_port;     // port number
+ *              uint32_t        sin6_flowinfo; // IPv6 flow information
+ *              struct in6_addr sin6_addr;     // IPv6 address
+ *              uint32_t        sin6_scope_id; // Scope ID (new in 2.4)
+ *          };
+ */
+
+
+void *receive_thread(void *receive_config){
+    if( receive_config == NULL ){
+        pthread_exit(NULL_ARGUMENT);
+    }
+    rx_cfg *rcv_cfg = (rx_cfg *)receive_config;
+
+    const size_t buf_size = sizeof(uint8_t) * 528;
+    const size_t ip_size = sizeof(uint8_t)*16;
+
+    struct sockaddr_in6 sockaddr;
+    socklen_t addr_len = sizeof(sockaddr);
+
+    while(true) { // TODO : condition à changer
+        /** get a buffer from the stream */
+        // TODO : check if node == NULL or req == NULL
+        s_node_t *node = stream_pop(rcv_cfg->rx,false);
+        hd_req *req = (hd_req *) node->content;
+        req->stop = false; //just to be sure not to shutdown threads
+        
+        /** receive packet from network */
+        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, &addr_len);
+        if(req->length == -1){
+            // pas de paquet reçus/echec de la reception
+            // TODO : QUE FAIRE DES STRUCTS ?
+        }
+        /** set handle_request parameters */
+        req->port = (uint16_t) sockaddr.sin6_port;
+        memcpy(req->ip, &sockaddr.sin6_addr, ip_size); //TODO : try and change it to something better ?
+
+        /** check if sockaddr is already known in the hash-table */
+        if(!ht_contains(rcv_cfg->clients, req->port, req->ip)){
+            //TODO : add new client in `clients`
+        }
+
+        // TODO : send handle_request 
+        if(!stream_enqueue(rcv_cfg->tx, node, true)){
+            // TODO : what if not enqueued
+        }
+
+        pthread_yield();
+    }
     return NULL;
 }
 
@@ -22,59 +73,4 @@ int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen){
         return -1; // errno handeled by bind
     }
     return sock;
-}
-
-/*
- * Refer to headers/receiver.h
- */
-int alloc_reception_buffers(int number, uint8_t** buffers){
-    if(number < 1){
-        return 0;
-    }
-
-    for(int i = 0; i < number; i++){
-        *(buffers+i*528) = calloc(528,sizeof(uint8_t));
-        if(*(buffers+i*528) == NULL){
-            dealloc_reception_buffers(i-1, buffers);
-            errno = FAILED_TO_ALLOCATE;
-            return -1;
-        }
-    }
-
-    return 0;
-}
-
-/*
- * Refer to headers/receiver.h
- */
-void dealloc_reception_buffers(int number, uint8_t** buffers){
-    if(number > 1){
-        for(int i = 0; i < number; i++){
-            free(*(buffers+i*528));
-        }
-    }
-}
-
-/*
- * Refer to headers/receiver.h
- */
-int recv_and_handle_message(const struct sockaddr *src_addr, socklen_t addrlen, packet_t* packet, struct sockaddr * sender_addr, socklen_t* sender_addr_len, uint8_t* packet_received) {
-
-     int sock = make_listen_socket(src_addr, addrlen);
-
-    // TODO: Receive a message through the socket
-    ssize_t n_received = recvfrom(sock, packet_received, sizeof(packet_t), 0, sender_addr, sender_addr_len);
-    if(n_received == -1){
-        return -1;
-    }
-    
-    if(alloc_packet(packet) == -1 && errno != ALREADY_ALLOCATED){ //checking if packet has been allocated
-        return -1;  // j'ai pas fait de errno parce que la fonction le fait déjà
-    }
-
-    if(unpack(packet_received, packet) != 0){
-        return -1; // j'ai pas fait de errno parce que la fonction le fait déjà
-    }
-
-    return 0;
 }
