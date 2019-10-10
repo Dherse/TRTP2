@@ -22,7 +22,7 @@ uint8_t hash(uint8_t seqnum) {
 /*
  * Refer to headers/buffer.h
  */
-node_t *next(buf_t *buffer) {
+node_t *next(buf_t *buffer, uint8_t seqnum) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
         return NULL;
@@ -31,11 +31,13 @@ node_t *next(buf_t *buffer) {
     pthread_mutex_lock(buffer->write_lock);
 
     /* Increments the seqnum and gets its index in the buffer */
-    uint8_t next_written = buffer->last_written + 1;
-    uint8_t next_index = hash(next_written);
+    uint8_t next_written = seqnum;
+    uint8_t next_index = hash(seqnum);
     
     node_t *node = &buffer->nodes[next_index];
     if (node == NULL) {
+        pthread_mutex_unlock(buffer->write_lock);
+
         errno = UNKNOWN;
         return NULL;
     }
@@ -55,8 +57,6 @@ node_t *next(buf_t *buffer) {
 
     node->used = true;
 
-    buffer->last_written = next_written;
-
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->write_lock);
 
@@ -70,13 +70,13 @@ node_t *next(buf_t *buffer) {
  * Refer to headers/buffer.h
  */
 node_t *peek(buf_t *buffer, bool wait, bool inc) {
-    return peek_n(buffer, 0, wait, inc);
+    return get(buffer, buffer->window_low, wait, inc);
 }
 
 /*
  * Refer to headers/buffer.h
  */
-node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc) {
+node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
         return NULL;
@@ -84,11 +84,13 @@ node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc) {
 
     pthread_mutex_lock(buffer->read_lock);
 
-    uint8_t next_read = buffer->last_read + 1 + increment;
+    uint8_t next_read = seqnum;
     uint8_t next_index = hash(next_read);
     
     node_t *node = &buffer->nodes[next_index];
     if (node == NULL) {
+        pthread_mutex_unlock(buffer->read_lock);
+
         errno = UNKNOWN;
         return NULL;
     }
@@ -100,13 +102,16 @@ node_t *peek_n(buf_t *buffer, uint8_t increment, bool wait, bool inc) {
             pthread_cond_wait(node->notifier, node->lock);
         }
     } else if (!node->used) {
+        pthread_mutex_unlock(buffer->read_lock);
+        pthread_mutex_unlock(node->lock);
+
         return NULL;
     }
 
     node->used = false;
 
     if (inc) {
-        buffer->last_read = next_read;
+        buffer->window_low = next_read;
     }
 
     /* Unlocks the write on the buffer */
@@ -141,8 +146,7 @@ int allocate_buffer(buf_t *buffer, size_t size) {
 
     free(temp);
 
-    buffer->last_read = 0;
-    buffer->last_written = 0;
+    buffer->window_low = 0;
 
     buffer->read_lock = malloc(sizeof(pthread_mutex_t));
     if(buffer->read_lock == NULL || pthread_mutex_init(buffer->read_lock, NULL) != 0) {
