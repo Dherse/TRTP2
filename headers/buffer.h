@@ -27,6 +27,8 @@ typedef struct node {
 typedef struct buf {
     uint8_t window_low;
 
+    uint8_t length;
+
     pthread_mutex_t *read_lock;
 
     pthread_mutex_t *write_lock;

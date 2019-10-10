@@ -257,3 +257,26 @@ int packet_to_string(const packet_t* packet){
 
     return 0;
 }
+
+void ip_to_string(uint8_t *ip, char *target) {
+    sprintf(
+        target, 
+        "%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X",
+        ip[0],
+        ip[1],
+        ip[2],
+        ip[3],
+        ip[4],
+        ip[5],
+        ip[6],
+        ip[7],
+        ip[8],
+        ip[9],
+        ip[10],
+        ip[11],
+        ip[12],
+        ip[13],
+        ip[14],
+        ip[15]
+    );
+}

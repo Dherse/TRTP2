@@ -103,7 +103,7 @@ typedef struct send_request {
     bool stop;
 
     /** the IP to send to */
-    struct addrinfo_in6 *address;
+    struct sockaddr_in6 *address;
 
     /** the packet to send */
     packet_t to_send;

@@ -141,4 +141,6 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2);
  */
 int packet_to_string(const packet_t *packet);
 
+void ip_to_string(uint8_t *ip, char *target);
+
 #endif

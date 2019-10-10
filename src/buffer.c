@@ -57,6 +57,8 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
 
     node->used = true;
 
+    buffer->length++;
+
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->write_lock);
 
@@ -111,8 +113,10 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     node->used = false;
 
     if (inc) {
+        buffer->length--;
         buffer->window_low = next_read;
     }
+
 
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->read_lock);
@@ -136,7 +140,7 @@ void unlock(node_t* node) {
  * Refer to headers/buffer.h
  */
 int allocate_buffer(buf_t *buffer, size_t size) {
-    buf_t *temp = (buf_t *) malloc(sizeof(buf_t));
+    buf_t *temp = (buf_t *) calloc(1, sizeof(buf_t));
     if(temp == NULL) {
         errno = FAILED_TO_ALLOCATE;
         return -1;
