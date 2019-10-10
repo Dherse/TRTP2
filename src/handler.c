@@ -1,27 +1,9 @@
 #include "../headers/receiver.h"
 #include "../headers/global.h"
 
-/**
- * 
-typedef struct handle_thread_config {
-    /** Thread reference 
-    pthread_t *thread;
-
-    /** Receive to Handle stream 
-    stream_t *rx;
-    /** Handle to Receive stream 
-    stream_t *tx;
-
-    /** Handle to Send stream 
-    stream_t *send_tx;
-    /** Send to Handle stream 
-    stream_t *send_rx;
-
-    /** Hash table of client 
-    ht_t *clients;
-} hd_cfg_t;
+/*
+ * Refer to headers/receiver.h
  */
-
 void *handle_thread(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
 
@@ -41,6 +23,9 @@ void *handle_thread(void *config) {
             hd_req_t *req = (hd_req_t *) node_rx->content;
             if (req != NULL) {
                 if (req->stop) {
+                    free(req);
+                    free(node_rx);
+                    
                     exit = true;
                     break;
                 }
@@ -144,17 +129,16 @@ void *handle_thread(void *config) {
                         spot->value = decoded;
                         decoded = temp;
 
+                        unlock(spot);
+
                         if (value->window > 0) {
-                            uint8_t i = 0;
+                            uint8_t i = window->window_low;
                             uint8_t cnt = 0;
                             uint8_t last_seqnum = window->window_low;
                             node_t* node = NULL;
-                            for (
-                                i = window->window_low; 
-                                i < window->window_low + 30 && node != NULL; 
-                                i++
-                            ) {
-                                node = get(window, i, false, true);
+                            pthread_mutex_lock(client->file_mutex);
+                            do {
+                                node = get(window, i, false, false);
                                 if (node != NULL) {
                                     int result = write(
                                         client->out_fd, 
@@ -162,7 +146,7 @@ void *handle_thread(void *config) {
                                         ((packet_t *) node->value)->length
                                     );
 
-                                    if (result != 0) {
+                                    if (result != ((packet_t *) node->value)->length) {
                                         fprintf(stderr, "Failed to write to file\n");
                                         break;
                                     }
@@ -172,7 +156,13 @@ void *handle_thread(void *config) {
 
                                     unlock(node);
                                 }
-                            }
+                                i++;
+                            } while(i < window->window_low + 30 && node != NULL);
+                    
+                            window->length -= cnt;
+                            window->window_low = last_seqnum + 1;
+
+                            pthread_mutex_unlock(client->file_mutex);
 
                             s_node_t *pack = stream_pop(cfg->send_rx, false);
                             if (pack == NULL) {
@@ -199,6 +189,8 @@ void *handle_thread(void *config) {
                                 }
                             }
 
+                            pack->next = NULL;
+
                             tx_req_t *to_send = (tx_req_t *) pack->content;
 
                             to_send->stop = false;
@@ -213,8 +205,6 @@ void *handle_thread(void *config) {
                                 fprintf(stderr, "Failed to enqueue send request\n");
                             }
                         }
-
-                        unlock(spot);
                     }
 
                     if (!stream_enqueue(cfg->tx, node_rx, true)) {
@@ -228,31 +218,3 @@ void *handle_thread(void *config) {
 
     return NULL;
 }
-
-/*
-
-                    s_node_t *pack = stream_pop(cfg->send_rx, false);
-                    if (pack == NULL) {
-                        pack = calloc(1, sizeof(s_node_t));
-                        if (pack == NULL) {
-                            fprintf(stderr, "Failed to allocated s_node_t\n");
-
-                            if (!stream_enqueue(cfg->tx, node, true)) {
-                                fprintf(stderr, "Failed to enqueue packet\n");
-                            }
-
-                            continue;
-                        } else {
-                            pack->content = calloc(1, sizeof(packet_t));
-                            if (pack->content == NULL) {
-                                fprintf(stderr, "Failed to allocated packet_t\n");
-
-                                if (!stream_enqueue(cfg->tx, node, true)) {
-                                    fprintf(stderr, "Failed to enqueue packet\n");
-                                }
-
-                                continue;
-                            } 
-                        }
-                    }
-                    */
