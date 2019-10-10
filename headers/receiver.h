@@ -18,7 +18,7 @@ typedef struct client {
     int out_fd;
 
     /** Client address */
-    struct addrinfo_in6 *address;
+    struct sockaddr_in6 *address;
 
     /** Client address length */
     socklen_t *addr_len;
@@ -236,6 +236,24 @@ void *handle_thread(void *);
  * 
  */
 void *send_thread(void *);
+
+/**
+ * ## Use :
+ *
+ *  mallocs `client`, its address and addr_len
+ *  allocates and initialize it's mutex
+ *  calls "allocate_buffer" on it's window
+ * 
+ * ## Arguments :
+ *
+ * - `client` - a pointer to the address you want to listen to
+ *
+ * ## Return value:
+ *
+ * 0 if the process completed successfully. -1 otherwise.
+ * If it failed, errno is set to an appropriate error. 
+ */
+int allocate_client(client_t *client);
 
 typedef struct receive_config {
     pthread_t *handle_thread;
