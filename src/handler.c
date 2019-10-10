@@ -58,7 +58,7 @@ void *handle_thread(void *config) {
                                 break;
                         }
                     }
-                    if (decoded->seqnum > (client->window->window_low + 31)) {
+                    if (decoded->seqnum > (client->window->window_low + 31) || decoded->seqnum < client->window->window_low) {
                         fprintf(stderr, "[%s] Wildly out of sequence packet: %02X\n", ip_as_str, decoded->seqnum);
                     } else if (decoded->truncated) {
                         fprintf(
