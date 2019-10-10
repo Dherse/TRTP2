@@ -26,7 +26,7 @@ void *receive_thread(void *receive_config){
     rx_cfg *rcv_cfg = (rx_cfg *)receive_config;
 
     const size_t buf_size = sizeof(uint8_t) * 528;
-    const size_t ip_size = sizeof(uint8_t)*16;
+    const size_t ip_size = sizeof(uint8_t) * 16;
 
     struct sockaddr_in6 sockaddr;
     socklen_t addr_len = sizeof(sockaddr);
@@ -64,8 +64,6 @@ void *receive_thread(void *receive_config){
         if(!stream_enqueue(rcv_cfg->tx, node, true)){
             // TODO : what if not enqueued
         }
-
-        pthread_yield();
     }
     //TODO : shutdown routine
 
