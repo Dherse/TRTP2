@@ -44,7 +44,7 @@ typedef struct buf {
  * 
  * ## Arguments :
  *
- * - `buffer`  - a pointer to an already-allocated buffer
+ * - `buffer`  - a pointer to a buffer
  * - `element` - the size of each element given by sizeof
  *
  * ## Return value:
