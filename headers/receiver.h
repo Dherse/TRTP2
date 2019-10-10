@@ -35,6 +35,9 @@ typedef struct receive_thread_config {
      */
     pthread_t *thread;
 
+    /** true = the loop should stop */
+    bool stop;
+
     /** Receive to Handle stream */
     stream_t *tx;
     /** Handle to Receive stream */
@@ -236,6 +239,24 @@ void *handle_thread(void *);
  * 
  */
 void *send_thread(void *);
+
+/**
+ * ## Use :
+ * 
+ * copies the ip address stored in src (4 * 32 bits)
+ * to dst (a 16 * 8 bits buffer)
+ * 
+ * ## Arguments :
+ *
+ * - `dst` - a pointer to the address you want to write to
+ * - `src` - a pointer to the address you want to copy from
+ *
+ * ## Return value:
+ *
+ * 0 if the process completed successfully. -1 otherwise.
+ * If it failed, errno is set to an appropriate error. 
+ */
+void move_ip(uint8_t *dst, uint32_t *src);
 
 /**
  * ## Use :

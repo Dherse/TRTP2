@@ -6,68 +6,129 @@
 #include "../headers/receiver.h"
 #include "../headers/packet.h"
 
-/** 
- *          struct sockaddr_in6 {
- *              sa_family_t     sin6_family;   // AF_INET6
- *              in_port_t       sin6_port;     // port number
- *              uint32_t        sin6_flowinfo; // IPv6 flow information
- *              struct in6_addr sin6_addr;     // IPv6 address
- *              uint32_t        sin6_scope_id; // Scope ID (new in 2.4)
- *          };
- */
-
 /*
  * Refer to headers/receiver.h
  */
 void *receive_thread(void *receive_config){
-    if( receive_config == NULL ){
+    if(receive_config == NULL) {
         pthread_exit(NULL_ARGUMENT);
     }
-    rx_cfg_t *rcv_cfg = (rx_cfg_t *)receive_config;
+    rx_cfg_t *rcv_cfg = (rx_cfg_t *) receive_config;
 
     const size_t buf_size = sizeof(uint8_t) * 528;
     const size_t ip_size = sizeof(uint8_t) * 16;
 
     struct sockaddr_in6 sockaddr;
     socklen_t addr_len = sizeof(sockaddr);
+    s_node_t *node;
+    hd_req_t *req;
 
-    while(true) { // TODO : condition à changer, peut être mettre flag dans rcv_cfg ?
-        /** get a buffer from the stream */
-        // TODO : check if node == NULL or req == NULL
-        s_node_t *node = stream_pop(rcv_cfg->rx,false);
-        hd_req_t *req = (hd_req_t *) node->content;
-        req->stop = false; //just to be sure not to shutdown threads
+    bool already_popped = 0;
+    char ip_as_str[40]; //to print an IP if needed
+
+    while(!rcv_cfg->stop) { 
+        if(!already_popped) {
+            /** get a buffer from the stream */
+            node = stream_pop(rcv_cfg->rx, false);
+            if(node == NULL) {
+                fprintf(stderr,"In receive, stream_pop returned NULL\n");
+                node = (node_t *) malloc(sizeof(node_t));
+                if(node == NULL) {
+                    fprintf(stderr, "In receive, malloc called failed");
+                    break;
+                }
+                node->content = calloc(1, sizeof(hd_req_t));
+                if(node->content == NULL) {
+                    fprintf(stderr, "In receive, calloc called failed");
+                    free(node);
+                    break;
+                }
+            }
+            req = (hd_req_t *) node->content;
+            if(req == NULL) {
+                fprintf(stderr, "In receive, `content` in a node was NULL");
+                req = (hd_req_t *) calloc(1, sizeof(hd_req_t));
+                if(req == NULL) {
+                    fprintf(stderr, "In receive, calloc called failed");
+                    break;
+                }
+            }
+            req->stop = false; //just to be sure not to shutdown threads unintentionnally
+        }
         
         /** receive packet from network */
-        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, &addr_len);
-        if(req->length == -1){
+        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, MSG_DONTWAIT, (struct sockaddr *) &sockaddr, &addr_len);
+        if(req->length == -1) {
             // pas de paquet reçus/echec de la reception
-            // TODO : QUE FAIRE DES STRUCTS ?
-        }
-        /** set handle_request parameters */
-        req->port = (uint16_t) sockaddr.sin6_port;
-        memcpy(req->ip, &sockaddr.sin6_addr, ip_size); //TODO : try and change it to something better ?
-
-        /** check if sockaddr is already known in the hash-table */
-        if(!ht_contains(rcv_cfg->clients, req->port, req->ip)){
-            /** add new client in `clients` */
-            client_t *new_client; 
-            if(allocate_client(new_client) == -1){
-                //TODO : client not allocated
+            switch(errno) {
+                /**
+                 * case 1 :
+                 * recvfrom would have blocked and waited for a message
+                 * but didn't because of the flag
+                 * -> loop again
+                 */
+                case EWOULDBLOCK : 
+                    already_popped = 1;
+                    break;
+                /**
+                 * case 2 :
+                 * a message was 'received', but it failed
+                 * print error
+                 */
+                default :
+                    already_popped = 1;
+                    fprintf(stderr, "A message was received, but recvfrom failed. \n");
             }
-            *new_client->address = sockaddr;
-            *new_client->addr_len = addr_len;
-            ht_put(rcv_cfg->clients, req->port, req->ip, (void *)new_client);
-        }
+        } else {
+            /** set the last handle_request parameters */
+            req->port = (uint16_t) sockaddr.sin6_port;
+            move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr32);
 
-        /** send handle_request */
-        if(!stream_enqueue(rcv_cfg->tx, node, true)){
-            // TODO : what if not enqueued
+            /** check if sockaddr is already known in the hash-table */
+            if(!ht_contains(rcv_cfg->clients, req->port, req->ip)) {
+                ip_to_string(req->ip, ip_as_str);
+
+                /** add new client in `clients` */
+                client_t *new_client; 
+                if(allocate_client(new_client) == -1) {
+                    fprintf(stderr, "In receive, the allocation of a new client failed\n Client ip :[%s], port : %u\n", ip_as_str);
+                    break;
+                }
+                *new_client->address = sockaddr;
+                *new_client->addr_len = addr_len;
+                ht_put(rcv_cfg->clients, req->port, req->ip, (void *) new_client);
+
+                fprintf(stderr, "A new Client has been detected\n New Client ip :[%s], port : %u\n", ip_as_str, req->port);
+            }
+
+            /** send handle_request */
+            stream_enqueue(rcv_cfg->tx, node, true);
+            already_popped = 0;
         }
     }
-    //TODO : shutdown routine
 
+    if(already_popped) {
+        free(req);
+        free(node);
+    }
     pthread_exit(0);
+    return NULL;
+}
+
+/*
+ * Refer to headers/receiver.h
+ */
+void move_ip(uint8_t *destination, uint32_t *source) {
+    uint8_t *dst = destination;
+    uint32_t *src = source;
+    
+    for(int i = 0; i < 4; i++) {
+        (*dst++) = (uint8_t) *src >> 24;
+        (*dst++) = (uint8_t) (*src >> 16) & 0b11111111;
+        (*dst++) = (uint8_t) (*src >> 8) & 0b11111111;
+        (*dst++) = (uint8_t) (*src) & 0b11111111;
+        src++;
+    }
 }
 
 /*
@@ -90,6 +151,7 @@ int allocate_client(client_t *client) {
     if(err != 0) {
         free(client->file_mutex);
         free(client);
+        errno = FAILED_TO_INIT_MUTEX;
         return -1;
     }
     
@@ -124,7 +186,7 @@ int allocate_client(client_t *client) {
     return 0;
 }
 
-int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen){
+int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen) {
     int sock = socket(AF_INET6, SOCK_DGRAM,0);
     if(sock < 0){ //errno handeled by socket
         return -1;
