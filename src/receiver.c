@@ -21,7 +21,7 @@ void *receive_thread(void *receive_config){
     if( receive_config == NULL ){
         pthread_exit(NULL_ARGUMENT);
     }
-    rx_cfg *rcv_cfg = (rx_cfg *)receive_config;
+    rx_cfg_t *rcv_cfg = (rx_cfg_t *)receive_config;
 
     const size_t buf_size = sizeof(uint8_t) * 528;
     const size_t ip_size = sizeof(uint8_t)*16;
@@ -33,7 +33,7 @@ void *receive_thread(void *receive_config){
         /** get a buffer from the stream */
         // TODO : check if node == NULL or req == NULL
         s_node_t *node = stream_pop(rcv_cfg->rx,false);
-        hd_req *req = (hd_req *) node->content;
+        hd_req_t *req = (hd_req_t *) node->content;
         req->stop = false; //just to be sure not to shutdown threads
         
         /** receive packet from network */
@@ -55,8 +55,6 @@ void *receive_thread(void *receive_config){
         if(!stream_enqueue(rcv_cfg->tx, node, true)){
             // TODO : what if not enqueued
         }
-
-        pthread_yield();
     }
     return NULL;
 }
