@@ -45,7 +45,7 @@ typedef struct receive_thread_config {
 
     /** Socket file descriptor */
     int sockfd;
-} rx_cfg;
+} rx_cfg_t;
 
 typedef struct handle_thread_config {
     /** Thread reference */
@@ -63,7 +63,7 @@ typedef struct handle_thread_config {
 
     /** Hash table of client */
     ht_t *clients;
-} hd_cfg;
+} hd_cfg_t;
 
 typedef struct send_thread_config {
     /** Thread reference */
@@ -93,7 +93,7 @@ typedef struct handle_request {
 
     /** data read from the network */
     uint8_t buffer[528];
-} hd_req;
+} hd_req_t;
 
 typedef struct send_request {
     /** true = the loop should stop */
@@ -104,7 +104,7 @@ typedef struct send_request {
 
     /** the packet to send */
     packet_t to_send;
-} tx_req;
+} tx_req_t;
 
 /**
  * /!\ This is a THREAD definition
