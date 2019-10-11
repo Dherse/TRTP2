@@ -58,17 +58,17 @@ $(BIN_DIR)/%.o: $(SRC_DIR)/%.c
 	$(GCC) $(FLAGS) -c $< -o $@ $(LDFLAGS)
 
 # Testing stuff
-
-debug: FLAGS += $(DEBUG_FLAGS)
-debug: build
+test_build: FLAGS += $(DEBUG_FLAGS)
+test_build: LDFLAGS += -lcunit
+test_build: build
 	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
 
-test: debug
-test: FLAGS += $(DEBUG_FLAGS)
-test: LDFLAGS += -lcunit
-test: $(TEST_OBJECTS)
+test_build: $(TEST_OBJECTS)
 	@echo 'debug: $(BIN_DEBUG)'
 	$(GCC) $(FLAGS) $(BIN_DEBUG) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
+
+test: test_build
+test:
 	$(BIN_DIR)/$(TEST)
 
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
