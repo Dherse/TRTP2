@@ -25,10 +25,10 @@ void test_handler_data() {
     CU_ASSERT(send_rx != NULL);
     if (send_rx == NULL) { return; }
 
-    allocate_stream(rx, 2);
-    allocate_stream(tx, 2);
-    allocate_stream(send_tx, 2);
-    allocate_stream(send_rx, 2);
+    allocate_stream(rx, 2048);
+    allocate_stream(tx, 2048);
+    allocate_stream(send_tx, 2048);
+    allocate_stream(send_rx, 2048);
 
     buf_t *window = calloc(1, sizeof(buf_t));
     CU_ASSERT(window != NULL);
@@ -74,17 +74,16 @@ void test_handler_data() {
     CU_ASSERT(packet != NULL);
     if (packet == NULL) { return; }
     
-    char *hello = "Hello, world!";
-    memcpy(packet->payload, hello, strlen(hello));
-    packet->length = strlen(hello) + 1;
+    char *world = "world!\n";
+    memcpy(packet->payload, world, strlen(world));
+    packet->length = strlen(world) + 1;
     packet->long_length = false;
-    packet->seqnum = 0;
+    packet->seqnum = 1;
     packet->window = 20;
     packet->timestamp = 0;
     packet->truncated = false;
     packet->type = DATA;
 
-    /** Fill rx with some data */
     hd_req_t *hd_req = calloc(1, sizeof(hd_req_t));
     CU_ASSERT(hd_req != NULL);
     if (hd_req == NULL) { return; }
@@ -93,8 +92,7 @@ void test_handler_data() {
     memcpy(hd_req->ip, ip, 16);
     hd_req->port = 1000;
     pack(hd_req->buffer, packet, true);
-    hd_req->length = 29;
-
+    hd_req->length = 23;
 
     s_node_t *req = calloc(1, sizeof(s_node_t));
     CU_ASSERT(req != NULL);
@@ -103,18 +101,49 @@ void test_handler_data() {
     req->content = hd_req;
     stream_enqueue(rx, req, false);
 
+    packet_t *packet2 = calloc(1, sizeof(packet_t));
+    CU_ASSERT(packet2 != NULL);
+    if (packet2 == NULL) { return; }
+    
+    char *hello = "Hello, ";
+    memcpy(packet2->payload, hello, strlen(hello));
+    packet2->length = strlen(hello) + 1;
+    packet2->long_length = false;
+    packet2->seqnum = 0;
+    packet2->window = 20;
+    packet2->timestamp = 0;
+    packet2->truncated = false;
+    packet2->type = DATA;
+
+    hd_req_t *hd_req2 = calloc(1, sizeof(hd_req_t));
+    CU_ASSERT(hd_req2 != NULL);
+    if (hd_req2 == NULL) { return; }
+
+    hd_req2->stop = false;
+    memcpy(hd_req2->ip, ip, 16);
+    hd_req2->port = 1000;
+    pack(hd_req2->buffer, packet2, true);
+    hd_req2->length = 23;
+
+    s_node_t *req2 = calloc(1, sizeof(s_node_t));
+    CU_ASSERT(req2 != NULL);
+    if (req2 == NULL) { return; }
+
+    req2->content = hd_req2;
+    stream_enqueue(rx, req2, false);
+
     hd_req_t *stop_req = calloc(1, sizeof(hd_req_t));
     CU_ASSERT(stop_req != NULL);
     if (stop_req == NULL) { return; }
 
     stop_req->stop = true;
 
-    s_node_t *req2 = calloc(1, sizeof(s_node_t));
-    CU_ASSERT(req2 != NULL);
-    if (req2 == NULL) { return; }
+    s_node_t *req3 = calloc(1, sizeof(s_node_t));
+    CU_ASSERT(req3 != NULL);
+    if (req3 == NULL) { return; }
 
-    req2->content = stop_req;
-    stream_enqueue(rx, req2, false);
+    req3->content = stop_req;
+    stream_enqueue(rx, req3, false);
 
     /** Execute the receive */
     handle_thread((void *) cfg);
@@ -123,7 +152,7 @@ void test_handler_data() {
     CU_ASSERT_EQUAL(rx->length, 0);
 
     /** tests that buffer are being reused */
-    CU_ASSERT_EQUAL(tx->length, 1);
+    CU_ASSERT_EQUAL(tx->length, 2);
 
     /** tests that the ack has been sent */
     CU_ASSERT_EQUAL(send_tx->length, 1);
@@ -145,7 +174,7 @@ void test_handler_data() {
 
     CU_ASSERT_EQUAL(tx_req->to_send.type, ACK);
 
-    CU_ASSERT_EQUAL(tx_req->to_send.seqnum, 0);
+    CU_ASSERT_EQUAL(tx_req->to_send.seqnum, 1);
 
     CU_ASSERT_EQUAL(tx_req->to_send.window, 31);
 }

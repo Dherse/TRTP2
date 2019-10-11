@@ -58,8 +58,8 @@ void *handle_thread(void *config) {
                                 break;
                         }
                     }
-                    if (decoded->seqnum > (client->window->window_low + 31) || decoded->seqnum < client->window->window_low) {
-                        fprintf(stderr, "[%s] Wildly out of sequence packet: %02X\n", ip_as_str, decoded->seqnum);
+                    if (decoded->seqnum > client->window->window_low + 31 || decoded->seqnum < client->window->window_low) {
+                        fprintf(stderr, "[%s] Wildly out of sequence packet: %03d\n", ip_as_str, decoded->seqnum);
                     } else if (decoded->truncated) {
                         fprintf(
                             stderr, 
@@ -75,6 +75,8 @@ void *handle_thread(void *config) {
                                 fprintf(stderr, "Failed to allocated s_node_t\n");
 
                                 if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                    free(node_rx->content);
+                                    free(node_rx);
                                     fprintf(stderr, "Failed to enqueue packet\n");
                                 }
 
@@ -85,6 +87,8 @@ void *handle_thread(void *config) {
                                     fprintf(stderr, "Failed to allocated tx_req_t\n");
 
                                     if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                        free(node_rx->content);
+                                        free(node_rx);
                                         fprintf(stderr, "Failed to enqueue packet\n");
                                     }
 
@@ -104,18 +108,23 @@ void *handle_thread(void *config) {
                         to_send->to_send.seqnum = decoded->seqnum;
 
                         if (!stream_enqueue(cfg->send_tx, pack, true)) {
+                            free(pack->content);
+                            free(pack);
                             fprintf(stderr, "Failed to enqueue send request\n");
                         }
                     } else {
                         buf_t *window = client->window;
                         
                         node_t *spot = next(window, decoded->seqnum);
+                        fprintf(stderr, "[%s] allocating node_t: %d\n", ip_as_str, decoded->seqnum);
                         if (spot->value == NULL) {
                             spot->value = calloc(1, sizeof(packet_t));
                             if (spot->value == NULL) {
                                 fprintf(stderr, "Failed to allocated packet_t\n");
 
                                 if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                    free(node_rx->content);
+                                    free(node_rx);
                                     fprintf(stderr, "Failed to enqueue packet\n");
                                 }
 
@@ -131,6 +140,7 @@ void *handle_thread(void *config) {
 
                         unlock(spot);
 
+                        fprintf(stderr, "[%s] Seqnum: %d\n", ip_as_str, value->seqnum);
                         if (value->window > 0) {
                             uint8_t i = window->window_low;
                             uint8_t cnt = 0;
@@ -158,56 +168,66 @@ void *handle_thread(void *config) {
                                 }
                                 i++;
                             } while(i < window->window_low + 30 && node != NULL);
-                    
-                            window->length -= cnt;
-                            window->window_low = last_seqnum + 1;
 
                             pthread_mutex_unlock(client->file_mutex);
 
-                            s_node_t *pack = stream_pop(cfg->send_rx, false);
-                            if (pack == NULL) {
-                                pack = calloc(1, sizeof(s_node_t));
+                            if (cnt > 0) {
+                                window->length -= cnt;
+                                window->window_low = last_seqnum + 1;
+
+                                s_node_t *pack = stream_pop(cfg->send_rx, false);
                                 if (pack == NULL) {
-                                    fprintf(stderr, "Failed to allocated s_node_t\n");
-
-                                    if (!stream_enqueue(cfg->tx, node_rx, true)) {
-                                        fprintf(stderr, "Failed to enqueue packet\n");
-                                    }
-
-                                    continue;
-                                } else {
-                                    pack->content = calloc(1, sizeof(tx_req_t));
-                                    if (pack->content == NULL) {
-                                        fprintf(stderr, "Failed to allocated tx_req_t\n");
+                                    pack = calloc(1, sizeof(s_node_t));
+                                    if (pack == NULL) {
+                                        fprintf(stderr, "Failed to allocated s_node_t\n");
 
                                         if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                            free(node_rx->content);
+                                            free(node_rx);
                                             fprintf(stderr, "Failed to enqueue packet\n");
                                         }
 
                                         continue;
-                                    } 
+                                    } else {
+                                        pack->content = calloc(1, sizeof(tx_req_t));
+                                        if (pack->content == NULL) {
+                                            fprintf(stderr, "Failed to allocated tx_req_t\n");
+
+                                            if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                                free(node_rx->content);
+                                                free(node_rx);
+                                                fprintf(stderr, "Failed to enqueue packet\n");
+                                            }
+
+                                            continue;
+                                        } 
+                                    }
                                 }
-                            }
 
-                            pack->next = NULL;
+                                pack->next = NULL;
 
-                            tx_req_t *to_send = (tx_req_t *) pack->content;
+                                tx_req_t *to_send = (tx_req_t *) pack->content;
 
-                            to_send->stop = false;
-                            to_send->address = client->address;
+                                to_send->stop = false;
+                                to_send->address = client->address;
 
-                            to_send->to_send.type = ACK;
-                            to_send->to_send.window = 31 - client->window->length;
-                            to_send->to_send.timestamp = value->timestamp;
-                            to_send->to_send.seqnum = last_seqnum;
+                                to_send->to_send.type = ACK;
+                                to_send->to_send.window = 31 - client->window->length;
+                                to_send->to_send.timestamp = value->timestamp;
+                                to_send->to_send.seqnum = last_seqnum;
 
-                            if (!stream_enqueue(cfg->send_tx, pack, true)) {
-                                fprintf(stderr, "Failed to enqueue send request\n");
+                                if (!stream_enqueue(cfg->send_tx, pack, true)) {
+                                    free(pack->content);
+                                    free(pack);
+                                    fprintf(stderr, "Failed to enqueue send request\n");
+                                }
                             }
                         }
                     }
 
                     if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                        free(node_rx->content);
+                        free(node_rx);
                         fprintf(stderr, "Failed to enqueue packet\n");
                     }
                 }

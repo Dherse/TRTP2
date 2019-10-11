@@ -32,7 +32,7 @@ void *receive_thread(void *receive_config) {
             node = stream_pop(rcv_cfg->rx, false);
             if(node == NULL) {
                 fprintf(stderr,"In receive, stream_pop returned NULL\n");
-                node = (s_node_t *) malloc(sizeof(node_t));
+                node = (s_node_t *) malloc(sizeof(s_node_t));
                 if(node == NULL) {
                     fprintf(stderr, "In receive, malloc called failed");
                     break;
@@ -91,14 +91,14 @@ void *receive_thread(void *receive_config) {
                 /** add new client in `clients` */
                 client_t *new_client; 
                 if(allocate_client(new_client) == -1) {
-                    fprintf(stderr, "In receive, the allocation of a new client failed\n Client ip :[%s], port : %u\n", ip_as_str, req->port);
+                    fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
                     break;
                 }
                 *new_client->address = sockaddr;
                 *new_client->addr_len = addr_len;
                 ht_put(rcv_cfg->clients, req->port, req->ip, (void *) new_client);
 
-                fprintf(stderr, "A new Client has been detected\n New Client ip :[%s], port : %u\n", ip_as_str, req->port);
+                fprintf(stderr, "[%s][%u] New client\n", ip_as_str, req->port);
             }
 
             /** send handle_request */

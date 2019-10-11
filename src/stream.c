@@ -6,6 +6,9 @@
  */
 #include "../headers/stream.h"
 
+/**
+ * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
+ */
 int allocate_stream(stream_t *stream, size_t max_len) {
     stream->max_length = max_len;
     stream->length = 0;
@@ -44,6 +47,9 @@ int allocate_stream(stream_t *stream, size_t max_len) {
     return 0;
 }
 
+/**
+ * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
+ */
 int dealloc_stream(stream_t *stream) {
     if (stream == NULL) {
         return 0;
@@ -78,6 +84,9 @@ int dealloc_stream(stream_t *stream) {
     return 0;
 }
 
+/**
+ * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
+ */
 bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     pthread_mutex_lock(stream->lock);
 
@@ -107,6 +116,9 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     return true;
 }
 
+/**
+ * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
+ */
 s_node_t *stream_pop(stream_t *stream, bool wait) {
     pthread_mutex_lock(stream->lock);
 
