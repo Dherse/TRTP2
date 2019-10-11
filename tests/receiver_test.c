@@ -224,7 +224,7 @@ void test_recvfrom(){
 
 
 int add_receiver_tests() {
-    CU_pSuite pSuite = CU_add_suite("buffer_test_suite", 0, 0);
+    CU_pSuite pSuite = CU_add_suite("receiver_test_suite", 0, 0);
 
     if (NULL == pSuite) {
         CU_cleanup_registry();
