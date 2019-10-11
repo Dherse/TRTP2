@@ -1,5 +1,7 @@
 #include <CUnit/CUnit.h>
 
+#include "../headers/receiver.h"
+
 void receive_body(hd_req_t *req, bool *already_popped, struct sockaddr_in6 *sockaddr_, rx_cfg_t *rcv_cfg, socklen_t addr_len, s_node_t *node, bool *failed_recvfrom) {
     char ip_as_str[40];
     struct sockaddr_in6 sockaddr = *sockaddr_;
@@ -40,6 +42,7 @@ void receive_body(hd_req_t *req, bool *already_popped, struct sockaddr_in6 *sock
                 return;
             } 
             if(allocate_client(new_client) == -1) {
+                free(new_client);
                 return;
             }
             *(new_client->address) = sockaddr;
