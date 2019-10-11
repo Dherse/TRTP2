@@ -31,25 +31,25 @@ void *receive_thread(void *receive_config) {
             /** get a buffer from the stream */
             node = stream_pop(rcv_cfg->rx, false);
             if(node == NULL) {
-                fprintf(stderr,"In receive, stream_pop returned NULL\n");
+                fprintf(stderr,"[RX] stream_pop returned NULL\n");
                 node = (s_node_t *) malloc(sizeof(s_node_t));
                 if(node == NULL) {
-                    fprintf(stderr, "In receive, malloc called failed");
+                    fprintf(stderr, "[RX] malloc called failed");
                     break;
                 }
                 node->content = calloc(1, sizeof(hd_req_t));
                 if(node->content == NULL) {
-                    fprintf(stderr, "In receive, calloc called failed");
+                    fprintf(stderr, "[RX] calloc called failed");
                     free(node);
                     break;
                 }
             }
             req = (hd_req_t *) node->content;
             if(req == NULL) {
-                fprintf(stderr, "In receive, `content` in a node was NULL");
+                fprintf(stderr, "[RX] `content` in a node was NULL");
                 req = (hd_req_t *) calloc(1, sizeof(hd_req_t));
                 if(req == NULL) {
-                    fprintf(stderr, "In receive, calloc called failed");
+                    fprintf(stderr, "[RX] calloc called failed");
                     break;
                 }
             }
@@ -68,7 +68,7 @@ void *receive_thread(void *receive_config) {
                  * -> loop again
                  */
                 case EWOULDBLOCK : 
-                    already_popped = 1;
+                    already_popped = true;
                     break;
                 /**
                  * case 2 :
@@ -76,8 +76,8 @@ void *receive_thread(void *receive_config) {
                  * print error
                  */
                 default :
-                    already_popped = 1;
-                    fprintf(stderr, "A message was received, but recvfrom failed. \n");
+                    already_popped = true;
+                    fprintf(stderr, "[RX] recvfrom failed. \n");
             }
         } else {
             /** set the last handle_request parameters */
@@ -89,9 +89,14 @@ void *receive_thread(void *receive_config) {
                 ip_to_string(req->ip, ip_as_str);
 
                 /** add new client in `clients` */
-                client_t *new_client; 
+                client_t *new_client = (client_t *) malloc(sizeof(client_t));
+                if(new_client == NULL){
+                    fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                    break;
+                } 
                 if(allocate_client(new_client) == -1) {
                     fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                    free(new_client);
                     break;
                 }
                 *new_client->address = sockaddr;
@@ -103,7 +108,7 @@ void *receive_thread(void *receive_config) {
 
             /** send handle_request */
             stream_enqueue(rcv_cfg->tx, node, true);
-            already_popped = 0;
+            already_popped = false;
         }
     }
 
