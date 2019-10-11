@@ -247,7 +247,7 @@ void *handle_thread(void *);
  * 
  * Once a node has been popped from a stream it has to be
  * enqueues onto the return stream. If it cannot be it should be
- * dallocated to avoid memory leaks.
+ * deallocated to avoid memory leaks.
  * 
  */
 void *send_thread(void *);
