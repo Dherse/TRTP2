@@ -150,6 +150,10 @@ typedef struct send_request {
  * waiting, a new one is allocated. This should guarantee that
  * all allocation happen close to the startup of the application.
  * 
+ * Once a node has been popped from a stream it has to be
+ * enqueues onto the return stream. If it cannot be it should be
+ * dallocated to avoid memory leaks.
+ * 
  */
 void *receive_thread(void *);
 
@@ -208,6 +212,10 @@ void *receive_thread(void *);
  * waiting, a new one is allocated. This should guarantee that
  * all allocation happen close to the startup of the application.
  * 
+ * Once a node has been popped from a stream it has to be
+ * enqueues onto the return stream. If it cannot be it should be
+ * dallocated to avoid memory leaks.
+ * 
  */
 void *handle_thread(void *);
 
@@ -236,6 +244,10 @@ void *handle_thread(void *);
  * In the event that no data structure can be received without
  * waiting, a new one is allocated. This should guarantee that
  * all allocation happen close to the startup of the application.
+ * 
+ * Once a node has been popped from a stream it has to be
+ * enqueues onto the return stream. If it cannot be it should be
+ * dallocated to avoid memory leaks.
  * 
  */
 void *send_thread(void *);

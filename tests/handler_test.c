@@ -74,7 +74,7 @@ void test_handler_data() {
     CU_ASSERT(packet != NULL);
     if (packet == NULL) { return; }
     
-    char *world = "world!";
+    char *world = "world!\n";
     memcpy(packet->payload, world, strlen(world));
     packet->length = strlen(world) + 1;
     packet->long_length = false;
@@ -92,7 +92,7 @@ void test_handler_data() {
     memcpy(hd_req->ip, ip, 16);
     hd_req->port = 1000;
     pack(hd_req->buffer, packet, true);
-    hd_req->length = 22;
+    hd_req->length = 23;
 
     s_node_t *req = calloc(1, sizeof(s_node_t));
     CU_ASSERT(req != NULL);

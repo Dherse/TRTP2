@@ -49,15 +49,11 @@ typedef struct Packet {
 /**
  * ## Use :
  *
- * Allocates a packet, payload as NULL pointer
+ * Allocates a packet
  * 
  * ## Arguments :
  *
  * - `packet` - a pointer to an already allocated packet
- *
- * ## Payload :
- *
- * Payload will be a zero pointer (NULL)
  *
  * ## Return value:
  * 

@@ -31,8 +31,7 @@ typedef struct item {
  * The goal is then to map a `uint16_t` from this range
  * to a much smaller range (the size of the array). This
  * can be simply accomplish with the simplest 
- * (hashing method)[https://en.wikipedia.org/wiki/Hash_function]:
- * the modulo.
+ * hashing method: the modulo.
  * 
  * This method simply consists as doing the modulo of the
  * port by the maximum size of the hash table. It will
@@ -49,16 +48,14 @@ typedef struct item {
  * 
  * ## The solution
  * 
- * The solution is to use a 
- * (hash-table)[https://en.wikipedia.org/wiki/Hash_table]. 
+ * The solution is to use a hash-table. 
  * It's a table that has a small number of elements and 
  * can contain values indexed using a very large range of 
  * values (in this case 16 bits). It solves the issue of 
  * collision using different methods and is automatically 
  * widened when the capacity becomes too low.
  * 
- * In our case, we have decided to use a
- * (linear probing)[https://en.wikipedia.org/wiki/Linear_probing]
+ * In our case, we have decided to use alinear probing
  * hash table.
  * 
  * ## Linear probing
@@ -106,6 +103,14 @@ typedef struct item {
  * It's one of the algorithm teacher's favourite for the
  * exam so don't forget to study this method !
  * 
+ * ## Sources
+ * 
+ * - [IPv6](https://en.wikipedia.org/wiki/IPv6)
+ * - [Port](https://en.wikipedia.org/wiki/Port_(computer_networking))
+ * - [Hash table](https://en.wikipedia.org/wiki/Hash_table)
+ * - [Hashing function](https://en.wikipedia.org/wiki/Hash_function)
+ * - [Linear probing](https://en.wikipedia.org/wiki/Linear_probing)
+ * 
  */
 typedef struct hash_table {
     /** Items contained within the hash table */
@@ -121,11 +126,11 @@ typedef struct hash_table {
 /**
  * ## Use :
  * 
- * Allocated a new hash table.
+ * Allocates a new hash table.
  * 
  * ## Arguments :
  *
- * - `table` - a pointer to an already-allocated hash table
+ * - `table` - a pointer to an already allocated hash table
  *
  * ## Return value:
  * 
@@ -137,7 +142,7 @@ int allocate_ht(ht_t *table);
 /**
  * ## Use :
  * 
- * Deallocated an existing hash table.
+ * Deallocates an existing hash table.
  * 
  * ## Arguments :
  *

@@ -28,7 +28,7 @@ BIN_DEBUG = $(filter-out $(BIN_DIR)/main.o,$(wildcard $(BIN_DIR)/*.o))
 BIN_DEL = $(filter-out $(BIN_DIR)/.gitkeep, $(wildcard $(BIN_DIR)/*))
 
 LDFLAGS = -lz -lpthread
-FLAGS = -Werror
+FLAGS = -Werror -std=gnu99
 RELEASE_FLAGS = -O3
 DEBUG_FLAGS = -O0 -ggdb
 
