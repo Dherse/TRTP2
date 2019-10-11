@@ -79,7 +79,7 @@ typedef struct send_thread_config {
 
     /** Socket file descriptor */
     int sockfd;
-} tx_cfg;
+} tx_cfg_t;
 
 typedef struct handle_request {
     /** true = the loop should stop */
@@ -151,8 +151,8 @@ typedef struct send_request {
  * all allocation happen close to the startup of the application.
  * 
  * Once a node has been popped from a stream it has to be
- * enqueues onto the return stream. If it cannot be it should be
- * dallocated to avoid memory leaks.
+ * enqueued onto the return stream. If it cannot be it should be
+ * deallocated to avoid memory leaks.
  * 
  */
 void *receive_thread(void *);
@@ -213,8 +213,8 @@ void *receive_thread(void *);
  * all allocation happen close to the startup of the application.
  * 
  * Once a node has been popped from a stream it has to be
- * enqueues onto the return stream. If it cannot be it should be
- * dallocated to avoid memory leaks.
+ * enqueued onto the return stream. If it cannot be it should be
+ * deallocated to avoid memory leaks.
  * 
  */
 void *handle_thread(void *);
@@ -246,7 +246,7 @@ void *handle_thread(void *);
  * all allocation happen close to the startup of the application.
  * 
  * Once a node has been popped from a stream it has to be
- * enqueues onto the return stream. If it cannot be it should be
+ * enqueued onto the return stream. If it cannot be it should be
  * deallocated to avoid memory leaks.
  * 
  */
