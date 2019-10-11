@@ -68,7 +68,7 @@ void *receive_thread(void *receive_config) {
                  * -> loop again
                  */
                 case EWOULDBLOCK : 
-                    already_popped = 1;
+                    already_popped = true;
                     break;
                 /**
                  * case 2 :
@@ -76,7 +76,7 @@ void *receive_thread(void *receive_config) {
                  * print error
                  */
                 default :
-                    already_popped = 1;
+                    already_popped = true;
                     fprintf(stderr, "A message was received, but recvfrom failed. \n");
             }
         } else {
@@ -89,9 +89,14 @@ void *receive_thread(void *receive_config) {
                 ip_to_string(req->ip, ip_as_str);
 
                 /** add new client in `clients` */
-                client_t *new_client; 
+                client_t *new_client = (client_t *) malloc(sizeof(client_t));
+                if(new_client == NULL){
+                    fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                    break;
+                } 
                 if(allocate_client(new_client) == -1) {
                     fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                    free(new_client);
                     break;
                 }
                 *new_client->address = sockaddr;
@@ -103,7 +108,7 @@ void *receive_thread(void *receive_config) {
 
             /** send handle_request */
             stream_enqueue(rcv_cfg->tx, node, true);
-            already_popped = 0;
+            already_popped = false;
         }
     }
 
