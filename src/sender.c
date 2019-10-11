@@ -35,7 +35,7 @@ void *send_thread(void *sender_config){
                     fprintf(stderr, "[TX] packing failed");
                 }
 
-                ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, req->address, addr_len);
+                ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, (struct sockaddr *) req->address, addr_len);
                 if(n_sent == -1){
                     fprintf(stderr, "[TX] sendto failed");
                 }
