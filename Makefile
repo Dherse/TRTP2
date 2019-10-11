@@ -61,10 +61,9 @@ $(BIN_DIR)/%.o: $(SRC_DIR)/%.c
 test_build: FLAGS += $(DEBUG_FLAGS)
 test_build: LDFLAGS += -lcunit
 test_build: build
-	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
-
 test_build: $(TEST_OBJECTS)
 	@echo 'debug: $(BIN_DEBUG)'
+	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
 	$(GCC) $(FLAGS) $(BIN_DEBUG) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
 
 test: test_build
