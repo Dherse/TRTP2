@@ -82,7 +82,7 @@ void *receive_thread(void *receive_config) {
         } else {
             /** set the last handle_request parameters */
             req->port = (uint16_t) sockaddr.sin6_port;
-            move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr32);
+            move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
 
             /** check if sockaddr is already known in the hash-table */
             if(!ht_contains(rcv_cfg->clients, req->port, req->ip)) {
@@ -118,16 +118,12 @@ void *receive_thread(void *receive_config) {
 /*
  * Refer to headers/receiver.h
  */
-void move_ip(uint8_t *destination, uint32_t *source) {
+void move_ip(uint8_t *destination, uint8_t *source) {
     uint8_t *dst = destination;
-    uint32_t *src = source;
+    uint8_t *src = source;
     
-    for(int i = 0; i < 4; i++) {
-        (*dst++) = (uint8_t) *src >> 24;
-        (*dst++) = (uint8_t) (*src >> 16) & 0b11111111;
-        (*dst++) = (uint8_t) (*src >> 8) & 0b11111111;
-        (*dst++) = (uint8_t) (*src) & 0b11111111;
-        src++;
+    for(int i = 0; i < 16; i++) {
+        (*dst++) = (*src++);
     }
 }
 

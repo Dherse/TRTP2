@@ -28,7 +28,7 @@ void receive_body(hd_req_t *req, bool *already_popped, struct sockaddr_in6 *sock
     } else {
         /** set the last handle_request parameters */
         req->port = (uint16_t) sockaddr.sin6_port;
-        move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr32);
+        move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
 
         /** check if sockaddr is already known in the hash-table */
         if(!ht_contains(rcv_cfg->clients, req->port, req->ip)) {

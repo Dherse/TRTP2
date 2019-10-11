@@ -268,7 +268,7 @@ void *send_thread(void *);
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error. 
  */
-void move_ip(uint8_t *dst, uint32_t *src);
+void move_ip(uint8_t *dst, uint8_t *src);
 
 /**
  * ## Use :
