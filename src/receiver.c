@@ -49,6 +49,7 @@ void *receive_thread(void *receive_config) {
                 fprintf(stderr, "[RX] `content` in a node was NULL");
                 req = (hd_req_t *) calloc(1, sizeof(hd_req_t));
                 if(req == NULL) {
+                    free(node);
                     fprintf(stderr, "[RX] calloc called failed");
                     break;
                 }
