@@ -1,49 +1,51 @@
-#include <unistd.h>
-#include "../headers/sender.h"
-#include "../headers/packet.h"
+#include "../headers/receiver.h"
 
+void *send_thread(void *sender_config){
+    if(sender_config == NULL) {
+        pthread_exit(NULL_ARGUMENT);
+    }
+    tx_cfg_t *snd_cfg = (tx_cfg_t *) sender_config;
 
-int make_sender_socket(const struct sockaddr *dest_addr, socklen_t addrlen) {
-    int sock = socket(AF_INET6, SOCK_DGRAM, 0);
-    if(sock < 0) { //errno handeled by socket
-        return -1;
+    socklen_t addr_len = sizeof(struct sockaddr_in6);
+    uint8_t buf[12];
+    size_t buf_size = sizeof(buf);
+    s_node_t *node;
+    tx_req_t *req;
+
+    bool stop = false;
+
+    while(!stop){
+        node = stream_pop(snd_cfg->send_rx, true);
+        req = (tx_req_t *) node->content;
+        if(req == NULL) {
+            free(node);
+            fprintf(stderr, "[TX] `content` is NULL");
+            break;
+        }
+
+        switch(req->stop){
+            case true : 
+                stop = true;
+                free(req);
+                free(node);
+                break;
+
+            default :
+                if(pack(buf, &req->to_send, false) == -1){
+                    fprintf(stderr, "[TX] packing failed");
+                }
+
+                ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, req->address, addr_len);
+                if(n_sent == -1){
+                    fprintf(stderr, "[TX] sendto failed");
+                }
+
+                if(!stream_enqueue(snd_cfg->send_tx, node, false)){
+                    free(req);
+                    free(node);
+                }
+        }
     }
 
-    int err = connect(sock, dest_addr, addrlen);
-    if(err == -1) {
-        return -1; // errno handeled by connect
-    }
-
-    return sock;
-}
-
-int send_packet(int sock, packet_t *msg, size_t msg_len, uint8_t *buf) {
-    if(pack(buf, msg, false) == -1) {
-        return -1;
-    }
-
-    send_msg(sock, (void *) buf, msg_len);
-    return 0;
-}
-
-int send_msg(int sock, void *msg, size_t msg_len) {
-    ssize_t written = write(sock, msg, msg_len);
-    if (written == -1) {
-        return -1; // errno already set
-    }
-
-    return 0;
-}
-
-int receive_ack(int sock, packet_t *packet, uint8_t *buf) {
-    ssize_t amount_read = read(sock, (void *) buf, sizeof(packet_t));
-    if (amount_read == -1) {
-        return -1;
-    }
-
-    if(unpack(buf, packet) == -1) {
-        return -1;
-    }
-
-    return 0;
+    pthread_exit(0);
 }
