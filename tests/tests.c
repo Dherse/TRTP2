@@ -6,6 +6,7 @@
 #include "ht_test.c"
 #include "stream_test.c"
 #include "handler_test.c"
+#include "receiver_test.c"
 
 int main() {
     if (CUE_SUCCESS != CU_initialize_registry()) {
@@ -25,6 +26,8 @@ int main() {
     add_stream_tests();
 
     add_handler_tests();
+
+    add_receiver_tests();
 
     CU_basic_run_tests();
 

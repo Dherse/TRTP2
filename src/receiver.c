@@ -9,7 +9,7 @@
 /*
  * Refer to headers/receiver.h
  */
-void *receive_thread(void *receive_config){
+void *receive_thread(void *receive_config) {
     if(receive_config == NULL) {
         pthread_exit(NULL_ARGUMENT);
     }
@@ -32,7 +32,7 @@ void *receive_thread(void *receive_config){
             node = stream_pop(rcv_cfg->rx, false);
             if(node == NULL) {
                 fprintf(stderr,"In receive, stream_pop returned NULL\n");
-                node = (node_t *) malloc(sizeof(node_t));
+                node = (s_node_t *) malloc(sizeof(node_t));
                 if(node == NULL) {
                     fprintf(stderr, "In receive, malloc called failed");
                     break;
@@ -91,7 +91,7 @@ void *receive_thread(void *receive_config){
                 /** add new client in `clients` */
                 client_t *new_client; 
                 if(allocate_client(new_client) == -1) {
-                    fprintf(stderr, "In receive, the allocation of a new client failed\n Client ip :[%s], port : %u\n", ip_as_str);
+                    fprintf(stderr, "In receive, the allocation of a new client failed\n Client ip :[%s], port : %u\n", ip_as_str, req->port);
                     break;
                 }
                 *new_client->address = sockaddr;
@@ -135,11 +135,6 @@ void move_ip(uint8_t *destination, uint32_t *source) {
  * Refer to headers/receiver.h
  */
 int allocate_client(client_t *client) {
-    client = (client_t *) malloc(sizeof(client_t));
-    if(client == NULL){
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
 
     client->file_mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->file_mutex == NULL) {
@@ -173,12 +168,23 @@ int allocate_client(client_t *client) {
         return -1;
     }
 
+    client->window = (buf_t *) malloc(sizeof(buf_t));
+    if(client->window == NULL){
+        free(client->addr_len);
+        free(client->address);
+        pthread_mutex_destroy(client->file_mutex);
+        free(client->file_mutex);
+        free(client);
+        errno = FAILED_TO_ALLOCATE;
+        return -1;
+    }
     if(allocate_buffer(client->window, sizeof(packet_t)) != 0) { 
         free(client->addr_len);
         free(client->address);
         pthread_mutex_destroy(client->file_mutex);
         free(client->file_mutex);
         free(client);
+        free(client->window);
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }

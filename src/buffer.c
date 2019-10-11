@@ -140,15 +140,6 @@ void unlock(node_t* node) {
  * Refer to headers/buffer.h
  */
 int allocate_buffer(buf_t *buffer, size_t size) {
-    buf_t *temp = (buf_t *) calloc(1, sizeof(buf_t));
-    if(temp == NULL) {
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
-    *buffer = *temp;
-
-    free(temp);
 
     buffer->window_low = 0;
 
