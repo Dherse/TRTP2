@@ -130,7 +130,7 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
 /**
  * ## Use :
  *
- * Enqueues a node in the stream
+ * pops a node from stream
  * 
  * ## Arguments :
  *
