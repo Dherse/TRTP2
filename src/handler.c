@@ -75,6 +75,8 @@ void *handle_thread(void *config) {
                                 fprintf(stderr, "Failed to allocated s_node_t\n");
 
                                 if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                    free(node_rx->content);
+                                    free(node_rx);
                                     fprintf(stderr, "Failed to enqueue packet\n");
                                 }
 
@@ -85,6 +87,8 @@ void *handle_thread(void *config) {
                                     fprintf(stderr, "Failed to allocated tx_req_t\n");
 
                                     if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                        free(node_rx->content);
+                                        free(node_rx);
                                         fprintf(stderr, "Failed to enqueue packet\n");
                                     }
 
@@ -104,6 +108,8 @@ void *handle_thread(void *config) {
                         to_send->to_send.seqnum = decoded->seqnum;
 
                         if (!stream_enqueue(cfg->send_tx, pack, true)) {
+                            free(pack->content);
+                            free(pack);
                             fprintf(stderr, "Failed to enqueue send request\n");
                         }
                     } else {
@@ -117,6 +123,8 @@ void *handle_thread(void *config) {
                                 fprintf(stderr, "Failed to allocated packet_t\n");
 
                                 if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                    free(node_rx->content);
+                                    free(node_rx);
                                     fprintf(stderr, "Failed to enqueue packet\n");
                                 }
 
@@ -174,6 +182,8 @@ void *handle_thread(void *config) {
                                         fprintf(stderr, "Failed to allocated s_node_t\n");
 
                                         if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                            free(node_rx->content);
+                                            free(node_rx);
                                             fprintf(stderr, "Failed to enqueue packet\n");
                                         }
 
@@ -184,6 +194,8 @@ void *handle_thread(void *config) {
                                             fprintf(stderr, "Failed to allocated tx_req_t\n");
 
                                             if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                                free(node_rx->content);
+                                                free(node_rx);
                                                 fprintf(stderr, "Failed to enqueue packet\n");
                                             }
 
@@ -205,6 +217,8 @@ void *handle_thread(void *config) {
                                 to_send->to_send.seqnum = last_seqnum;
 
                                 if (!stream_enqueue(cfg->send_tx, pack, true)) {
+                                    free(pack->content);
+                                    free(pack);
                                     fprintf(stderr, "Failed to enqueue send request\n");
                                 }
                             }
@@ -212,6 +226,8 @@ void *handle_thread(void *config) {
                     }
 
                     if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                        free(node_rx->content);
+                        free(node_rx);
                         fprintf(stderr, "Failed to enqueue packet\n");
                     }
                 }
