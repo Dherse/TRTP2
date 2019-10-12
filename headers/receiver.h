@@ -144,6 +144,11 @@ typedef struct send_request {
  * on the hashtable in the event of a packet burst from
  * a new client.
  * 
+ * However, if the maximum number of client has been reached,
+ * the new client will be ignored. Hopefully after the
+ * retransmission timer has been reached a slot will be
+ * available.
+ * 
  * ## Appending to a stream
  * 
  * For each stream, two sub-streams are used. One is used to
@@ -205,6 +210,12 @@ void *receive_thread(void *);
  * received even though this may be caused by a retransmission
  * timer kicking-in. This is not perfect but there's apparent
  * solution.
+ * 
+ * ## End of file
+ * 
+ * Once the EOF has been reached, the client is deleted and freed.
+ * The ACK packet will however be sent but with a special flag
+ * teeling the sender to deallocate the address.
  * 
  * ## Appending to a stream
  * 

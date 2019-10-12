@@ -23,7 +23,7 @@ void *receive_thread(void *receive_config) {
     s_node_t *node;
     hd_req_t *req;
 
-    bool already_popped = 0;
+    bool already_popped = false;
     char ip_as_str[40]; //to print an IP if needed
 
     while(!rcv_cfg->stop) { 
@@ -94,7 +94,11 @@ void *receive_thread(void *receive_config) {
 
                 fprintf(stderr, "[%s] New client but max sized reached, ignored", ip_as_str);
 
-                already_popped = true;
+                /** 
+                 * We re-insert the unused request.
+                 * We set `already_popped` because the wait argument is false
+                 */
+                already_popped = !stream_enqueue(rcv_cfg->rx, node, false);
             } else {
                 if(!contained) {
                     ip_to_string(req->ip, ip_as_str);
@@ -118,7 +122,8 @@ void *receive_thread(void *receive_config) {
                 }
 
                 /** send handle_request */
-                already_popped = !stream_enqueue(rcv_cfg->tx, node, true);
+                stream_enqueue(rcv_cfg->tx, node, true);
+                already_popped = false;
             }
         }
     }
