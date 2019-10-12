@@ -41,7 +41,7 @@ void receive_body(hd_req_t *req, bool *already_popped, struct sockaddr_in6 *sock
             if(new_client == NULL){
                 return;
             } 
-            if(allocate_client(new_client) == -1) {
+            if(allocate_client(new_client, 0, "bin/%d") == -1) {
                 free(new_client);
                 return;
             }
@@ -56,7 +56,8 @@ void receive_body(hd_req_t *req, bool *already_popped, struct sockaddr_in6 *sock
     }
 }
 
-void test_recvfrom(){
+void test_recvfrom() {
+    FILE *temp = tmpfile();
     //stream in/out   *
     stream_t *rx, *tx;
     rx = calloc(1, sizeof(stream_t));
@@ -72,8 +73,6 @@ void test_recvfrom(){
     
     allocate_stream(rx, 2);
     allocate_stream(tx, 2);
-    
-
 
     //window   *
     buf_t *window = calloc(1, sizeof(buf_t));
@@ -81,9 +80,6 @@ void test_recvfrom(){
     if (window == NULL) { return; }
 
     allocate_buffer(window, 32);
-
-
-
 
     //client   *
     client_t *client = calloc(1, sizeof(client_t));
@@ -97,7 +93,7 @@ void test_recvfrom(){
     pthread_mutex_init(client->file_mutex, NULL);
 
     /** stdout */
-    client->out_fd = 1;
+    client->out_file = temp;
     client->address = NULL;
     client->addr_len = NULL;
     client->window = window;

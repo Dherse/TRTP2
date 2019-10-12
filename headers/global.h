@@ -29,7 +29,5 @@ typedef int bool;
 #include <pthread.h>
 
 #include "errors.h"
-#include "packet.h"
-#include "cli.h"
 
 #endif

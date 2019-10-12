@@ -228,12 +228,15 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     }
 
     struct addrinfo *addrIt;
-    for (addrIt = infoptr; addrIt != NULL; addrIt = addrIt->ai_next) {
+    struct addrinfo *prev;
+
+    for (addrIt = infoptr; addrIt != NULL; prev = addrIt, addrIt = addrIt->ai_next) {
         char ipAddr[INET6_ADDRSTRLEN];
         inet_ntop(addrIt->ai_family, get_socket_addr(addrIt->ai_addr), ipAddr, sizeof ipAddr); 
+        fprintf(stderr, "[CLI] IP: %s\n", ipAddr);
     }
     
-    config->addr_info = addrIt;
+    config->addr_info = prev;
 
     return 0;
 }

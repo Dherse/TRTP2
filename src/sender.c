@@ -14,7 +14,7 @@ void *send_thread(void *sender_config){
 
     bool stop = false;
 
-    while(!stop){
+    while(!stop) {
         node = stream_pop(snd_cfg->send_rx, true);
         req = (tx_req_t *) node->content;
         if(req == NULL) {
@@ -48,6 +48,8 @@ void *send_thread(void *sender_config){
             }
         }
     }
+
+    fprintf(stderr, "[TX] Stopped\n");
 
     pthread_exit(0);
 

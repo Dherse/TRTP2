@@ -15,7 +15,7 @@ typedef struct client {
     pthread_mutex_t *file_mutex;
 
     /** Output file descriptor */
-    int out_fd;
+    FILE *out_file;
 
     /** Client address */
     struct sockaddr_in6 *address;
@@ -29,17 +29,20 @@ typedef struct client {
 
 typedef struct receive_thread_config {
     /** Thread reference */
-    /**
-     * shouldn't be used by the thread itself,
-     * it it merely stored for the main
-     */
     pthread_t *thread;
+
+    /** the number of clients that have connected */
+    int idx;
+
+    /** the file name format */
+    char *file_format;
 
     /** true = the loop should stop */
     bool stop;
 
     /** Receive to Handle stream */
     stream_t *tx;
+
     /** Handle to Receive stream */
     stream_t *rx;
 
@@ -296,45 +299,15 @@ void move_ip(uint8_t *dst, uint8_t *src);
  * ## Arguments :
  *
  * - `client` - a pointer to the address you want to listen to
+ * - `id`     - the ID for the file name format
+ * - `format` - the file name format
  *
  * ## Return value:
  *
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error. 
  */
-int allocate_client(client_t *client);
-
-typedef struct receive_config {
-    pthread_t *handle_thread;
-
-    bool running;
-
-    buf_t buf;
-
-    int out;
-
-    struct sockaddr *clt_addr;
-
-    int socket_fd;
-} rcv_cfg_t;
-
-
-/**
- * ## Use :
- *
- * 
- * 
- * ## Arguments :
- *
- * - `argument` - a pointer to the address you want to listen to
- *
- * ## Return value:
- *
- * the socketfd if the process completed successfully. -1 otherwise.
- * If it failed, errno is set to an appropriate error. 
- *
- */
-int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen);
+int allocate_client(client_t *client, int id, char *format);
 
 
 #endif

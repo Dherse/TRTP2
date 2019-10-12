@@ -92,6 +92,7 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
 
     while(stream->length >= stream->max_length) {
         if (!wait) {
+            pthread_mutex_unlock(stream->lock);
             return false;
         }
 
@@ -124,6 +125,7 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
 
     while (stream->length == 0 || stream->head == NULL) {
         if (!wait) {
+            pthread_mutex_unlock(stream->lock);
             return NULL;
         }
 

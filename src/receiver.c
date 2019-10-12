@@ -26,7 +26,8 @@ void *receive_thread(void *receive_config) {
     bool already_popped = false;
     char ip_as_str[40]; //to print an IP if needed
 
-    while(!rcv_cfg->stop) { 
+    while(!rcv_cfg->stop) {
+        fprintf(stderr, "[RX] LOOPED\n");
         if(!already_popped) {
             /** get a buffer from the stream */
             node = stream_pop(rcv_cfg->rx, false);
@@ -58,7 +59,7 @@ void *receive_thread(void *receive_config) {
         }
         
         /** receive packet from network */
-        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, MSG_DONTWAIT, (struct sockaddr *) &sockaddr, &addr_len);
+        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, &addr_len);
         if(req->length == -1) {
             // pas de paquet reçus/echec de la reception
             switch(errno) {
@@ -78,7 +79,7 @@ void *receive_thread(void *receive_config) {
                  */
                 default :
                     already_popped = true;
-                    fprintf(stderr, "[RX] recvfrom failed. \n");
+                    fprintf(stderr, "[RX] recvfrom failed. (errno = %d) \n", errno);
             }
         } else {
             /** set the last handle_request parameters */
@@ -94,11 +95,7 @@ void *receive_thread(void *receive_config) {
 
                 fprintf(stderr, "[%s] New client but max sized reached, ignored", ip_as_str);
 
-                /** 
-                 * We re-insert the unused request.
-                 * We set `already_popped` because the wait argument is false
-                 */
-                already_popped = !stream_enqueue(rcv_cfg->rx, node, false);
+                already_popped = true;
             } else {
                 if(!contained) {
                     ip_to_string(req->ip, ip_as_str);
@@ -109,7 +106,7 @@ void *receive_thread(void *receive_config) {
                         fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
                         break;
                     } 
-                    if(allocate_client(new_client) == -1) {
+                    if(allocate_client(new_client, rcv_cfg->idx++, rcv_cfg->file_format) == -1) {
                         fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
                         free(new_client);
                         break;
@@ -132,6 +129,9 @@ void *receive_thread(void *receive_config) {
         free(req);
         free(node);
     }
+
+    fprintf(stderr, "[RX] Stopped\n");
+
     pthread_exit(0);
     return NULL;
 }
@@ -151,19 +151,31 @@ void move_ip(uint8_t *destination, uint8_t *source) {
 /*
  * Refer to headers/receiver.h
  */
-int allocate_client(client_t *client) {
-
+int allocate_client(client_t *client, int id, char *format) {
     client->file_mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->file_mutex == NULL) {
         free(client);
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
     int err = pthread_mutex_init(client->file_mutex,NULL);
     if(err != 0) {
         free(client->file_mutex);
         free(client);
         errno = FAILED_TO_INIT_MUTEX;
+        return -1;
+    }
+
+    char name[256];
+    sprintf(name, format, id);
+    client->out_file = fopen(name, "wb");
+    if (client->out_file == NULL) {
+        fprintf(stderr, "[RX] Failed to create file: %s", name);
+        pthread_mutex_destroy(client->file_mutex);
+        free(client->file_mutex);
+        free(client);
+        errno = FAILED_TO_ALLOCATE;
         return -1;
     }
     

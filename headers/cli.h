@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define REGEX_FORMAT "^[a-zA-Z0-9._-]*\\%[0-9]*d[a-zA-Z0-9._-]*$"
+#define REGEX_FORMAT "^[a-zA-Z0-9._\\/-]*\\%[0-9]*d[a-zA-Z0-9._\\/-]*$"
 /**
  * Contains a receiver configuration.
  * 

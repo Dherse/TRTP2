@@ -4,7 +4,6 @@
 
 void test_handler_data() {
     FILE *temp = tmpfile();
-    int temp_fd = fileno(temp);
 
     /** Initialize all the required config and data structs */
     uint8_t ip[16] = {
@@ -49,7 +48,7 @@ void test_handler_data() {
 
     pthread_mutex_init(client->file_mutex, NULL);
     /** stdout */
-    client->out_fd = temp_fd;
+    client->out_file = temp;
     client->address = NULL;
     client->addr_len = NULL;
     client->window = window;
@@ -190,6 +189,8 @@ void test_handler_nack() {
     uint8_t ip[16] = {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
     };
+    
+    FILE *temp = tmpfile();
 
     stream_t *rx, *tx, *send_tx, *send_rx;
     rx = calloc(1, sizeof(stream_t));
@@ -229,7 +230,7 @@ void test_handler_nack() {
 
     pthread_mutex_init(client->file_mutex, NULL);
     /** stdout */
-    client->out_fd = 1;
+    client->out_file = temp;
     client->address = NULL;
     client->addr_len = NULL;
     client->window = window;

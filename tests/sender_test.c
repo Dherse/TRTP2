@@ -18,7 +18,6 @@ int add_sender_tests() {
         CU_cleanup_registry();
         return CU_get_error();
     }
-    
 
     return 0;
 }
