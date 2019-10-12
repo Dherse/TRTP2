@@ -48,6 +48,9 @@ typedef struct receive_thread_config {
 
     /** Socket file descriptor */
     int sockfd;
+    
+    /** Maximum number of clients */
+    int max_clients;
 } rx_cfg_t;
 
 typedef struct handle_thread_config {

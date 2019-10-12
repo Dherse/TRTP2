@@ -124,6 +124,7 @@ void test_recvfrom(){
     cfg->rx = rx;
     cfg->clients = clients;
     cfg->sockfd = 2;
+    cfg->max_clients = 100;
 
 
     /** Create packet to received *  */

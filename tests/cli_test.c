@@ -13,7 +13,7 @@ void test_cli_noopt() {
     CU_ASSERT(parse_receiver(3, params, &config) == 0);
     CU_ASSERT(config.format_len == 2);
     CU_ASSERT(strcmp(config.format, "%d") == 0);
-    CU_ASSERT(config.max_connections == 0);
+    CU_ASSERT(config.max_connections == 100);
     CU_ASSERT(config.port == 1234);
 }
 

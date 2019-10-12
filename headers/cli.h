@@ -14,6 +14,8 @@
  * 
  */
 typedef struct config_receiver {
+    int handle_num;
+
     size_t format_len;
     char *format;
 
@@ -23,15 +25,6 @@ typedef struct config_receiver {
     uint16_t port;    
 } config_rcv_t;
 
-typedef struct config_sender {
-    char *filename;
-
-    struct addrinfo *addr_info;
-    uint16_t port;    
-} config_snd_t;
-
 int parse_receiver(int argc, char *argv[], config_rcv_t *config);
-
-int parse_sender(int argc, char *argv[], config_snd_t *config);
 
 #endif

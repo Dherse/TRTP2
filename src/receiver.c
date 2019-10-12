@@ -86,30 +86,40 @@ void *receive_thread(void *receive_config) {
             move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
 
             /** check if sockaddr is already known in the hash-table */
-            if(!ht_contains(rcv_cfg->clients, req->port, req->ip)) {
+            bool contained = ht_contains(rcv_cfg->clients, req->port, req->ip);
+            
+            if (!contained && rcv_cfg->clients->length >= rcv_cfg->max_clients) {
+                /** the client is new **but** the maximum number of clients is already reached */
                 ip_to_string(req->ip, ip_as_str);
 
-                /** add new client in `clients` */
-                client_t *new_client = (client_t *) malloc(sizeof(client_t));
-                if(new_client == NULL){
-                    fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
-                    break;
-                } 
-                if(allocate_client(new_client) == -1) {
-                    fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
-                    free(new_client);
-                    break;
+                fprintf(stderr, "[%s] New client but max sized reached, ignored", ip_as_str);
+
+                already_popped = true;
+            } else {
+                if(!contained) {
+                    ip_to_string(req->ip, ip_as_str);
+
+                    /** add new client in `clients` */
+                    client_t *new_client = (client_t *) malloc(sizeof(client_t));
+                    if(new_client == NULL){
+                        fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                        break;
+                    } 
+                    if(allocate_client(new_client) == -1) {
+                        fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                        free(new_client);
+                        break;
+                    }
+                    *new_client->address = sockaddr;
+                    *new_client->addr_len = addr_len;
+                    ht_put(rcv_cfg->clients, req->port, req->ip, (void *) new_client);
+
+                    fprintf(stderr, "[%s][%u] New client\n", ip_as_str, req->port);
                 }
-                *new_client->address = sockaddr;
-                *new_client->addr_len = addr_len;
-                ht_put(rcv_cfg->clients, req->port, req->ip, (void *) new_client);
 
-                fprintf(stderr, "[%s][%u] New client\n", ip_as_str, req->port);
+                /** send handle_request */
+                already_popped = !stream_enqueue(rcv_cfg->tx, node, true);
             }
-
-            /** send handle_request */
-            stream_enqueue(rcv_cfg->tx, node, true);
-            already_popped = false;
         }
     }
 
