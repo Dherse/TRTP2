@@ -3,6 +3,9 @@
 #include "../headers/receiver.h"
 
 void test_handler_data() {
+    FILE *temp = tmpfile();
+    int temp_fd = fileno(temp);
+
     /** Initialize all the required config and data structs */
     uint8_t ip[16] = {
         1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
@@ -46,7 +49,7 @@ void test_handler_data() {
 
     pthread_mutex_init(client->file_mutex, NULL);
     /** stdout */
-    client->out_fd = 1;
+    client->out_fd = temp_fd;
     client->address = NULL;
     client->addr_len = NULL;
     client->window = window;
@@ -74,9 +77,9 @@ void test_handler_data() {
     CU_ASSERT(packet != NULL);
     if (packet == NULL) { return; }
     
-    char *world = "world!\n";
-    memcpy(packet->payload, world, strlen(world));
-    packet->length = strlen(world) + 1;
+    char world[12] = { 'w', 'o', 'r', 'l', 'd', '!', '\n', '\0', 0xFF, 0xFF, 0xFF, 0xFF};
+    memcpy(packet->payload, world, 12);
+    packet->length = 12;
     packet->long_length = false;
     packet->seqnum = 1;
     packet->window = 20;
@@ -92,7 +95,7 @@ void test_handler_data() {
     memcpy(hd_req->ip, ip, 16);
     hd_req->port = 1000;
     pack(hd_req->buffer, packet, true);
-    hd_req->length = 23;
+    hd_req->length = 27;
 
     s_node_t *req = calloc(1, sizeof(s_node_t));
     CU_ASSERT(req != NULL);
@@ -159,6 +162,9 @@ void test_handler_data() {
 
     /** tests that no message is sent on the wrong stream */
     CU_ASSERT_EQUAL(send_rx->length, 0);
+
+    /** asserts that the client has been removed */
+    CU_ASSERT_EQUAL(clients->length, 0);
 
     s_node_t *resp = stream_pop(send_tx, false);
     CU_ASSERT(resp != NULL);

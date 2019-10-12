@@ -102,6 +102,8 @@ typedef struct send_request {
     /** true = the loop should stop */
     bool stop;
 
+    bool deallocate_address;
+
     /** the IP to send to */
     struct sockaddr_in6 *address;
 

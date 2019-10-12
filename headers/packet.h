@@ -92,14 +92,15 @@ int dealloc_packet(packet_t* packet);
  * ## Arguments :
  *
  * - `packet` - a pointer to a packet buffer
- * - `out` - a pointer to a packet
+ * - `length` - the length of the packet buffer
+ * - `out`    - a pointer to a packet
  *
  * ## Return value:
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int unpack(uint8_t *packet, packet_t *out);
+int unpack(uint8_t *packet, int length, packet_t *out);
 
 /**
  * ## Use :

@@ -23,29 +23,33 @@ void *send_thread(void *sender_config){
             break;
         }
 
-        switch(req->stop){
-            case true : 
-                stop = true;
+        if(req->stop) {
+            stop = true;
+            free(req);
+            free(node);
+            break;
+        } else {
+            if(pack(buf, &req->to_send, false) == -1){
+                fprintf(stderr, "[TX] packing failed");
+            }
+
+            ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, (struct sockaddr *) req->address, addr_len);
+            if(n_sent == -1){
+                fprintf(stderr, "[TX] sendto failed");
+            }
+
+            if (req->deallocate_address) {
+                free(req->address);
+            }
+
+            if(!stream_enqueue(snd_cfg->send_tx, node, false)){
                 free(req);
                 free(node);
-                break;
-
-            default :
-                if(pack(buf, &req->to_send, false) == -1){
-                    fprintf(stderr, "[TX] packing failed");
-                }
-
-                ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, (struct sockaddr *) req->address, addr_len);
-                if(n_sent == -1){
-                    fprintf(stderr, "[TX] sendto failed");
-                }
-
-                if(!stream_enqueue(snd_cfg->send_tx, node, false)){
-                    free(req);
-                    free(node);
-                }
+            }
         }
     }
 
     pthread_exit(0);
+
+    return NULL;
 }

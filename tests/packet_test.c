@@ -30,7 +30,7 @@ void test_ack_decoding() {
 
     packet_t packet;
 
-    CU_ASSERT(unpack((uint8_t *) &ack_packet, &packet) == 0);
+    CU_ASSERT(unpack((uint8_t *) &ack_packet, 11, &packet) == 0);
 
     CU_ASSERT(packet.type == ACK);
     CU_ASSERT(!packet.truncated);
@@ -69,7 +69,7 @@ void test_data_decoding() {
     uint32_t crc2_n = htonl(crc2);
     //memcpy(ack_packet + 7 + strlen(str), &crc2_n, sizeof(uint32_t));
 
-    uint8_t dat_packet[256] = {
+    uint8_t dat_packet[29] = {
         // Type + TR + Window
         0b01001010,
 
@@ -109,7 +109,7 @@ void test_data_decoding() {
 
     packet_t packet;
 
-    CU_ASSERT(unpack((uint8_t *) &dat_packet, &packet) == 0);
+    CU_ASSERT(unpack((uint8_t *) &dat_packet, 29, &packet) == 0);
 
     CU_ASSERT(packet.type == DATA);
     CU_ASSERT(!packet.truncated);

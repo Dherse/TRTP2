@@ -42,7 +42,7 @@ void *handle_thread(void *config) {
                     fprintf(stderr, "[%s] Unknown client\n", ip_as_str);
                 } else {
                     errno = 0;
-                    if (unpack(req->buffer, decoded) != 0) {
+                    if (unpack(req->buffer, req->length, decoded) != 0) {
                         switch(errno) {
                             case TYPE_IS_WRONG:
                                 fprintf(stderr, "[%s] Type is wrong: %d\n", ip_as_str, decoded->type);
@@ -56,8 +56,21 @@ void *handle_thread(void *config) {
                             case PAYLOAD_VALIDATION_FAILED:
                                 fprintf(stderr, "[%s] Payload could not be validated\n", ip_as_str);
                                 break;
+                            case PACKET_TOO_SHORT:
+                            case PACKET_TOO_LONG:
+                                fprintf(stderr, "[%s] Payload has incorrect size\n", ip_as_str);
+                                break;
                         }
+
+                        if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                            free(node_rx->content);
+                            free(node_rx);
+                            fprintf(stderr, "Failed to enqueue packet\n");
+                        }
+
+                        continue;
                     }
+
                     if (decoded->seqnum > client->window->window_low + 31 || decoded->seqnum < client->window->window_low) {
                         fprintf(stderr, "[%s] Wildly out of sequence packet: %03d\n", ip_as_str, decoded->seqnum);
                     } else if (decoded->truncated) {
@@ -144,15 +157,30 @@ void *handle_thread(void *config) {
                             uint8_t cnt = 0;
                             uint8_t last_seqnum = window->window_low;
                             node_t* node = NULL;
+                            bool remove = false;
                             pthread_mutex_lock(client->file_mutex);
                             do {
                                 node = get(window, i, false, false);
                                 if (node != NULL) {
+                                    packet_t *pak = (packet_t *) node->value;
+
                                     int result = write(
                                         client->out_fd, 
-                                        ((packet_t *) node->value)->payload, 
-                                        ((packet_t *) node->value)->length
+                                        pak->payload, 
+                                        pak->length
                                     );
+
+                                    int last_int =
+                                        (pak->payload[pak->length - 4] << 24) |
+                                        (pak->payload[pak->length - 3] << 16) |
+                                        (pak->payload[pak->length - 2] << 8) |
+                                        (pak->payload[pak->length - 1]);
+
+                                    if (last_int == EOF) {
+                                        remove = true;
+                                    } else {
+                                        remove = false;
+                                    }
 
                                     if (result != ((packet_t *) node->value)->length) {
                                         fprintf(stderr, "[HD] Failed to write to file\n");
@@ -166,8 +194,6 @@ void *handle_thread(void *config) {
                                 }
                                 i++;
                             } while(i < window->window_low + 30 && node != NULL);
-
-                            pthread_mutex_unlock(client->file_mutex);
 
                             if (cnt > 0) {
                                 window->length -= cnt;
@@ -213,6 +239,27 @@ void *handle_thread(void *config) {
                                 to_send->to_send.window = 31 - client->window->length;
                                 to_send->to_send.timestamp = value->timestamp;
                                 to_send->to_send.seqnum = last_seqnum;
+                                to_send->deallocate_address = remove;
+
+                                if (remove) {
+                                    fprintf(stderr, "[%s] Done transfering file\n", ip_as_str);
+
+                                    ht_remove(cfg->clients, port, ip);
+
+                                    close(client->out_fd);
+
+                                    free(client->addr_len);
+                                    
+                                    deallocate_buffer(client->window);
+                                    free(client->window);
+
+                                    pthread_mutex_destroy(client->file_mutex);
+                                    free(client->file_mutex);
+
+                                    free(client);
+
+                                    fprintf(stderr, "[%s] Destroyed\n", ip_as_str);
+                                }
 
                                 if (!stream_enqueue(cfg->send_tx, pack, true)) {
                                     free(pack->content);
@@ -220,6 +267,8 @@ void *handle_thread(void *config) {
                                     fprintf(stderr, "[HD] Failed to enqueue send request\n");
                                 }
                             }
+
+                            pthread_mutex_unlock(client->file_mutex);
                         }
                     }
 

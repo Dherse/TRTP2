@@ -61,8 +61,13 @@ int dealloc_packet(packet_t* packet) {
 /*
  * Refer to headers/packet.h
  */
-int unpack(uint8_t *packet, packet_t *out) {
+int unpack(uint8_t *packet, int length, packet_t *out) {
     uint8_t *raw = packet;
+
+    if (--length <= 0) {
+        errno = PACKET_TOO_SHORT;
+        return -1;
+    }
 
     uint8_t *header = packet++;
 
@@ -73,24 +78,54 @@ int unpack(uint8_t *packet, packet_t *out) {
 
     out->type = type;
 
-    uint8_t length = *packet++;
-    out->long_length = (length & 0b10000000) >> 8;
+    if (--length <= 0) {
+        errno = PACKET_TOO_SHORT;
+        return -1;
+    }
+
+    uint8_t size = *packet++;
+    out->long_length = (size & 0b10000000) >> 8;
     if (out->long_length) {
-        out->length = (length & 0b01111111) | (*packet++ << 7);
+        if (--length <= 0) {
+            errno = PACKET_TOO_SHORT;
+            return -1;
+        }
+
+        out->length = (size & 0b01111111) | (*packet++ << 7);
         out->length = ntohs(out->length);
     } else {
-        out->length = length & 0b01111111;
+        out->length = size & 0b01111111;
+    }
+
+    if (--length <= 0) {
+        errno = PACKET_TOO_SHORT;
+        return -1;
     }
 
     out->seqnum = *packet++;
 
+    if ((length -= 4) <= 0) {
+        errno = PACKET_TOO_SHORT;
+        return -1;
+    }
+
     out->timestamp = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
     out->timestamp = ntohl(out->timestamp);
+
+    if ((length -= 4) < 0) {
+        errno = PACKET_TOO_SHORT;
+        return -1;
+    }
 
     out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
     out->crc1 = ntohl(out->crc1);
 
     if (out->type == DATA && !out->truncated) {
+        if ((length -= out->length) <= 0) {
+            errno = PACKET_TOO_SHORT;
+            return -1;
+        }
+
         if (&out->payload != memcpy(&out->payload, packet, out->length)) {
             errno = FAILED_TO_COPY;
             return -1;
@@ -98,8 +133,18 @@ int unpack(uint8_t *packet, packet_t *out) {
 
         packet += out->length;
 
+        if ((length -= 4) < 0) {
+            errno = PACKET_TOO_SHORT;
+            return -1;
+        }
+
         out->crc2 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
         out->crc2 = ntohl(out->crc2);
+    }
+
+    if (length > 0 && !out->truncated) {
+        errno = PACKET_TOO_LONG;
+        return -1;
     }
 
     size_t len = 7;
