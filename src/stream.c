@@ -142,6 +142,8 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
         stream->tail = NULL;
     }
 
+    pthread_cond_signal(stream->write_cond);
+
     pthread_mutex_unlock(stream->lock);
 
     return head;

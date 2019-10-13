@@ -65,6 +65,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     uint8_t *raw = packet;
 
     if (--length <= 0) {
+        fprintf(stderr, "%d\n", 0);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -79,25 +80,28 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->type = type;
 
     if (--length <= 0) {
+        fprintf(stderr, "%d\n", 1);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
     uint8_t size = *packet++;
-    out->long_length = (size & 0b10000000) >> 8;
+    out->long_length = (size & 0b10000000) >> 7;
     if (out->long_length) {
         if (--length <= 0) {
+        fprintf(stderr, "%d\n", 2);
             errno = PACKET_TOO_SHORT;
             return -1;
         }
 
-        out->length = (size & 0b01111111) | (*packet++ << 7);
+        out->length = (size & 0b01111111) | (*packet++ << 8);
         out->length = ntohs(out->length);
     } else {
         out->length = size & 0b01111111;
     }
 
     if (--length <= 0) {
+        fprintf(stderr, "%d\n", 3);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -105,6 +109,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->seqnum = *packet++;
 
     if ((length -= 4) <= 0) {
+        fprintf(stderr, "%d\n", 4);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -113,6 +118,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->timestamp = ntohl(out->timestamp);
 
     if ((length -= 4) < 0) {
+        fprintf(stderr, "%d\n", 5);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -120,8 +126,9 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
     out->crc1 = ntohl(out->crc1);
 
-    if (out->type == DATA && !out->truncated) {
+    if (out->type == DATA && !out->truncated && out->length != 0) {
         if ((length -= out->length) <= 0) {
+        fprintf(stderr, "%d\n", 6);
             errno = PACKET_TOO_SHORT;
             return -1;
         }
@@ -134,6 +141,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         packet += out->length;
 
         if ((length -= 4) < 0) {
+        fprintf(stderr, "%d\n", 7);
             errno = PACKET_TOO_SHORT;
             return -1;
         }

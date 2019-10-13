@@ -29,7 +29,7 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/trtp_receiver",
-            "args": [ "::", "5555" ],
+            "args": [ "::", "5555", "-o", "./bin/out_%d.txt" ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

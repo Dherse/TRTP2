@@ -7,35 +7,65 @@ void *send_thread(void *sender_config){
     tx_cfg_t *snd_cfg = (tx_cfg_t *) sender_config;
 
     socklen_t addr_len = sizeof(struct sockaddr_in6);
-    uint8_t buf[12];
+    uint8_t buf[11];
     size_t buf_size = sizeof(buf);
     s_node_t *node;
     tx_req_t *req;
 
     bool stop = false;
 
-    while(!stop) {
+    while (!stop) {
         node = stream_pop(snd_cfg->send_rx, true);
         req = (tx_req_t *) node->content;
-        if(req == NULL) {
+        if (req == NULL) {
             free(node);
-            fprintf(stderr, "[TX] `content` is NULL");
+            fprintf(stderr, "[TX] `content` is NULL\n");
             break;
         }
 
-        if(req->stop) {
+        if (req->stop) {
             stop = true;
             free(req);
             free(node);
             break;
         } else {
-            if(pack(buf, &req->to_send, false) == -1){
-                fprintf(stderr, "[TX] packing failed");
+            if (pack(buf, &req->to_send, false) == -1) {
+                fprintf(stderr, "[TX] packing failed\n");
+
+                if(!stream_enqueue(snd_cfg->send_tx, node, false)){
+                    free(req);
+                    free(node);
+                }
+
+                continue;
             }
 
             ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, (struct sockaddr *) req->address, addr_len);
-            if(n_sent == -1){
-                fprintf(stderr, "[TX] sendto failed");
+            if (n_sent == -1) {
+                fprintf(stderr, "[TX] sendto failed: ");
+                switch (errno) {
+                    case ENETDOWN:
+                        fprintf(stderr, "closed\n");
+                        break;
+                    case ENETUNREACH:
+                        fprintf(stderr, "unreach\n");
+                        break;
+                    case ENOTCONN:
+                        fprintf(stderr, "not connected\n");
+                        break;
+                    case ENOTSOCK:
+                        fprintf(stderr, "invalid socket descriptor\n");
+                        break;
+                    case ESHUTDOWN:
+                        fprintf(stderr, "shutdown\n");
+                        break;
+                    case ETIMEDOUT:
+                        fprintf(stderr, "timed out\n");
+                        break;
+                    case EWOULDBLOCK:
+                        fprintf(stderr, "would block\n");
+                        break;
+                }
             }
 
             if (req->deallocate_address) {

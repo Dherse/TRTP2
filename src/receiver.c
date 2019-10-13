@@ -27,12 +27,10 @@ void *receive_thread(void *receive_config) {
     char ip_as_str[40]; //to print an IP if needed
 
     while(!rcv_cfg->stop) {
-        fprintf(stderr, "[RX] LOOPED\n");
         if(!already_popped) {
             /** get a buffer from the stream */
             node = stream_pop(rcv_cfg->rx, false);
             if(node == NULL) {
-                fprintf(stderr,"[RX] stream_pop returned NULL\n");
                 node = (s_node_t *) malloc(sizeof(s_node_t));
                 if(node == NULL) {
                     fprintf(stderr, "[RX] malloc called failed");
@@ -152,6 +150,8 @@ void move_ip(uint8_t *destination, uint8_t *source) {
  * Refer to headers/receiver.h
  */
 int allocate_client(client_t *client, int id, char *format) {
+    client->first = true;
+
     client->file_mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->file_mutex == NULL) {
         free(client);

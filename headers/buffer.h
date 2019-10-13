@@ -21,7 +21,9 @@ typedef struct node {
 
     pthread_mutex_t *lock;
 
-    pthread_cond_t *notifier;
+    pthread_cond_t *write_notifier;
+
+    pthread_cond_t *read_notifier;
 } node_t;
 
 typedef struct buf {
@@ -168,13 +170,15 @@ void deallocate_buffer(buf_t *buffer);
  * ## Arguments :
  *
  * - `buffer` - a pointer to an already-allocated buffer
+ * - `wait` - whether to wait for a readable writable to be available
  * - `seqnum` - the sequence number to insert
  *
  * ## Return value:
  * 
- * NULL if it failed, an initialized node otherwise
+ * - wait == true : NULL if it failed, an initialized node otherwise
+ * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
-node_t *next(buf_t *buffer, uint8_t seqnum);
+node_t *next(buf_t *buffer, uint8_t seqnum, bool wait);
 
 /**
  * ## Use :

@@ -21,7 +21,7 @@ void test_fill_and_empty() {
 
         node_t *node;
         for (i = j; i < j + 32; i++) {
-            node = next(&buf, i);
+            node = next(&buf, i, true);
             CU_ASSERT(node != NULL);
             if (node != NULL) {
                 ((packet_t *) node->value)->seqnum = (uint8_t) i; 

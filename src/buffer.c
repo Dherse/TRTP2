@@ -22,7 +22,7 @@ uint8_t hash(uint8_t seqnum) {
 /*
  * Refer to headers/buffer.h
  */
-node_t *next(buf_t *buffer, uint8_t seqnum) {
+node_t *next(buf_t *buffer, uint8_t seqnum, bool wait) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
         return NULL;
@@ -51,8 +51,15 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
      * The reason why there is no deadlock is because pthread_cond_wait unlocks
      * the mutex before going to sleep!
      */
-    while (node->used) {
-        pthread_cond_wait(node->notifier, node->lock);
+    if (wait) {
+        while (node->used) {
+            pthread_cond_wait(node->write_notifier, node->lock);
+        }
+    } else if(node->used) {
+        pthread_mutex_unlock(buffer->write_lock);
+        pthread_mutex_unlock(node->lock);
+
+        return NULL;
     }
 
     node->used = true;
@@ -63,7 +70,7 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
     pthread_mutex_unlock(buffer->write_lock);
 
     /* We notify any peek waiting that it is available*/
-    pthread_cond_signal(node->notifier);
+    pthread_cond_signal(node->read_notifier);
 
     return node;
 }
@@ -101,7 +108,7 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
 
     if (wait) {
         while(!node->used) {
-            pthread_cond_wait(node->notifier, node->lock);
+            pthread_cond_wait(node->read_notifier, node->lock);
         }
     } else if (!node->used) {
         pthread_mutex_unlock(buffer->read_lock);
@@ -117,12 +124,11 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
         buffer->window_low = next_read;
     }
 
+    /* We notify any next waiting that it is available*/
+    pthread_cond_signal(node->write_notifier);
 
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->read_lock);
-
-    /* We notify any next waiting that it is available*/
-    pthread_cond_signal(node->notifier);
 
     return node;
 }
@@ -181,8 +187,20 @@ int allocate_buffer(buf_t *buffer, size_t size) {
 
         pthread_mutex_lock(buffer->nodes[i].lock);
 
-        buffer->nodes[i].notifier = malloc(sizeof(pthread_cond_t));
-        if(buffer->nodes[i].notifier == NULL || pthread_cond_init(buffer->nodes[i].notifier, NULL) != 0) {
+        buffer->nodes[i].read_notifier = malloc(sizeof(pthread_cond_t));
+        if(buffer->nodes[i].read_notifier == NULL || pthread_cond_init(buffer->nodes[i].read_notifier, NULL) != 0) {
+            pthread_mutex_unlock(buffer->nodes[i].lock);
+            pthread_mutex_unlock(buffer->read_lock);
+            pthread_mutex_unlock(buffer->write_lock);
+
+            deallocate_buffer(buffer);
+
+            errno = FAILED_TO_INIT_COND;
+            return -1;
+        }
+
+        buffer->nodes[i].write_notifier = malloc(sizeof(pthread_cond_t));
+        if(buffer->nodes[i].write_notifier == NULL || pthread_cond_init(buffer->nodes[i].write_notifier, NULL) != 0) {
             pthread_mutex_unlock(buffer->nodes[i].lock);
             pthread_mutex_unlock(buffer->read_lock);
             pthread_mutex_unlock(buffer->write_lock);
@@ -223,18 +241,23 @@ void deallocate_buffer(buf_t *buffer) {
         return;
     }
 
-    if (buffer->read_lock != NULL) {
-        pthread_mutex_destroy(buffer->read_lock);
-        free(buffer->read_lock);
-    }
-
-    if (buffer->write_lock != NULL) {
-        pthread_mutex_destroy(buffer->write_lock);
-        free(buffer->write_lock);
-    }
+    pthread_mutex_lock(buffer->read_lock);
+    pthread_mutex_lock(buffer->write_lock);
 
     int i = 0;
     for (; i < MAX_WINDOW_SIZE; i++) {
+        if (buffer->nodes[i].read_notifier != NULL) {
+            pthread_cond_broadcast(buffer->nodes[i].read_notifier);
+            pthread_cond_destroy(buffer->nodes[i].read_notifier);
+            free(buffer->nodes[i].read_notifier);
+        }
+
+        if (buffer->nodes[i].write_notifier != NULL) {
+            pthread_cond_broadcast(buffer->nodes[i].write_notifier);
+            pthread_cond_destroy(buffer->nodes[i].write_notifier);
+            free(buffer->nodes[i].write_notifier);
+        }
+
         if (buffer->nodes[i].value != NULL) {
             free(buffer->nodes[i].value);
         }
@@ -243,10 +266,17 @@ void deallocate_buffer(buf_t *buffer) {
             pthread_mutex_destroy(buffer->nodes[i].lock);
             free(buffer->nodes[i].lock);
         }
+    }
 
-        if (buffer->nodes[i].notifier != NULL) {
-            pthread_cond_destroy(buffer->nodes[i].notifier);
-            free(buffer->nodes[i].notifier);
-        }
+    pthread_mutex_unlock(buffer->read_lock);
+    if (buffer->read_lock != NULL) {
+        pthread_mutex_destroy(buffer->read_lock);
+        free(buffer->read_lock);
+    }
+
+    pthread_mutex_unlock(buffer->write_lock);
+    if (buffer->write_lock != NULL) {
+        pthread_mutex_destroy(buffer->write_lock);
+        free(buffer->write_lock);
     }
 }

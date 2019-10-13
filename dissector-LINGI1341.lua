@@ -42,5 +42,6 @@ function course_proto.dissector(buffer,pinfo,tree)
 end
 
 udp_table = DissectorTable.get("udp.port")
+udp_table:add(5555, course_proto)
 udp_table:add(64341, course_proto)
 udp_table:add(64342, course_proto)

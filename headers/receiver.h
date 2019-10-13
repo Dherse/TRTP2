@@ -25,6 +25,11 @@ typedef struct client {
 
     /** Current client receive window */
     buf_t *window;
+
+    /** is this the first time the client is used? */
+    bool first;
+
+    uint8_t window_len;
 } client_t;
 
 typedef struct receive_thread_config {
@@ -108,6 +113,7 @@ typedef struct send_request {
     /** true = the loop should stop */
     bool stop;
 
+    /** Ignores the window if set to true */
     bool deallocate_address;
 
     /** the IP to send to */
