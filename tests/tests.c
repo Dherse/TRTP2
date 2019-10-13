@@ -13,7 +13,7 @@ int main() {
         return CU_get_error();
     }
 
-    CU_basic_set_mode(CU_BRM_SILENT);
+    CU_basic_set_mode(CU_BRM_NORMAL);
 
     add_packet_tests();
 

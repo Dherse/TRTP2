@@ -120,7 +120,7 @@ typedef struct send_request {
     struct sockaddr_in6 *address;
 
     /** the packet to send */
-    packet_t to_send;
+    char to_send[11];
 } tx_req_t;
 
 /**

@@ -7,6 +7,7 @@
 void *handle_thread(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
 
+    packet_t to_send;
     packet_t *decoded = calloc(1, sizeof(packet_t));
     if (decoded == NULL) {
         fprintf(stderr, "[HD] Failed to start handle thread: alloc failed\n");
@@ -14,8 +15,6 @@ void *handle_thread(void *config) {
     }
 
     bool exit = false;
-
-    packet_t *packets[31];
 
     while(!exit) {
         s_node_t *node_rx = stream_pop(cfg->rx, true);
@@ -88,11 +87,11 @@ void *handle_thread(void *config) {
                             decoded->seqnum
                         );
 
-                        s_node_t *pack = stream_pop(cfg->send_rx, false);
+                        s_node_t *send_node = stream_pop(cfg->send_rx, false);
 
-                        if (pack == NULL) {
-                            pack = calloc(1, sizeof(s_node_t));
-                            if (pack == NULL) {
+                        if (send_node == NULL) {
+                            send_node = calloc(1, sizeof(s_node_t));
+                            if (send_node == NULL) {
                                 fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
                                 if (!stream_enqueue(cfg->tx, node_rx, true)) {
@@ -103,8 +102,8 @@ void *handle_thread(void *config) {
 
                                 continue;
                             } else {
-                                pack->content = calloc(1, sizeof(tx_req_t));
-                                if (pack->content == NULL) {
+                                send_node->content = calloc(1, sizeof(tx_req_t));
+                                if (send_node->content == NULL) {
                                     fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
 
                                     if (!stream_enqueue(cfg->tx, node_rx, true)) {
@@ -118,21 +117,28 @@ void *handle_thread(void *config) {
                             }
                         }
 
-                        tx_req_t *to_send = (tx_req_t *) pack->content;
+                        tx_req_t *send_req = (tx_req_t *) send_node->content;
 
-                        to_send->stop = false;
-                        to_send->address = client->address;
+                        send_req->stop = false;
+                        send_req->address = client->address;
 
                         client->window_len = decoded->window + 1;
 
-                        to_send->to_send.type = NACK;
-                        to_send->to_send.window = 31 - client->window->length;
-                        to_send->to_send.timestamp = decoded->timestamp;
-                        to_send->to_send.seqnum = decoded->seqnum;
+                        to_send.type = NACK;
+                        to_send.truncated = false;
+                        to_send.window = 31 - client->window->length;
+                        to_send.long_length = false;
+                        to_send.length = 0;
+                        to_send.seqnum = decoded->seqnum;
+                        to_send.timestamp = decoded->timestamp;
 
-                        if (!stream_enqueue(cfg->send_tx, pack, true)) {
-                            free(pack->content);
-                            free(pack);
+                        if (pack(send_req->to_send, &to_send, false)) {
+                            fprintf(stderr, "[%s] Failed to pack NACk\n", ip_as_str);
+                        } 
+
+                        if (!stream_enqueue(cfg->send_tx, send_node, true)) {
+                            free(send_node->content);
+                            free(send_node);
                             fprintf(stderr, "[HD] Failed to enqueue send request\n");
                         }
                     } else if (decoded->type == DATA) {
@@ -191,10 +197,10 @@ void *handle_thread(void *config) {
                                 window->length -= cnt;
                                 window->window_low = last_seqnum + 1;
 
-                                s_node_t *pack = stream_pop(cfg->send_rx, false);
-                                if (pack == NULL) {
-                                    pack = calloc(1, sizeof(s_node_t));
-                                    if (pack == NULL) {
+                                s_node_t *send_node = stream_pop(cfg->send_rx, false);
+                                if (send_node == NULL) {
+                                    send_node = calloc(1, sizeof(s_node_t));
+                                    if (send_node == NULL) {
                                         fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
                                         if (!stream_enqueue(cfg->tx, node_rx, true)) {
@@ -205,8 +211,8 @@ void *handle_thread(void *config) {
 
                                         continue;
                                     } else {
-                                        pack->content = calloc(1, sizeof(tx_req_t));
-                                        if (pack->content == NULL) {
+                                        send_node->content = calloc(1, sizeof(tx_req_t));
+                                        if (send_node->content == NULL) {
                                             fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
 
                                             if (!stream_enqueue(cfg->tx, node_rx, true)) {
@@ -220,47 +226,64 @@ void *handle_thread(void *config) {
                                     }
                                 }
 
-                                pack->next = NULL;
+                                send_node->next = NULL;
 
-                                tx_req_t *to_send = (tx_req_t *) pack->content;
+                                tx_req_t *send_req = (tx_req_t *) send_node->content;
 
-                                to_send->stop = false;
-                                to_send->address = client->address;
+                                send_req->stop = false;
+                                send_req->address = client->address;
+                                send_req->deallocate_address = remove;
 
                                 client->window_len = decoded->window + 1;
 
-                                to_send->to_send.type = ACK;
-                                to_send->to_send.timestamp = value->timestamp;
-                                to_send->to_send.seqnum = last_seqnum + 1;
-                                to_send->deallocate_address = remove;
+                                to_send.type = ACK;
+                                to_send.truncated = false;
+                                to_send.long_length = false;
+                                to_send.length = 0;
+                                to_send.seqnum = last_seqnum + 1;
+                                to_send.timestamp = value->timestamp;
 
-                                to_send->to_send.window = client->window->length - 1;
-
-                                if (remove) {
-                                    fprintf(stderr, "[%s] Done transfering file\n", ip_as_str);
-
-                                    ht_remove(cfg->clients, port, ip);
-
-                                    fclose(client->out_file);
-
-                                    free(client->addr_len);
-                                    
-                                    deallocate_buffer(client->window);
-                                    free(client->window);
-
-                                    pthread_mutex_unlock(client->file_mutex);
-                                    pthread_mutex_destroy(client->file_mutex);
-                                    free(client->file_mutex);
-
-                                    free(client);
-
-                                    fprintf(stderr, "[%s] Destroyed\n", ip_as_str);
+                                if(value->window == 0) {
+                                    to_send.window = 1;
+                                } else {
+                                    to_send.window = 31 - client->window->window_low;
                                 }
 
-                                if (!stream_enqueue(cfg->send_tx, pack, true)) {
-                                    free(pack->content);
-                                    free(pack);
-                                    fprintf(stderr, "[HD] Failed to enqueue send request\n");
+                                if (pack(send_req->to_send, &to_send, false)) {
+                                    fprintf(stderr, "[%s] Failed to pack ACk\n", ip_as_str);
+
+                                    /** 
+                                     * We move the window back by one to let the
+                                     * retransmission timer do its thing
+                                     */
+                                    client->window->window_low--;
+                                } else {
+                                    if (remove) {
+                                        fprintf(stderr, "[%s] Done transfering file\n", ip_as_str);
+
+                                        ht_remove(cfg->clients, port, ip);
+
+                                        fclose(client->out_file);
+
+                                        free(client->addr_len);
+                                        
+                                        deallocate_buffer(client->window);
+                                        free(client->window);
+
+                                        pthread_mutex_unlock(client->file_mutex);
+                                        pthread_mutex_destroy(client->file_mutex);
+                                        free(client->file_mutex);
+
+                                        free(client);
+
+                                        fprintf(stderr, "[%s] Destroyed\n", ip_as_str);
+                                    }
+
+                                    if (!stream_enqueue(cfg->send_tx, send_node, true)) {
+                                        free(send_node->content);
+                                        free(send_node);
+                                        fprintf(stderr, "[HD] Failed to enqueue send request\n");
+                                    }
                                 }
                             }
                         }

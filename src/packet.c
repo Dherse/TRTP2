@@ -65,7 +65,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     uint8_t *raw = packet;
 
     if (--length <= 0) {
-        fprintf(stderr, "%d\n", 0);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -80,7 +79,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->type = type;
 
     if (--length <= 0) {
-        fprintf(stderr, "%d\n", 1);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -89,7 +87,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->long_length = (size & 0b10000000) >> 7;
     if (out->long_length) {
         if (--length <= 0) {
-        fprintf(stderr, "%d\n", 2);
             errno = PACKET_TOO_SHORT;
             return -1;
         }
@@ -101,7 +98,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     }
 
     if (--length <= 0) {
-        fprintf(stderr, "%d\n", 3);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -109,7 +105,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->seqnum = *packet++;
 
     if ((length -= 4) <= 0) {
-        fprintf(stderr, "%d\n", 4);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -118,7 +113,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     out->timestamp = ntohl(out->timestamp);
 
     if ((length -= 4) < 0) {
-        fprintf(stderr, "%d\n", 5);
         errno = PACKET_TOO_SHORT;
         return -1;
     }
@@ -128,7 +122,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
 
     if (out->type == DATA && !out->truncated && out->length != 0) {
         if ((length -= out->length) <= 0) {
-        fprintf(stderr, "%d\n", 6);
             errno = PACKET_TOO_SHORT;
             return -1;
         }
@@ -141,7 +134,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         packet += out->length;
 
         if ((length -= 4) < 0) {
-        fprintf(stderr, "%d\n", 7);
             errno = PACKET_TOO_SHORT;
             return -1;
         }
@@ -238,7 +230,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     (*packet++) = (uint8_t) (crc1 >> 16);
     (*packet++) = (uint8_t) (crc1 >> 24);
 
-    if (!in->truncated && in->type == DATA) {
+    if (!in->truncated && in->type == DATA && in->length > 0) {
         if (packet != memcpy(packet, &in->payload, in->length)) {
             errno = FAILED_TO_COPY;
             return -1;

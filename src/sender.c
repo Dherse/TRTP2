@@ -7,8 +7,6 @@ void *send_thread(void *sender_config){
     tx_cfg_t *snd_cfg = (tx_cfg_t *) sender_config;
 
     socklen_t addr_len = sizeof(struct sockaddr_in6);
-    uint8_t buf[11];
-    size_t buf_size = sizeof(buf);
     s_node_t *node;
     tx_req_t *req;
 
@@ -29,18 +27,7 @@ void *send_thread(void *sender_config){
             free(node);
             break;
         } else {
-            if (pack(buf, &req->to_send, false) == -1) {
-                fprintf(stderr, "[TX] packing failed\n");
-
-                if(!stream_enqueue(snd_cfg->send_tx, node, false)){
-                    free(req);
-                    free(node);
-                }
-
-                continue;
-            }
-
-            ssize_t n_sent = sendto(snd_cfg->sockfd, buf, buf_size, 0, (struct sockaddr *) req->address, addr_len);
+            ssize_t n_sent = sendto(snd_cfg->sockfd, req->to_send, 11, 0, (struct sockaddr *) req->address, addr_len);
             if (n_sent == -1) {
                 fprintf(stderr, "[TX] sendto failed: ");
                 switch (errno) {

@@ -71,12 +71,12 @@ void test_handler_data() {
     cfg->send_rx = send_rx;
     cfg->clients = clients;
 
-    /** Create packet to received */
+    /** Create packet to receive */
     packet_t *packet = calloc(1, sizeof(packet_t));
     CU_ASSERT(packet != NULL);
     if (packet == NULL) { return; }
     
-    char world[12] = { 'w', 'o', 'r', 'l', 'd', '!', '\n', '\0', 0xFF, 0xFF, 0xFF, 0xFF};
+    char world[12] = { 'w', 'o', 'r', 'l', 'd', '!', '\n', '\0'};
     memcpy(packet->payload, world, 12);
     packet->length = 12;
     packet->long_length = false;
@@ -102,6 +102,8 @@ void test_handler_data() {
 
     req->content = hd_req;
     stream_enqueue(rx, req, false);
+
+    /** Second packet */
 
     packet_t *packet2 = calloc(1, sizeof(packet_t));
     CU_ASSERT(packet2 != NULL);
@@ -134,18 +136,19 @@ void test_handler_data() {
     req2->content = hd_req2;
     stream_enqueue(rx, req2, false);
 
+    /** stop request */
     hd_req_t *stop_req = calloc(1, sizeof(hd_req_t));
     CU_ASSERT(stop_req != NULL);
     if (stop_req == NULL) { return; }
 
     stop_req->stop = true;
 
-    s_node_t *req3 = calloc(1, sizeof(s_node_t));
-    CU_ASSERT(req3 != NULL);
-    if (req3 == NULL) { return; }
+    s_node_t *req4 = calloc(1, sizeof(s_node_t));
+    CU_ASSERT(req4 != NULL);
+    if (req4 == NULL) { return; }
 
-    req3->content = stop_req;
-    stream_enqueue(rx, req3, false);
+    req4->content = stop_req;
+    stream_enqueue(rx, req4, false);
 
     /** Execute the receive */
     handle_thread((void *) cfg);
@@ -162,8 +165,7 @@ void test_handler_data() {
     /** tests that no message is sent on the wrong stream */
     CU_ASSERT_EQUAL(send_rx->length, 0);
 
-    /** asserts that the client has been removed */
-    CU_ASSERT_EQUAL(clients->length, 0);
+    CU_ASSERT_EQUAL(clients->length, 1);
 
     s_node_t *resp = stream_pop(send_tx, false);
     CU_ASSERT(resp != NULL);
@@ -177,11 +179,14 @@ void test_handler_data() {
 
     CU_ASSERT_EQUAL(tx_req->address, NULL);
 
-    CU_ASSERT_EQUAL(tx_req->to_send.type, ACK);
+    packet_t to_send;
+    CU_ASSERT(!unpack(tx_req->to_send, 11, &to_send));
 
-    CU_ASSERT_EQUAL(tx_req->to_send.seqnum, 1);
+    CU_ASSERT_EQUAL(to_send.type, ACK);
 
-    CU_ASSERT_EQUAL(tx_req->to_send.window, 31);
+    CU_ASSERT_EQUAL(to_send.seqnum, 1);
+
+    CU_ASSERT_EQUAL(to_send.window, 30);
 }
 
 void test_handler_nack() {
@@ -229,7 +234,6 @@ void test_handler_nack() {
     if (client->file_mutex == NULL) { return; }
 
     pthread_mutex_init(client->file_mutex, NULL);
-    /** stdout */
     client->out_file = temp;
     client->address = NULL;
     client->addr_len = NULL;
@@ -327,11 +331,14 @@ void test_handler_nack() {
 
     CU_ASSERT_EQUAL(tx_req->address, NULL);
 
-    CU_ASSERT_EQUAL(tx_req->to_send.type, NACK);
+    packet_t to_send;
+    CU_ASSERT(unpack(tx_req->to_send, 11, &to_send) == 0);
 
-    CU_ASSERT_EQUAL(tx_req->to_send.seqnum, 0);
+    CU_ASSERT_EQUAL(to_send.type, NACK);
 
-    CU_ASSERT_EQUAL(tx_req->to_send.window, 31);
+    CU_ASSERT_EQUAL(to_send.seqnum, 0);
+
+    CU_ASSERT_EQUAL(to_send.window, 31);
 }
 
 int add_handler_tests() {
