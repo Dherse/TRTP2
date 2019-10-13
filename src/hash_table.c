@@ -152,7 +152,9 @@ void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
  * Refer to headers/hash_table.h
  */
 void *ht_remove(ht_t *table, uint16_t port, uint8_t *ip) {
-    return ht_put(table, port, ip, NULL);
+    void *del = ht_put(table, port, ip, NULL);
+    ht_resize(table, table->size);
+    return del;
 }
 
 /*
