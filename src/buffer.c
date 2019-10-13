@@ -171,7 +171,8 @@ int allocate_buffer(buf_t *buffer, size_t size) {
 
     pthread_mutex_lock(buffer->write_lock);
 
-    for(int i = 0; i < MAX_WINDOW_SIZE; i++) {
+    int i;
+    for(i = 0; i < MAX_WINDOW_SIZE; i++) {
         buffer->nodes[i].used = false;
 
         buffer->nodes[i].lock = malloc(sizeof(pthread_mutex_t));

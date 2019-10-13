@@ -56,9 +56,12 @@ void *handle_thread(void *config) {
                                 fprintf(stderr, "[%s] Payload could not be validated\n", ip_as_str);
                                 break;
                             case PACKET_TOO_SHORT:
-                                fprintf(stderr, "[%s] Payload has incorrect size (too short)\n", ip_as_str);
+                                fprintf(stderr, "[%s] Packet has incorrect size (too short)\n", ip_as_str);
                                 break;
                             case PACKET_TOO_LONG:
+                                fprintf(stderr, "[%s] Packet has incorrect size (too long)\n", ip_as_str);
+                                break;
+                            case PAYLOAD_TOO_LONG:
                                 fprintf(stderr, "[%s] Payload has incorrect size (too long)\n", ip_as_str);
                                 break;
                             default:

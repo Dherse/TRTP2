@@ -7,6 +7,7 @@
 GCC = gcc
 RM = rm
 DEL = del
+VERSION = gnu89
 
 OUT = trtp_receiver
 TEST = trtp_test
@@ -28,7 +29,7 @@ BIN_DEBUG = $(filter-out $(BIN_DIR)/main.o,$(wildcard $(BIN_DIR)/*.o))
 BIN_DEL = $(filter-out $(BIN_DIR)/.gitkeep, $(wildcard $(BIN_DIR)/*))
 
 LDFLAGS = -lz -lpthread
-FLAGS = -Werror -std=gnu99
+FLAGS = -Werror -std=$(VERSION)
 RELEASE_FLAGS = -O3
 DEBUG_FLAGS = -O0 -ggdb
 

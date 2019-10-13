@@ -15,8 +15,9 @@ void test_ht_put_and_get() {
     }
 
     char *cfg = "Hello, world!";
-
-    for (uint16_t i = 0; i < N; i++) {
+    
+    uint16_t i;
+    for (i = 0; i < N; i++) {
         char *str = malloc(sizeof(char) * (strlen(cfg) + 1));
         strcpy(str, cfg);
 
@@ -27,7 +28,7 @@ void test_ht_put_and_get() {
         CU_ASSERT(errno == 0);
     }
 
-    for (uint16_t i = N; i > 0; i--) {
+    for (i = N; i > 0; i--) {
         uint8_t *ip = calloc(16, sizeof(uint8_t));
 
         CU_ASSERT(ht_contains(&table, i-1, ip));

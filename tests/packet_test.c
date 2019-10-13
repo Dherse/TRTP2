@@ -56,7 +56,8 @@ void test_ack_encoding() {
     uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
     CU_ASSERT(pack(packed, &packet, false) == 0);
 
-    for(int i = 0; i < sizeof(ack_packet); i++) {
+    int i;
+    for(i = 0; i < sizeof(ack_packet); i++) {
         CU_ASSERT(ack_packet[i] == (*packed++));
     }
 }
@@ -182,7 +183,8 @@ void test_data_encoding() {
     uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
     CU_ASSERT(pack(packed, &packet, false) == 0);
 
-    for(int i = 0; i < sizeof(dat_packet); i++) {
+    int i;
+    for(i = 0; i < sizeof(dat_packet); i++) {
         CU_ASSERT(dat_packet[i] == (*packed++));
     }
 }

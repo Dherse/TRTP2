@@ -159,7 +159,8 @@ void test_recvfrom() {
 
     bool already_popped = false;
     struct sockaddr_in6 sockaddr = { .sin6_family = AF_INET6, .sin6_port = 1000};
-    for(int i = 0; i < 16; i++){
+    int i;
+    for(i = 0; i < 16; i++){
         sockaddr.sin6_addr.__in6_u.__u6_addr8[i] = ip[i];
     }
     socklen_t addr_len = sizeof(sockaddr);
@@ -185,7 +186,7 @@ void test_recvfrom() {
     receive_body(hd_req, &already_popped, &sockaddr, cfg, addr_len, req, &failed_recvfrom);
     CU_ASSERT(hd_req->port == sockaddr.sin6_port);
     CU_ASSERT(hd_req->length == 29);
-    for(int i = 0; i < 16; i++){
+    for(i = 0; i < 16; i++){
         CU_ASSERT(hd_req->ip[i] == sockaddr.sin6_addr.__in6_u.__u6_addr8[i]);
     }
     CU_ASSERT(hd_req->stop == false);

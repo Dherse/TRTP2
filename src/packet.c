@@ -172,7 +172,11 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         return -1;
     }
 
-    if (out->payload != NULL && out->length > 0 && !out->truncated) {
+    if (out->length > 512) {
+        errno = PAYLOAD_TOO_LONG;
+
+        return -1;
+    } else if (out->payload != NULL && out->length > 0 && !out->truncated) {
         crc = crc32(0, (void*) out->payload, (size_t) out->length);
         if (out->crc2 != crc) {
             errno = PAYLOAD_VALIDATION_FAILED;
@@ -286,7 +290,8 @@ int packet_to_string(const packet_t* packet){
     printf("type : %s\n truncated : %s\n window : %u\n length is %s long\n length : %u\n seqnum : %u\n timestamp : %u\n",
      s_type, s_trun, packet->window, s_longlength, packet->length, packet->seqnum, packet->timestamp);
 
-    for(uint16_t i = 0; i < packet->length ; i= i + 4) {
+    uint16_t i;
+    for(i = 0; i < packet->length ; i= i + 4) {
         printf(
             "%02x %02x %02x %02x | %c %c %c %c\n", 
             packet->payload[i], 

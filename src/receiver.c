@@ -141,7 +141,8 @@ void move_ip(uint8_t *destination, uint8_t *source) {
     uint8_t *dst = destination;
     uint8_t *src = source;
     
-    for(int i = 0; i < 16; i++) {
+    int i;
+    for(i = 0; i < 16; i++) {
         (*dst++) = (*src++);
     }
 }
