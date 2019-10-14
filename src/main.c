@@ -1,12 +1,18 @@
 #include "../headers/main.h"
 
-#define MAX_STREAM_LEN 64
+#define MAX_STREAM_LEN 4
 
 bool global_stop;
 pthread_mutex_t stop_mutex;
 pthread_cond_t stop_cond;
 
 void handle_stop(int signo) {
+    fprintf(stderr, "[MAIN] Received SIGINT, stopping\n");
+
+    if (global_stop) {
+        exit(-1);
+    }
+
     pthread_mutex_lock(&stop_mutex);
     global_stop = true;
 
@@ -74,11 +80,11 @@ void deallocate_everything(
 
     int i;
     for(i = 0; i < hd_count; i++) {
-        s_node_t *node = calloc(1, sizeof(tx_req_t));
-        tx_req_t *stop_req = calloc(1, sizeof(tx_req_t));
+        s_node_t *node = calloc(1, sizeof(s_node_t));
+        hd_req_t *stop_req = calloc(1, sizeof(hd_req_t));
         if (node != NULL && stop_req != NULL) {
-            node->content = stop_req;
             stop_req->stop = true;
+            node->content = stop_req;
 
             stream_enqueue(rx_to_hd, node, true);
         }
@@ -644,7 +650,7 @@ int main(int argc, char *argv[]) {
         );
     }
 
-    signal(SIGINT | SIGSTOP, handle_stop);
+    signal(SIGINT, handle_stop);
 
     pthread_mutex_lock(&stop_mutex);
     

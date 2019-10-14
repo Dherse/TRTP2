@@ -51,7 +51,7 @@ release: build
 run: FLAGS += $(RELEASE_FLAGS)
 run: build
 	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
-	$(BIN_DIR)/$(OUT) -o ./bin/out_%d -n 1 :: 5555
+	$(BIN_DIR)/$(OUT) -o ./bin/out_%d -n 2 :: 5555
 
 build: $(OBJECTS)
 

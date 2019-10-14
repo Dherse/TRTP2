@@ -33,7 +33,7 @@ void *receive_thread(void *receive_config) {
             if(node == NULL) {
                 node = (s_node_t *) malloc(sizeof(s_node_t));
                 if(node == NULL) {
-                    fprintf(stderr, "[RX] malloc called failed");
+                    fprintf(stderr, "[RX] malloc called failed\n");
                     break;
                 }
                 node->content = calloc(1, sizeof(hd_req_t));
@@ -45,11 +45,11 @@ void *receive_thread(void *receive_config) {
             }
             req = (hd_req_t *) node->content;
             if(req == NULL) {
-                fprintf(stderr, "[RX] `content` in a node was NULL");
+                fprintf(stderr, "[RX] `content` in a node was NULL\n");
                 req = (hd_req_t *) calloc(1, sizeof(hd_req_t));
                 if(req == NULL) {
                     free(node);
-                    fprintf(stderr, "[RX] calloc called failed");
+                    fprintf(stderr, "[RX] calloc called failed\n");
                     break;
                 }
             }
@@ -77,7 +77,7 @@ void *receive_thread(void *receive_config) {
                  */
                 default :
                     already_popped = true;
-                    fprintf(stderr, "[RX] recvfrom failed. (errno = %d) \n", errno);
+                    fprintf(stderr, "[RX] recvfrom failed. (errno = %d)\n", errno);
             }
         } else {
             /** set the last handle_request parameters */
@@ -91,7 +91,7 @@ void *receive_thread(void *receive_config) {
                 /** the client is new **but** the maximum number of clients is already reached */
                 ip_to_string(req->ip, ip_as_str);
 
-                fprintf(stderr, "[%s] New client but max sized reached, ignored", ip_as_str);
+                fprintf(stderr, "[%s] New client but max sized reached, ignored\n", ip_as_str);
 
                 already_popped = true;
             } else {
@@ -117,7 +117,7 @@ void *receive_thread(void *receive_config) {
                 }
 
                 /** send handle_request */
-                stream_enqueue(rcv_cfg->tx, node, true);
+                stream_enqueue(rcv_cfg->tx, node, false);
                 already_popped = false;
             }
         }
