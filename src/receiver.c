@@ -16,7 +16,6 @@ void *receive_thread(void *receive_config) {
     rx_cfg_t *rcv_cfg = (rx_cfg_t *) receive_config;
 
     const size_t buf_size = sizeof(uint8_t) * 528;
-    const size_t ip_size = sizeof(uint8_t) * 16;
 
     struct sockaddr_in6 sockaddr;
     socklen_t addr_len = sizeof(sockaddr);
@@ -31,11 +30,12 @@ void *receive_thread(void *receive_config) {
             /** get a buffer from the stream */
             node = stream_pop(rcv_cfg->rx, false);
             if(node == NULL) {
-                node = (s_node_t *) malloc(sizeof(s_node_t));
+                node = (s_node_t *) calloc(1, sizeof(s_node_t));
                 if(node == NULL) {
                     fprintf(stderr, "[RX] malloc called failed\n");
                     break;
                 }
+                
                 node->content = calloc(1, sizeof(hd_req_t));
                 if(node->content == NULL) {
                     fprintf(stderr, "[RX] calloc called failed");
@@ -43,21 +43,24 @@ void *receive_thread(void *receive_config) {
                     break;
                 }
             }
+            node->next = NULL;
             req = (hd_req_t *) node->content;
             if(req == NULL) {
                 fprintf(stderr, "[RX] `content` in a node was NULL\n");
-                req = (hd_req_t *) calloc(1, sizeof(hd_req_t));
-                if(req == NULL) {
+                node->content = calloc(1, sizeof(hd_req_t));
+                if(node->content == NULL) {
                     free(node);
                     fprintf(stderr, "[RX] calloc called failed\n");
-                    break;
+                    continue;
                 }
+
+                req = (hd_req_t *) node->content;
             }
-            req->stop = false; //just to be sure not to shutdown threads unintentionnally
+            req->stop = false; //just to be sure not to shutdown threads unintentionally
         }
         
         /** receive packet from network */
-        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, &addr_len);
+        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
         if(req->length == -1) {
             // pas de paquet reçus/echec de la reception
             switch(errno) {
@@ -85,9 +88,9 @@ void *receive_thread(void *receive_config) {
             move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
 
             /** check if sockaddr is already known in the hash-table */
-            bool contained = ht_contains(rcv_cfg->clients, req->port, req->ip);
+            client_t *contained = ht_get(rcv_cfg->clients, req->port, req->ip);
             
-            if (!contained && rcv_cfg->clients->length >= rcv_cfg->max_clients) {
+            if (contained == NULL && rcv_cfg->clients->length >= rcv_cfg->max_clients) {
                 /** the client is new **but** the maximum number of clients is already reached */
                 ip_to_string(req->ip, ip_as_str);
 
@@ -95,29 +98,31 @@ void *receive_thread(void *receive_config) {
 
                 already_popped = true;
             } else {
-                if(!contained) {
+                if(contained == NULL) {
                     ip_to_string(req->ip, ip_as_str);
 
                     /** add new client in `clients` */
-                    client_t *new_client = (client_t *) malloc(sizeof(client_t));
-                    if(new_client == NULL){
+                    contained = (client_t *) calloc(1, sizeof(client_t));
+                    if(contained == NULL){
                         fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
                         break;
                     } 
-                    if(allocate_client(new_client, rcv_cfg->idx++, rcv_cfg->file_format) == -1) {
+                    if(allocate_client(contained, rcv_cfg->idx++, rcv_cfg->file_format) == -1) {
                         fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
-                        free(new_client);
+                        free(contained);
                         break;
                     }
-                    *new_client->address = sockaddr;
-                    *new_client->addr_len = addr_len;
-                    ht_put(rcv_cfg->clients, req->port, req->ip, (void *) new_client);
+                    *contained->address = sockaddr;
+                    *contained->addr_len = addr_len;
+                    
+                    ht_put(rcv_cfg->clients, req->port, req->ip, (void *) contained);
 
                     fprintf(stderr, "[%s][%u] New client\n", ip_as_str, req->port);
+                } else {
                 }
 
                 /** send handle_request */
-                stream_enqueue(rcv_cfg->tx, node, false);
+                stream_enqueue(rcv_cfg->tx, node, true);
                 already_popped = false;
             }
         }
@@ -138,13 +143,7 @@ void *receive_thread(void *receive_config) {
  * Refer to headers/receiver.h
  */
 void move_ip(uint8_t *destination, uint8_t *source) {
-    uint8_t *dst = destination;
-    uint8_t *src = source;
-    
-    int i;
-    for(i = 0; i < 16; i++) {
-        (*dst++) = (*src++);
-    }
+    memcpy((void *) destination, (void *) source, 16);
 }
 
 /*

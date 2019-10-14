@@ -21,9 +21,7 @@ typedef struct node {
 
     pthread_mutex_t *lock;
 
-    pthread_cond_t *write_notifier;
-
-    pthread_cond_t *read_notifier;
+    pthread_cond_t *notifier;
 } node_t;
 
 typedef struct buf {
@@ -31,9 +29,7 @@ typedef struct buf {
 
     uint8_t length;
 
-    pthread_mutex_t *read_lock;
-
-    pthread_mutex_t *write_lock;
+    pthread_mutex_t *lock;
 
     node_t nodes[MAX_WINDOW_SIZE];
 } buf_t;

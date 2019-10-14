@@ -464,6 +464,7 @@ int main(int argc, char *argv[]) {
     rx_config->stop = false;
     rx_config->rx = hd_to_rx;
     rx_config->tx = rx_to_hd;
+    rx_config->addr_len = &config.addr_info->ai_addrlen;
 
     tx_config->send_rx = hd_to_tx;
     tx_config->send_tx = tx_to_hd;

@@ -88,6 +88,10 @@ int dealloc_stream(stream_t *stream) {
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
 bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
+    if (node == NULL) {
+        return false;
+    }
+
     pthread_mutex_lock(stream->lock);
 
     while(stream->length >= stream->max_length) {
@@ -138,7 +142,7 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
     stream->head = next;
     stream->length--;
 
-    if (next == NULL) {
+    if (head == stream->tail) {
         stream->tail = NULL;
     }
 

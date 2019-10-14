@@ -136,7 +136,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2);
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int packet_to_string(const packet_t *packet);
+int packet_to_string(const packet_t *packet, bool print_payload);
 
 void ip_to_string(uint8_t *ip, char *target);
 

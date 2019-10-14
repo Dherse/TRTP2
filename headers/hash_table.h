@@ -113,6 +113,8 @@ typedef struct item {
  * 
  */
 typedef struct hash_table {
+    pthread_mutex_t *lock;
+
     /** Items contained within the hash table */
     item_t *items;
 

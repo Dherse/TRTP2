@@ -56,6 +56,8 @@ typedef struct receive_thread_config {
 
     /** Socket file descriptor */
     int sockfd;
+
+    socklen_t *addr_len;
     
     /** Maximum number of clients */
     int max_clients;

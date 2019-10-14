@@ -69,21 +69,19 @@ void *handle_thread(void *config) {
                                 break;
                         }
 
-                        if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
                             free(node_rx->content);
                             free(node_rx);
                             fprintf(stderr, "[HD] Failed to enqueue packet\n");
                         }
 
                         continue;
-                    }
+                    };
 
                     pthread_mutex_lock(client->file_mutex);
                     bool remove = false;
-                    if (decoded->seqnum > client->window->window_low + 31) {
-                        fprintf(stderr, "[%s] Above of sequence packet: %03d\n", ip_as_str, decoded->seqnum);
-                    } else if (decoded->seqnum < client->window->window_low) {
-                        fprintf(stderr, "[%s] Below the sequence packet: %03d\n", ip_as_str, decoded->seqnum);
+                    if (decoded->seqnum > client->window->window_low + 30 || decoded->seqnum < client->window->window_low) {
+                        fprintf(stderr, "[%s] Out of sequence packet: %03d\n", ip_as_str, decoded->seqnum);
 
                         s_node_t *send_node = stream_pop(cfg->send_rx, false);
 
@@ -92,27 +90,30 @@ void *handle_thread(void *config) {
                             if (send_node == NULL) {
                                 fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
-                                if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                if (!stream_enqueue(cfg->tx, node_rx, false)) {
                                     free(node_rx->content);
                                     free(node_rx);
                                     fprintf(stderr, "[HD] Failed to enqueue packet\n");
                                 }
 
                                 continue;
-                            } else {
-                                send_node->content = calloc(1, sizeof(tx_req_t));
-                                if (send_node->content == NULL) {
-                                    fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
-
-                                    if (!stream_enqueue(cfg->tx, node_rx, true)) {
-                                        free(node_rx->content);
-                                        free(node_rx);
-                                        fprintf(stderr, "[HD] Failed to enqueue packet\n");
-                                    }
-
-                                    continue;
-                                } 
                             }
+                        }
+
+                        if (send_node->content == NULL) {
+                            send_node->content = calloc(1, sizeof(tx_req_t));
+                            if (send_node->content == NULL) {
+                                fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
+
+                                free(send_node);
+                                if (!stream_enqueue(cfg->tx, node_rx, false)) {
+                                    free(node_rx->content);
+                                    free(node_rx);
+                                    fprintf(stderr, "[HD] Failed to enqueue packet\n");
+                                }
+
+                                continue;
+                            } 
                         }
 
                         tx_req_t *send_req = (tx_req_t *) send_node->content;
@@ -131,14 +132,14 @@ void *handle_thread(void *config) {
                         to_send.timestamp = decoded->timestamp;
 
                         if (pack(send_req->to_send, &to_send, false)) {
-                            fprintf(stderr, "[%s] Failed to pack NACk\n", ip_as_str);
-                        } 
+                            fprintf(stderr, "[%s] Failed to pack ACK\n", ip_as_str);
 
-                        if (!stream_enqueue(cfg->send_tx, send_node, true)) {
-                            free(send_node->content);
+                            free(send_req);
                             free(send_node);
-                            fprintf(stderr, "[HD] Failed to enqueue send request\n");
+                        } else {
+                            stream_enqueue(cfg->send_tx, send_node, true);
                         }
+
                     } else if (decoded->truncated) {
                         fprintf(
                             stderr, 
@@ -154,7 +155,7 @@ void *handle_thread(void *config) {
                             if (send_node == NULL) {
                                 fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
-                                if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                if (!stream_enqueue(cfg->tx, node_rx, false)) {
                                     free(node_rx->content);
                                     free(node_rx);
                                     fprintf(stderr, "[HD] Failed to enqueue packet\n");
@@ -166,7 +167,7 @@ void *handle_thread(void *config) {
                                 if (send_node->content == NULL) {
                                     fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
 
-                                    if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                    if (!stream_enqueue(cfg->tx, node_rx, false)) {
                                         free(node_rx->content);
                                         free(node_rx);
                                         fprintf(stderr, "[HD] Failed to enqueue packet\n");
@@ -218,10 +219,11 @@ void *handle_thread(void *config) {
 
                             uint8_t i = window->window_low;
                             uint8_t cnt = 0;
-                            uint8_t last_seqnum = window->window_low;
                             node_t* node = NULL;
                             packet_t *pak;
                             do {
+                                unlock(node);
+
                                 node = get(window, i, false, false);
                                 if (node != NULL) {
                                     pak = (packet_t *) node->value;
@@ -241,12 +243,18 @@ void *handle_thread(void *config) {
                                     }
 
                                     cnt++;
-                                    last_seqnum = i;
-
-                                    unlock(node);
+                                    i++;
                                 }
-                                i++;
-                            } while(i & 0xFF < (window->window_low + 30) & 0xFF && node != NULL && cnt <= value->seqnum);
+                            } while(i & 0xFF < (window->window_low + 30) & 0xFF && node != NULL);
+                            unlock(node);
+                                fprintf(
+                                    stderr,
+                                    "[HD] recv: (%d) old: (%d, %d), new: (%d, %d) (LOW, LEN)\n", 
+                                    value->seqnum,
+                                    window->window_low, window->length, 
+                                    i, window->length - cnt
+                                );
+                                
 
                             if (cnt > 0) {
                                 fflush(client->out_file);
@@ -266,7 +274,7 @@ void *handle_thread(void *config) {
                                     if (send_node == NULL) {
                                         fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
-                                        if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
                                             free(node_rx->content);
                                             free(node_rx);
                                             fprintf(stderr, "[HD] Failed to enqueue packet\n");
@@ -278,7 +286,7 @@ void *handle_thread(void *config) {
                                         if (send_node->content == NULL) {
                                             fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
 
-                                            if (!stream_enqueue(cfg->tx, node_rx, true)) {
+                                            if (!stream_enqueue(cfg->tx, node_rx, false)) {
                                                 free(node_rx->content);
                                                 free(node_rx);
                                                 fprintf(stderr, "[HD] Failed to enqueue packet\n");
@@ -303,10 +311,10 @@ void *handle_thread(void *config) {
                                 to_send.length = 0;
                                 to_send.seqnum = window->window_low;
                                 to_send.timestamp = value->timestamp;
-                                to_send.window = 31 - client->window->length;
+                                to_send.window = 31 - window->length;
 
                                 if (pack(send_req->to_send, &to_send, false)) {
-                                    fprintf(stderr, "[%s] Failed to pack ACk\n", ip_as_str);
+                                    fprintf(stderr, "[%s] Failed to pack ACK\n", ip_as_str);
 
                                     /** 
                                      * We move the window back by one to let the
@@ -338,6 +346,8 @@ void *handle_thread(void *config) {
                                     stream_enqueue(cfg->send_tx, send_node, true);
                                 }
                             }
+                        } else {
+                            fprintf(stderr, "[HD] Spot it null\n");
                         }
                     }
 

@@ -258,7 +258,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 /*
  * Refer to headers/packet.h
  */
-int packet_to_string(const packet_t* packet){
+int packet_to_string(const packet_t* packet, bool print_payload) {
     if (packet == NULL) {
         errno = NULL_ARGUMENT;
         return -1;
@@ -266,7 +266,6 @@ int packet_to_string(const packet_t* packet){
 
     char s_type[15];
     char s_trun[6];
-    char s_longlength[9];
 
     switch(packet->type) {
         case 0: strcpy(s_type, "IGNORE (00)"); break;
@@ -280,18 +279,12 @@ int packet_to_string(const packet_t* packet){
     } else {
         strcpy(s_trun, "false");
     }
-
-    if(packet->long_length == 1) {
-        strcpy(s_longlength, "15 bits");
-    } else {
-        strcpy(s_longlength, "7 bits");
-    }
     
-    printf("type : %s\n truncated : %s\n window : %u\n length is %s long\n length : %u\n seqnum : %u\n timestamp : %u\n",
-     s_type, s_trun, packet->window, s_longlength, packet->length, packet->seqnum, packet->timestamp);
+    printf("type : %s\n truncated : %s\n window : %u\n long length: %d\n length : %u\n seqnum : %u\n timestamp : %u\n",
+     s_type, s_trun, packet->window, packet->long_length, packet->length, packet->seqnum, packet->timestamp);
 
     uint16_t i;
-    for(i = 0; i < packet->length ; i= i + 4) {
+    for(i = 0; i < packet->length && print_payload; i= i + 4) {
         printf(
             "%02x %02x %02x %02x | %c %c %c %c\n", 
             packet->payload[i], 
