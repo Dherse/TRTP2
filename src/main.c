@@ -1,6 +1,6 @@
 #include "../headers/main.h"
 
-#define MAX_STREAM_LEN 4
+#define MAX_STREAM_LEN 2048*2048
 
 bool global_stop;
 pthread_mutex_t stop_mutex;
@@ -44,6 +44,11 @@ void deallocate_everything(
     hd_cfg_t **hd_configs,
     tx_cfg_t *tx_config
 ) {
+    drain(rx_to_hd);
+    drain(hd_to_rx);
+    drain(hd_to_tx);
+    drain(tx_to_hd);
+
     fprintf(stderr, "[STOP] Deallocation called\n");
     if (rx_config != NULL) {
         if (rx_config->thread != NULL) {

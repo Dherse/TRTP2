@@ -29,6 +29,7 @@ int allocate_ht(ht_t *table) {
     table->lock = calloc(1, sizeof(pthread_mutex_t));
     if (table->lock == NULL) {
         free(table->items);
+
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
@@ -36,6 +37,7 @@ int allocate_ht(ht_t *table) {
     if (pthread_mutex_init(table->lock, NULL)) {
         free(table->items);
         free(table->lock);
+
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
@@ -50,6 +52,8 @@ int dealloc_items(size_t len, item_t *items) {
             free(items[i].value);
         }
     }
+
+    free(items);
 }
 
 /*
@@ -63,8 +67,6 @@ int dealloc_ht(ht_t *table) {
     pthread_mutex_lock(table->lock);
 
     dealloc_items(table->size, table->items);
-
-    free(table->items);
 
     pthread_mutex_unlock(table->lock);
     pthread_mutex_destroy(table->lock);
@@ -91,15 +93,7 @@ void *ht_get(ht_t *table, uint16_t port, uint8_t *ip) {
     uint16_t index = ht_hash(table, port);
     while(table->items[index].used) {
         if (table->items[index].port == port) {
-            bool equals = true;
-            int i = 0;
-            for(; i < IP_LEN && equals; i++) {
-                if (table->items[index].ip[i] != ip[i]) {
-                    equals = false;
-                }
-            }
-
-            if (equals) {
+            if (ip_equals(table->items[index].ip, ip)) {
                 pthread_mutex_unlock(table->lock);
                 return table->items[index].value;
             }
@@ -125,15 +119,7 @@ void *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool re
     void *old = NULL;
     while(table->items[index].used) {
         if (table->items[index].port == port) {
-            int i = 0;
-            bool equals = true;
-            for(; i < IP_LEN && equals; i++) {
-                if (table->items[index].ip[i] != ip[i]) {
-                    equals = false;
-                }
-            }
-
-            if (equals) {
+            if (ip_equals(table->items[index].ip, ip, 16)) {
                 old = table->items[index].value;
                 break;
             }
@@ -143,9 +129,10 @@ void *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool re
     }
 
     table->items[index].used = item != NULL;
-    table->items[index].ip = ip;
     table->items[index].port = port;
     table->items[index].value = item;
+
+    memcpy(table->items[index].ip, ip, 16);
 
     if (old == NULL && table->items[index].used) {
         table->length++;
@@ -200,8 +187,8 @@ int ht_resize(ht_t *table, size_t new_size) {
         return -1;
     }
 
-    int i = 0;
-    for(; i < old_size; i++) {
+    int i;
+    for(i = 0; i < old_size; i++) {
         if (old_values[i].used) {
             ht_put_nolock(table, old_values[i].port, old_values[i].ip, old_values[i].value, false);
             old_values[i].value = NULL;
@@ -209,7 +196,6 @@ int ht_resize(ht_t *table, size_t new_size) {
     }
 
     dealloc_items(old_size, old_values);
-    free(old_values);
     
     return 0;
 }

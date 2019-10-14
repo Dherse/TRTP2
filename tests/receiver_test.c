@@ -29,26 +29,30 @@ void receive_body(hd_req_t *req, bool *already_popped, struct sockaddr_in6 *sock
         }
     } else {
         /** set the last handle_request parameters */
-        req->port = (uint16_t) sockaddr.sin6_port;
-        move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
+        uint16_t port = (uint16_t) sockaddr.sin6_port;
+        uint8_t ip[16];
+        move_ip(ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
 
         /** check if sockaddr is already known in the hash-table */
-        if(!ht_contains(rcv_cfg->clients, req->port, req->ip)) {
-            ip_to_string(req->ip, ip_as_str);
+        client_t *client = ht_get(rcv_cfg->clients, port, ip);
+        if(client == NULL) {
+            ip_to_string(ip, ip_as_str);
 
             /** add new client in `clients` */
-            client_t *new_client = (client_t *) malloc(sizeof(client_t));
-            if(new_client == NULL){
+            client = (client_t *) malloc(sizeof(client_t));
+            if(client == NULL){
                 return;
             } 
-            if(allocate_client(new_client, 0, "bin/%d") == -1) {
-                free(new_client);
+            if(allocate_client(client, 0, "bin/%d") == -1) {
+                free(client);
                 return;
             }
-            *(new_client->address) = sockaddr;
-            *(new_client->addr_len) = addr_len;
-            ht_put(rcv_cfg->clients, req->port, req->ip, (void *) new_client);
+            *(client->address) = sockaddr;
+            *(client->addr_len) = addr_len;
+            ht_put(rcv_cfg->clients, port, ip, (void *) client);
         }
+
+        node->content = client;
 
         /** send handle_request */
         stream_enqueue(rcv_cfg->tx, node, true);
@@ -98,7 +102,6 @@ void test_recvfrom() {
     client->addr_len = NULL;
     client->window = window;
 
-
     //hash-table   *
     ht_t *clients = calloc(1, sizeof(ht_t));
     CU_ASSERT(clients != NULL);
@@ -106,8 +109,6 @@ void test_recvfrom() {
 
     allocate_ht(clients);
     //ht_put(clients, 1000, ip, client);
-    
-
 
     //config  *
     rx_cfg_t *cfg = calloc(1, sizeof(rx_cfg_t));
@@ -121,7 +122,6 @@ void test_recvfrom() {
     cfg->clients = clients;
     cfg->sockfd = 2;
     cfg->max_clients = 100;
-
 
     /** Create packet to received *  */
     packet_t *packet = calloc(1, sizeof(packet_t));
@@ -184,11 +184,8 @@ void test_recvfrom() {
     already_popped = false;
     CU_ASSERT(ht_length(clients) == false);
     receive_body(hd_req, &already_popped, &sockaddr, cfg, addr_len, req, &failed_recvfrom);
-    CU_ASSERT(hd_req->port == sockaddr.sin6_port);
+    CU_ASSERT(hd_req->client == client);
     CU_ASSERT(hd_req->length == 29);
-    for(i = 0; i < 16; i++){
-        CU_ASSERT(hd_req->ip[i] == sockaddr.sin6_addr.__in6_u.__u6_addr8[i]);
-    }
     CU_ASSERT(hd_req->stop == false);
     
     CU_ASSERT((hd_req_t *) stream_pop(cfg->tx, false)->content == hd_req);

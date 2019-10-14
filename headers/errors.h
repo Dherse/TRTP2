@@ -50,6 +50,8 @@ typedef enum Errors {
     FAILED_TO_OUTPUT,
     FAILED_TO_SEND,
 
+    FAILED_TO_CREATE_SOCKET,
+
     UNKNOWN
 
 } errors_t;

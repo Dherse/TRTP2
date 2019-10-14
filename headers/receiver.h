@@ -26,10 +26,7 @@ typedef struct client {
     /** Current client receive window */
     buf_t *window;
 
-    /** is this the first time the client is used? */
-    bool first;
-
-    uint8_t window_len;
+    uint32_t id;
 } client_t;
 
 typedef struct receive_thread_config {
@@ -37,7 +34,7 @@ typedef struct receive_thread_config {
     pthread_t *thread;
 
     /** the number of clients that have connected */
-    int idx;
+    uint32_t idx;
 
     /** the file name format */
     char *file_format;
@@ -99,10 +96,7 @@ typedef struct handle_request {
     bool stop;
 
     /** the client port */
-    uint16_t port;
-
-    /** the client IP */
-    uint8_t ip[16];
+    client_t *client;
 
     /** length of the data read from the network */
     ssize_t length;
@@ -315,7 +309,7 @@ void move_ip(uint8_t *dst, uint8_t *src);
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error. 
  */
-int allocate_client(client_t *client, int id, char *format);
+int allocate_client(client_t *client, uint32_t id, char *format);
 
 
 #endif

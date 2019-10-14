@@ -15,13 +15,15 @@ void test_ht_put_and_get() {
     }
 
     char *cfg = "Hello, world!";
+
+    uint8_t ip[16] = {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
+    };
     
     uint16_t i;
     for (i = 0; i < N; i++) {
         char *str = malloc(sizeof(char) * (strlen(cfg) + 1));
         strcpy(str, cfg);
-
-        uint8_t *ip = calloc(16, sizeof(uint8_t));
 
         errno = 0;
         CU_ASSERT(ht_put(&table, i, ip, str) == NULL);
@@ -29,11 +31,7 @@ void test_ht_put_and_get() {
     }
 
     for (i = N; i > 0; i--) {
-        uint8_t *ip = calloc(16, sizeof(uint8_t));
-
         CU_ASSERT(ht_contains(&table, i-1, ip));
-
-        free(ip);
     }
 
     dealloc_ht(&table);

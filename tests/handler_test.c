@@ -91,8 +91,7 @@ void test_handler_data() {
     if (hd_req == NULL) { return; }
 
     hd_req->stop = false;
-    memcpy(hd_req->ip, ip, 16);
-    hd_req->port = 1000;
+    hd_req->client = client;
     pack(hd_req->buffer, packet, true);
     hd_req->length = 27;
 
@@ -124,8 +123,7 @@ void test_handler_data() {
     if (hd_req2 == NULL) { return; }
 
     hd_req2->stop = false;
-    memcpy(hd_req2->ip, ip, 16);
-    hd_req2->port = 1000;
+    hd_req->client = client;
     pack(hd_req2->buffer, packet2, true);
     hd_req2->length = 23;
 
@@ -278,8 +276,7 @@ void test_handler_nack() {
     if (hd_req == NULL) { return; }
 
     hd_req->stop = false;
-    memcpy(hd_req->ip, ip, 16);
-    hd_req->port = 1000;
+    hd_req->client = client;
     pack(hd_req->buffer, packet, true);
     hd_req->length = 29;
 

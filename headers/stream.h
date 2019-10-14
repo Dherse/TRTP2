@@ -73,6 +73,10 @@ typedef struct stream {
     pthread_cond_t *read_cond;
 
     pthread_cond_t *write_cond;
+
+    int value;
+    int waiting;
+    int released;
 } stream_t;
 
 /**
@@ -144,5 +148,7 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
  * and a pointer otherwise
  */
 s_node_t *stream_pop(stream_t *stream, bool wait);
+
+void drain(stream_t *stream);
 
 #endif

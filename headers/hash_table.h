@@ -13,7 +13,7 @@ typedef struct item {
     void *value;
 
     uint16_t port;
-    uint8_t *ip;
+    uint8_t ip[16];
 } item_t;
 
 /**

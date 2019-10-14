@@ -6,7 +6,7 @@ void test_single() {
     stream_t stream;
     allocate_stream(&stream, 1);
 
-    s_node_t *node = malloc(sizeof(s_node_t));
+    s_node_t *node = calloc(1, sizeof(s_node_t));
 
     CU_ASSERT(stream_enqueue(&stream, node, false) == true);
     CU_ASSERT(stream.length == 1);

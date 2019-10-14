@@ -152,3 +152,28 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
 
     return head;
 }
+
+void drain(stream_t *stream) {
+    pthread_mutex_lock(stream->lock);
+
+    while (stream->head != NULL) {
+        s_node_t *head = stream->head;
+        s_node_t *next = head->next;
+        
+        stream->head = next;
+        stream->length--;
+
+        if (head == stream->tail) {
+            stream->tail = NULL;
+        }
+
+        free(head->content);
+        free(head);
+    }
+
+
+    pthread_cond_broadcast(stream->write_cond);
+    pthread_cond_broadcast(stream->read_cond);
+
+    pthread_mutex_unlock(stream->lock);
+}

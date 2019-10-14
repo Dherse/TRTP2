@@ -25,6 +25,9 @@ void *receive_thread(void *receive_config) {
     bool already_popped = false;
     char ip_as_str[40]; //to print an IP if needed
 
+    uint16_t port;
+    uint8_t ip[16];
+
     while(!rcv_cfg->stop) {
         if(!already_popped) {
             /** get a buffer from the stream */
@@ -84,22 +87,22 @@ void *receive_thread(void *receive_config) {
             }
         } else {
             /** set the last handle_request parameters */
-            req->port = (uint16_t) sockaddr.sin6_port;
-            move_ip(req->ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
+            port = (uint16_t) sockaddr.sin6_port;
+            move_ip(ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
 
             /** check if sockaddr is already known in the hash-table */
-            client_t *contained = ht_get(rcv_cfg->clients, req->port, req->ip);
+            client_t *contained = ht_get(rcv_cfg->clients, port, ip);
             
             if (contained == NULL && rcv_cfg->clients->length >= rcv_cfg->max_clients) {
                 /** the client is new **but** the maximum number of clients is already reached */
-                ip_to_string(req->ip, ip_as_str);
+                ip_to_string(ip, ip_as_str);
 
                 fprintf(stderr, "[%s] New client but max sized reached, ignored\n", ip_as_str);
 
                 already_popped = true;
             } else {
                 if(contained == NULL) {
-                    ip_to_string(req->ip, ip_as_str);
+                    ip_to_string(ip, ip_as_str);
 
                     /** add new client in `clients` */
                     contained = (client_t *) calloc(1, sizeof(client_t));
@@ -115,11 +118,13 @@ void *receive_thread(void *receive_config) {
                     *contained->address = sockaddr;
                     *contained->addr_len = addr_len;
                     
-                    ht_put(rcv_cfg->clients, req->port, req->ip, (void *) contained);
+                    ht_put(rcv_cfg->clients, port, ip, (void *) contained);
 
-                    fprintf(stderr, "[%s][%u] New client\n", ip_as_str, req->port);
+                    fprintf(stderr, "[%s][%u] New client\n", ip_as_str, port);
                 } else {
                 }
+
+                req->client = contained;
 
                 /** send handle_request */
                 stream_enqueue(rcv_cfg->tx, node, true);
@@ -149,8 +154,8 @@ void move_ip(uint8_t *destination, uint8_t *source) {
 /*
  * Refer to headers/receiver.h
  */
-int allocate_client(client_t *client, int id, char *format) {
-    client->first = true;
+int allocate_client(client_t *client, uint32_t id, char *format) {
+    client->id = id;
 
     client->file_mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->file_mutex == NULL) {

@@ -70,7 +70,7 @@ node_t *next(buf_t *buffer, uint8_t seqnum, bool wait) {
     pthread_mutex_unlock(buffer->lock);
 
     /* We notify any peek waiting that it is available*/
-    pthread_cond_signal(node->notifier);
+    pthread_cond_broadcast(node->notifier);
 
     return node;
 }
@@ -125,7 +125,7 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     }
 
     /* We notify any next waiting that it is available*/
-    pthread_cond_signal(node->notifier);
+    pthread_cond_broadcast(node->notifier);
 
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->lock);
