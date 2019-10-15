@@ -164,3 +164,35 @@ void move_ip(uint8_t *destination, uint8_t *source) {
     destination[14] = source[14];
     destination[15] = source[15];
 }
+
+/*
+ * Refer to headers/receiver.h
+ */
+void *allocate_send_request() {
+    tx_req_t *req = (tx_req_t *) malloc(sizeof(tx_req_t));
+    if(req == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return NULL;
+    }
+
+    req->stop = false;
+    req->deallocate_address = false;
+    req->address = NULL;
+    memset(req->to_send, 0, 11);
+}
+
+/*
+ * Refer to headers/receiver.h
+ */
+void *allocate_handle_request() {
+    hd_req_t *req = (hd_req_t *) malloc(sizeof(hd_req_t));
+    if(req == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return NULL;
+    }
+    
+    req->stop = false;
+    req->client = NULL;
+    req->length = 0;
+    memset(req->buffer, 0, 528);
+}
