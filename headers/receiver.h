@@ -2,6 +2,7 @@
 #include "hash_table.h"
 #include "stream.h"
 #include "buffer.h"
+#include "lookup.h"
 
 #ifndef RX_H
 

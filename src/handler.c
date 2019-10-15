@@ -18,6 +18,11 @@ void *handle_thread(void *config) {
 
     while(!exit) {
         s_node_t *node_rx = stream_pop(cfg->rx, true);
+        if (node_rx == NULL) {
+            sched_yield();
+            continue;
+        }
+
         if (node_rx != NULL) {
             hd_req_t *req = (hd_req_t *) node_rx->content;
             if (req != NULL) {
@@ -36,7 +41,7 @@ void *handle_thread(void *config) {
 
                 client_t *client = req->client;
                 if (client == NULL) {
-                    fprintf(stderr, "[%s] Unknown client\n", ip_as_str);
+                    fprintf(stderr, "[%s][%5u] Unknown client\n", ip_as_str, client->address->sin6_port);
                 } else {
                     errno = 0;
                     if (unpack(req->buffer, req->length, decoded) != 0) {
@@ -81,8 +86,9 @@ void *handle_thread(void *config) {
                     if (decoded->truncated) {
                         fprintf(
                             stderr, 
-                            "[%s] Packet truncated: %02X\n", 
-                            ip_as_str, 
+                            "[%s][%5u] Packet truncated: %02X\n", 
+                            ip_as_str,
+                            client->address->sin6_port,
                             decoded->seqnum
                         );
 
@@ -133,15 +139,36 @@ void *handle_thread(void *config) {
                             fprintf(stderr, "[%s] Failed to pack NACk\n", ip_as_str);
                         } 
 
-                        if (!stream_enqueue(cfg->send_tx, send_node, true)) {
-                            free(send_node->content);
-                            free(send_node);
-                            fprintf(stderr, "[HD] Failed to enqueue send request\n");
-                        }
+                        stream_enqueue(cfg->send_tx, send_node, true);
                     } else if (decoded->type == DATA) {
                         buf_t *window = client->window;
-                        
-                        node_t *spot = next(window, decoded->seqnum, true);
+                        node_t *spot;
+
+                        if (!sequences[client->window->window_low][decoded->seqnum]) {
+                            fprintf(
+                                stderr, 
+                                "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
+                                ip_as_str,
+                                client->address->sin6_port,
+                                client->window->window_low,
+                                decoded->seqnum
+                            );
+
+                            spot = NULL;
+
+                        } else if(is_used(window, decoded->seqnum)) {
+                            fprintf(
+                                stderr, 
+                                "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",
+                                ip_as_str,
+                                client->address->sin6_port,
+                                client->window->window_low,
+                                decoded->seqnum
+                            );
+                        } else {
+                            spot = next(window, decoded->seqnum, true);
+                        }
+
                         if (spot != NULL) {
                             packet_t *temp = (packet_t *) spot->value;
                             packet_t *value = decoded;
@@ -209,11 +236,14 @@ void *handle_thread(void *config) {
 
                                         continue;
                                     }
+
+                                    send_node->content = NULL;
+                                    send_node->next = NULL;
                                 }
 
                                 if (send_node->content == NULL) {
-                                    send_node->content = malloc(sizeof(tx_req_t));
-                                    if (send_node->content == NULL) {
+                                    tx_req_t* content = malloc(sizeof(tx_req_t));
+                                    if (content == NULL) {
                                         fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
 
                                         if (!stream_enqueue(cfg->tx, node_rx, false)) {
@@ -224,6 +254,13 @@ void *handle_thread(void *config) {
 
                                         continue;
                                     }
+
+                                    content->address = NULL;
+                                    content->deallocate_address = false;
+                                    content->stop = false;
+                                    memset(content->to_send, 0, 11);
+
+                                    send_node->content = content;
                                 }
 
                                 send_node->next = NULL;
@@ -243,7 +280,7 @@ void *handle_thread(void *config) {
                                 to_send.window = 31 - window->length;
 
                                 if (pack(send_req->to_send, &to_send, false)) {
-                                    fprintf(stderr, "[%s] Failed to pack ACK\n", ip_as_str);
+                                    fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", ip_as_str, client->address->sin6_port);
 
                                     /** 
                                      * We move the window back by one to let the
@@ -252,9 +289,10 @@ void *handle_thread(void *config) {
                                     client->window->window_low--;
                                 } else {
                                     if (remove) {
-                                        fprintf(stderr, "[%s] Done transfering file\n", ip_as_str);
+                                        uint16_t port = client->address->sin6_port;
+                                        fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
 
-                                        ht_remove(cfg->clients, client->address->sin6_port, client->address->sin6_addr.__in6_u.__u6_addr8);
+                                        ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
                                         fclose(client->out_file);
 
@@ -269,14 +307,12 @@ void *handle_thread(void *config) {
 
                                         free(client);
 
-                                        fprintf(stderr, "[%s] Destroyed\n", ip_as_str);
+                                        fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);
                                     }
 
                                     stream_enqueue(cfg->send_tx, send_node, true);
                                 }
                             }
-                        } else {
-                            fprintf(stderr, "[HD] Spot it null\n");
                         }
                     }
 

@@ -142,4 +142,6 @@ void ip_to_string(uint8_t *ip, char *target);
 
 bool ip_equals(uint8_t *ip1, uint8_t *ip2);
 
+void *allocate_packet();
+
 #endif

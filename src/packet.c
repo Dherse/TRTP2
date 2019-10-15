@@ -194,12 +194,12 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
  * Refer to headers/packet.h
  */
 int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
-    uint8_t *raw = packet;
-
     if (in == NULL || packet == NULL) {
         errno = NULL_ARGUMENT;
         return -1;
     }
+
+    uint8_t *raw = packet;
 
     uint8_t *header = packet++;
 
@@ -225,7 +225,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 
     *header = (in->type << 6) | (in->window & 0b00011111);
 
-    uint32_t crc1 = htonl(crc32(0, (void *) raw, length));
+    uint32_t crc1 = htonl(crc32(0, (uint8_t *) raw, length));
 
     *header = *header | (in->truncated << 5);
 
@@ -302,6 +302,10 @@ int packet_to_string(const packet_t* packet, bool print_payload) {
 }
 
 void ip_to_string(uint8_t *ip, char *target) {
+    if (target == NULL) {
+        return;
+    }
+
     sprintf(
         target, 
         "%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X",
@@ -325,20 +329,47 @@ void ip_to_string(uint8_t *ip, char *target) {
 }
 
 bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
-    return ip1[0] == ip2[0] &&
-        ip1[1] == ip2[1] && 
-        ip1[2] == ip2[2] && 
-        ip1[3] == ip2[3] && 
-        ip1[4] == ip2[4] && 
-        ip1[5] == ip2[5] && 
-        ip1[6] == ip2[6] && 
-        ip1[7] == ip2[7] && 
-        ip1[8] == ip2[8] && 
-        ip1[9] == ip2[9] && 
-        ip1[10] == ip2[10] && 
-        ip1[11] == ip2[11] && 
-        ip1[12] == ip2[12] && 
-        ip1[13] == ip2[13] && 
-        ip1[14] == ip2[14] && 
-        ip1[15] == ip2[15]; 
+    if (ip1 == NULL) {
+        return ip2 == NULL;
+    } else if (ip2 == NULL) {
+        return false;
+    } else {
+        return ip1[0] == ip2[0] &&
+            ip1[1] == ip2[1] && 
+            ip1[2] == ip2[2] && 
+            ip1[3] == ip2[3] && 
+            ip1[4] == ip2[4] && 
+            ip1[5] == ip2[5] && 
+            ip1[6] == ip2[6] && 
+            ip1[7] == ip2[7] && 
+            ip1[8] == ip2[8] && 
+            ip1[9] == ip2[9] && 
+            ip1[10] == ip2[10] && 
+            ip1[11] == ip2[11] && 
+            ip1[12] == ip2[12] && 
+            ip1[13] == ip2[13] && 
+            ip1[14] == ip2[14] && 
+            ip1[15] == ip2[15]; 
+    }
+}
+
+void *allocate_packet() {
+    packet_t *pack = malloc(sizeof(packet_t));
+    if (pack == NULL) {
+        return NULL;
+    }
+
+    pack->crc1 = 0;
+    pack->crc2 = 0;
+    pack->length = 0;
+    pack->long_length = false;
+    memset(pack->payload, 0, 512);
+    pack->received_time = 0.0;
+    pack->seqnum = 0;
+    pack->timestamp = 0;
+    pack->truncated = false;
+    pack->type = 0;
+    pack->window = 0;
+
+    return pack;
 }

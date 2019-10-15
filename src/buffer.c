@@ -22,6 +22,40 @@ uint8_t hash(uint8_t seqnum) {
 /*
  * Refer to headers/buffer.h
  */
+bool is_used(buf_t *buffer, uint8_t seqnum) {
+    if (buffer == NULL) {
+        errno = NULL_ARGUMENT;
+        return false;
+    }
+
+    pthread_mutex_lock(buffer->lock);
+    
+    uint8_t next_written = seqnum;
+    uint8_t next_index = hash(seqnum);
+
+    node_t *node = &buffer->nodes[next_index];
+    if (node == NULL) {
+        pthread_mutex_unlock(buffer->lock);
+
+        errno = UNKNOWN;
+        return false;
+    }
+
+    /* Locks the node */
+    pthread_mutex_lock(node->lock);
+
+    bool used = node->used;
+
+    pthread_mutex_unlock(node->lock);
+
+    pthread_mutex_unlock(buffer->lock);
+
+    return used;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
 node_t *next(buf_t *buffer, uint8_t seqnum, bool wait) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
@@ -30,7 +64,6 @@ node_t *next(buf_t *buffer, uint8_t seqnum, bool wait) {
 
     pthread_mutex_lock(buffer->lock);
 
-    /* Increments the seqnum and gets its index in the buffer */
     uint8_t next_written = seqnum;
     uint8_t next_index = hash(seqnum);
     
@@ -145,8 +178,8 @@ void unlock(node_t* node) {
 /*
  * Refer to headers/buffer.h
  */
-int allocate_buffer(buf_t *buffer, size_t size) {
-
+int allocate_buffer(buf_t *buffer, void *(*allocator)()) {
+    buffer->length = 0;
     buffer->window_low = 0;
 
     buffer->lock = malloc(sizeof(pthread_mutex_t));
@@ -186,7 +219,7 @@ int allocate_buffer(buf_t *buffer, size_t size) {
             return -1;
         }
 
-        buffer->nodes[i].value = malloc(size);
+        buffer->nodes[i].value = allocator();
         if(buffer->nodes[i].value == NULL) {
             pthread_mutex_unlock(buffer->nodes[i].lock);
             pthread_mutex_unlock(buffer->lock);

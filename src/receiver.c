@@ -26,7 +26,7 @@ void *receive_thread(void *receive_config) {
     char ip_as_str[40]; //to print an IP if needed
 
     uint16_t port;
-    uint8_t ip[16];
+    uint8_t ip[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
     while(!rcv_cfg->stop) {
         if(!already_popped) {
@@ -148,7 +148,21 @@ void *receive_thread(void *receive_config) {
  * Refer to headers/receiver.h
  */
 void move_ip(uint8_t *destination, uint8_t *source) {
-    memcpy((void *) destination, (void *) source, 16);
+    destination[1] = source[1];
+    destination[2] = source[2];
+    destination[3] = source[3];
+    destination[4] = source[4];
+    destination[5] = source[5];
+    destination[6] = source[6];
+    destination[7] = source[7];
+    destination[8] = source[8];
+    destination[9] = source[9];
+    destination[10] = source[10];
+    destination[11] = source[11];
+    destination[12] = source[12];
+    destination[13] = source[13];
+    destination[14] = source[14];
+    destination[15] = source[15];
 }
 
 /*
@@ -212,7 +226,8 @@ int allocate_client(client_t *client, uint32_t id, char *format) {
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
-    if(allocate_buffer(client->window, sizeof(packet_t)) != 0) { 
+    
+    if(allocate_buffer(client->window, &allocate_packet) != 0) { 
         free(client->addr_len);
         free(client->address);
         pthread_mutex_destroy(client->file_mutex);

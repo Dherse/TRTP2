@@ -142,7 +142,7 @@ uint8_t hash(uint8_t seqnum);
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocate_buffer(buf_t *buffer, size_t element);
+int allocate_buffer(buf_t *buffer, void *(*allocator)());
 
 /**
  * ## Use :
@@ -213,6 +213,8 @@ node_t *peek(buf_t *buffer, bool wait, bool inc);
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
 node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
+
+bool is_used(buf_t *buffer, uint8_t seqnum);
 
 /**
  * ## Use :

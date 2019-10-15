@@ -69,8 +69,13 @@ void deallocate_everything(
                 s_node_t *stop_node = malloc(sizeof(s_node_t));
 
                 if (stop_req != NULL && stop_node != NULL) {
+                    stop_req->deallocate_address = false;
+                    stop_req->address = NULL;
                     stop_req->stop = true;
+                    memset(stop_req->to_send, 0, 11);
+
                     stop_node->content = stop_req;
+                    stop_node->next = NULL;
                     stream_enqueue(tx_config->send_rx, stop_node, true);
                 }
             }

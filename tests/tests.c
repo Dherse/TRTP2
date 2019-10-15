@@ -5,6 +5,7 @@
 #include "buffer_test.c"
 #include "ht_test.c"
 #include "stream_test.c"
+#include "misc.c"
 /*#include "handler_test.c"
 #include "receiver_test.c"*/
 
@@ -24,6 +25,8 @@ int main() {
     add_ht_tests();
 
     add_stream_tests();
+    
+    add_misc_tests();
 
     /*add_handler_tests();
 

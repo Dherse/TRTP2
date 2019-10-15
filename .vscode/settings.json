@@ -11,6 +11,7 @@
         "tuple": "c",
         "type_traits": "c",
         "utility": "c",
-        "buffer.h": "c"
+        "buffer.h": "c",
+        "packet.h": "c"
     }
 }

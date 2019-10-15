@@ -8,7 +8,7 @@ void test_fill_and_empty() {
     int i = 0;
     int j = 0;
     for (j = 0; j < 256; j += 16) {
-        int alloc = allocate_buffer(&buf, sizeof(packet_t));
+        int alloc = allocate_buffer(&buf, &allocate_packet);
         CU_ASSERT(alloc == 0);
         if (alloc != 0) {
             return;
