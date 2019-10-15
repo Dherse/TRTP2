@@ -10,6 +10,9 @@ typedef struct s_node {
     struct s_node *next;
 } s_node_t;
 
+GETSET(s_node_t, void *, content);
+GETSET(s_node_t, s_node_t *, next);
+
 /**
  * /!\ READ THIS CAREFULLY IF YOU DON'T UNDERSTAND STREAMS/FIFOs
  * 

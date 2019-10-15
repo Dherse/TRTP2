@@ -9,6 +9,24 @@ typedef int bool;
 #define MAX_PACKET_SIZE 528;
 #define MAX_PAYLOAD_SIZE 512;
 
+#ifndef GETSET
+
+#define GETSET(owner, type, var) \
+    // Gets ##var from type \
+    void set_##var(owner *self, type val);\
+    // Sets ##var from type \
+    type get_##var(owner *self);
+
+#define GETSET_IMPL(owner, type, var) \
+    void set_##var(owner *self, type val) {\
+        self->var = val;\
+    }\
+    type get_##var(owner *self) {\
+        return self->var;\
+    }
+
+#endif
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -30,5 +48,4 @@ typedef int bool;
 #include <pthread.h>
 
 #include "errors.h"
-
 #endif

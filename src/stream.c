@@ -6,6 +6,9 @@
  */
 #include "../headers/stream.h"
 
+GETSET_IMPL(s_node_t, void *, content);
+GETSET_IMPL(s_node_t, s_node_t *, next);
+
 /**
  * Refer to headers/stream.h
  */
