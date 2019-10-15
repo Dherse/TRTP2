@@ -1,4 +1,5 @@
 #include "../headers/receiver.h"
+#include "../headers/handler.h"
 #include "../headers/global.h"
 
 void *handle_thread_temp(void *config) {

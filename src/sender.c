@@ -13,11 +13,18 @@ void *send_thread(void *sender_config){
 
     while (true) {
         node = stream_pop(snd_cfg->send_rx, true);
+        if (node == NULL) {
+            fprintf(stderr, "[TX] `node` is NULL\n");
+
+            continue;
+        }
+
         req = (tx_req_t *) node->content;
         if (req == NULL) {
             free(node);
             fprintf(stderr, "[TX] `content` is NULL\n");
-            break;
+            
+            continue;
         }
 
         if (req->stop) {

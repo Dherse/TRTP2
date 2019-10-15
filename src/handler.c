@@ -1,5 +1,5 @@
 #include "../headers/receiver.h"
-#include "../headers/global.h"
+#include "../headers/handler.h"
 
 /*
  * Refer to headers/receiver.h
@@ -335,4 +335,20 @@ void *handle_thread(void *config) {
     pthread_exit(0);
 
     return NULL;
+}
+
+/*
+ * Refer to headers/receiver.h
+ */
+void *allocate_handle_request() {
+    hd_req_t *req = (hd_req_t *) malloc(sizeof(hd_req_t));
+    if(req == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return NULL;
+    }
+    
+    req->stop = false;
+    req->client = NULL;
+    req->length = 0;
+    memset(req->buffer, 0, 528);
 }

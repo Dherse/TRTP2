@@ -9,7 +9,7 @@
 /**
  * Refer to headers/stream.h
  */
-int allocate_node(s_node_t *node, void *(*allocator)()) {
+int initialize_node(s_node_t *node, void *(*allocator)()) {
     if (node == NULL) {
         errno = NULL_ARGUMENT;
         return -1;

@@ -1,10 +1,6 @@
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <errno.h>
-#include <stdlib.h> 
-#include "../headers/errors.h"
+
 #include "../headers/receiver.h"
-#include "../headers/packet.h"
+#include "../headers/handler.h"
 
 /*
  * Refer to headers/receiver.h
@@ -30,57 +26,30 @@ void *receive_thread(void *receive_config) {
 
     while(!rcv_cfg->stop) {
         if(!already_popped) {
-            /** get a buffer from the stream */
             node = stream_pop(rcv_cfg->rx, false);
             if(node == NULL) {
-                node = (s_node_t *) calloc(1, sizeof(s_node_t));
-                if(node == NULL) {
-                    fprintf(stderr, "[RX] malloc called failed\n");
-                    break;
-                }
-                
-                node->content = calloc(1, sizeof(hd_req_t));
-                if(node->content == NULL) {
-                    fprintf(stderr, "[RX] calloc called failed");
-                    free(node);
+                node = malloc(sizeof(s_node_t));
+                if (initialize_node(node, allocate_handle_request)) {
+                    fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
                     break;
                 }
             }
-            node->next = NULL;
+
             req = (hd_req_t *) node->content;
             if(req == NULL) {
                 fprintf(stderr, "[RX] `content` in a node was NULL\n");
-                node->content = calloc(1, sizeof(hd_req_t));
-                if(node->content == NULL) {
-                    free(node);
-                    fprintf(stderr, "[RX] calloc called failed\n");
-                    continue;
-                }
-
+                node->content = (hd_req_t *) allocate_handle_request();
                 req = (hd_req_t *) node->content;
             }
-            req->stop = false; //just to be sure not to shutdown threads unintentionally
         }
         
-        /** receive packet from network */
         req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
         if(req->length == -1) {
-            // pas de paquet reçus/echec de la reception
             switch(errno) {
-                /**
-                 * case 1 :
-                 * recvfrom would have blocked and waited for a message
-                 * but didn't because of the flag
-                 * -> loop again
-                 */
                 case EWOULDBLOCK : 
                     already_popped = true;
                     break;
-                /**
-                 * case 2 :
-                 * a message was 'received', but it failed
-                 * print error
-                 */
+
                 default :
                     already_popped = true;
                     fprintf(stderr, "[RX] recvfrom failed. (errno = %d)\n", errno);
@@ -121,7 +90,6 @@ void *receive_thread(void *receive_config) {
                     ht_put(rcv_cfg->clients, port, ip, (void *) contained);
 
                     fprintf(stderr, "[%s][%u] New client\n", ip_as_str, port);
-                } else {
                 }
 
                 req->client = contained;
@@ -179,20 +147,4 @@ void *allocate_send_request() {
     req->deallocate_address = false;
     req->address = NULL;
     memset(req->to_send, 0, 11);
-}
-
-/*
- * Refer to headers/receiver.h
- */
-void *allocate_handle_request() {
-    hd_req_t *req = (hd_req_t *) malloc(sizeof(hd_req_t));
-    if(req == NULL) {
-        errno = FAILED_TO_ALLOCATE;
-        return NULL;
-    }
-    
-    req->stop = false;
-    req->client = NULL;
-    req->length = 0;
-    memset(req->buffer, 0, 528);
 }
