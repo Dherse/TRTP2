@@ -91,7 +91,7 @@ void *handle_thread(void *config) {
                             client->address->sin6_port,
                             decoded->seqnum
                         );
-
+                        
                         s_node_t *send_node = stream_pop(cfg->send_rx, false);
 
                         if (send_node == NULL) {
