@@ -14,6 +14,24 @@
 
 #define MAX_WINDOW_SIZE 32
 
+#ifndef GETSET
+
+#define GETSET(owner, type, var) \
+    // Gets ##var from type \
+    void set_##var(owner *self, type val);\
+    // Sets ##var from type \
+    type get_##var(owner *self);
+
+#define GETSET_IMPL(owner, type, var) \
+    void set_##var(owner *self, type val) {\
+        self->var = val;\
+    }\
+    type get_##var(owner *self) {\
+        return self->var;\
+    }
+
+#endif
+
 typedef struct node {
     void *value;
 
@@ -23,6 +41,14 @@ typedef struct node {
 
     pthread_cond_t *notifier;
 } node_t;
+
+GETSET(node_t, void *, value);
+
+GETSET(node_t, bool, used);
+
+GETSET(node_t, pthread_mutex_t *, lock);
+
+GETSET(node_t, pthread_cond_t *, notifier);
 
 typedef struct buf {
     uint8_t window_low;
@@ -34,8 +60,14 @@ typedef struct buf {
     node_t nodes[MAX_WINDOW_SIZE];
 } buf_t;
 
+GETSET(buf_t, uint8_t, window_low);
+
+GETSET(buf_t, uint8_t, length);
+
+GETSET(buf_t, pthread_mutex_t *, lock);
+
 /**
- * ## Use :
+ * ## Use
  * 
  * **PSA**: If you need to understand what this function is used for
  * or what inlining is just read further down.
@@ -59,7 +91,7 @@ typedef struct buf {
  * 
  * Mind you, it can increase the binary size of the final executable.
  * 
- * ## Proof:
+ * ## Proof
  * 
  * The main area where a collide could happen is in the interval 240 -> 16.
  * Here are the LSB of each of those 32 values :
@@ -116,11 +148,11 @@ typedef struct buf {
  * testing all of the possible windows (by increments of 16) and you'll
  * see that it works flawlessly.
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `seqnum` - the input sequence number (from a packet)
  *
- * ## Return value:
+ * ## Return value
  * 
  * the hash, a uint8_t from 0 to 31.
  * 
@@ -128,28 +160,28 @@ typedef struct buf {
 uint8_t hash(uint8_t seqnum);
 
 /**
- * ## Use :
+ * ## Use
  * 
  * Allocated a new buffer.
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `buffer`  - a pointer to a buffer
  * - `element` - the size of each element given by sizeof
  *
- * ## Return value:
+ * ## Return value
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocate_buffer(buf_t *buffer, void *(*allocator)());
+int initialize_buffer(buf_t *buffer, void *(*allocator)());
 
 /**
- * ## Use :
+ * ## Use
  * 
  * Deallocated an existing buffer.
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `buffer` - a pointer to an already-allocated buffer.
  *  The buffer does not have to be fully initialized!
@@ -158,18 +190,18 @@ int allocate_buffer(buf_t *buffer, void *(*allocator)());
 void deallocate_buffer(buf_t *buffer);
 
 /**
- * ## Use :
+ * ## Use
  * 
  * Gets the next writable node in the buffer.
  * Waits for one to become available.
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `buffer` - a pointer to an already-allocated buffer
  * - `wait` - whether to wait for a readable writable to be available
  * - `seqnum` - the sequence number to insert
  *
- * ## Return value:
+ * ## Return value
  * 
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
@@ -177,17 +209,25 @@ void deallocate_buffer(buf_t *buffer);
 node_t *next(buf_t *buffer, uint8_t seqnum, bool wait);
 
 /**
- * ## Use :
+ * Refer to buffer.h/next(buf_t *, uint8_t, bool)
+ * 
+ * Does the same thing but without locking, considers the
+ * lock has already been grabbed before
+ */
+node_t *next_nolock(buf_t *buffer, uint8_t seqnum, bool wait);
+
+/**
+ * ## Use
  * 
  * Peeks the next readable element in the buffer
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `buffer` - a pointer to an already-allocated buffer
  * - `wait` - whether to wait for a readable value to be available
  * - `inc` - whether to increment last_read or not
  *
- * ## Return value:
+ * ## Return value
  * 
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
@@ -195,33 +235,64 @@ node_t *next(buf_t *buffer, uint8_t seqnum, bool wait);
 node_t *peek(buf_t *buffer, bool wait, bool inc);
 
 /**
- * ## Use :
+ * ## Use
  * 
  * Peeks the nth readable element in the buffer. 
  * Starting from 0.
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `buffer` - a pointer to an already-allocated buffer
  * - `seqnum` - the sequence number to get
  * - `wait`   - whether to wait for a readable value to be available
  * - `inc`    - whether to increment last_read or not
  *
- * ## Return value:
+ * ## Return value
  * 
  * - wait == true : NULL if it failed, an initialized node otherwise
  * - wait == false : NULL if it failed or empty, an initialized node otherwise
  */
 node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
 
+/**
+ * Refer to buffer.h/get(buf_t *, uint8_t, bool, bool)
+ * 
+ * Does the same thing but without locking, considers the
+ * lock has already been grabbed before
+ */
+node_t *get_nolock(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
+
+/**
+ * ## Use
+ * 
+ * Checks if the seqnum is used
+ * 
+ * ## Arguments
+ *
+ * - `buffer` - a pointer to an already-allocated buffer
+ * - `seqnum` - the sequence number to check
+ *
+ * ## Return value
+ * 
+ * - true if the seqnum is in use
+ * - false otherwise
+ */
 bool is_used(buf_t *buffer, uint8_t seqnum);
 
 /**
- * ## Use :
+ * Refer to buffer.h/is_used(buf_t *, uint8_t)
+ * 
+ * Does the same thing but without locking, considers the
+ * lock has already been grabbed before
+ */
+bool is_used_nolock(buf_t *buffer, uint8_t seqnum);
+
+/**
+ * ## Use
  * 
  * Unlocks the node for future read/write
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `node` - a node owned by a buffer
  */

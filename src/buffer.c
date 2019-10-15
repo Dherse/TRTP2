@@ -178,7 +178,7 @@ void unlock(node_t* node) {
 /*
  * Refer to headers/buffer.h
  */
-int allocate_buffer(buf_t *buffer, void *(*allocator)()) {
+int initialize_buffer(buf_t *buffer, void *(*allocator)()) {
     buffer->length = 0;
     buffer->window_low = 0;
 
@@ -268,8 +268,8 @@ void deallocate_buffer(buf_t *buffer) {
     }
 
     pthread_mutex_unlock(buffer->lock);
-    if (buffer->lock != NULL) {
-        pthread_mutex_destroy(buffer->lock);
-        free(buffer->lock);
-    }
+    pthread_mutex_destroy(buffer->lock);
+    free(buffer->lock);
+
+    free(buffer);
 }

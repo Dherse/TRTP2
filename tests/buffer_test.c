@@ -3,12 +3,13 @@
 #include "../headers/buffer.h"
 
 void test_fill_and_empty() {
-    buf_t buf;
+
     
     int i = 0;
     int j = 0;
     for (j = 0; j < 256; j += 16) {
-        int alloc = allocate_buffer(&buf, &allocate_packet);
+        buf_t *buf = malloc( sizeof(buf_t));
+        int alloc = initialize_buffer(buf, &allocate_packet);
         CU_ASSERT(alloc == 0);
         if (alloc != 0) {
             return;
@@ -16,12 +17,12 @@ void test_fill_and_empty() {
 
         int k = 0;
         for (k = 0; k < 32; k++) {
-            CU_ASSERT(alloc_packet((packet_t *) buf.nodes[k].value) == 0);
+            CU_ASSERT(init_packet((packet_t *) buf->nodes[k].value) == 0);
         }
 
         node_t *node;
         for (i = j; i < j + 32; i++) {
-            node = next(&buf, i, true);
+            node = next(buf, i, true);
             CU_ASSERT(node != NULL);
             if (node != NULL) {
                 ((packet_t *) node->value)->seqnum = (uint8_t) i; 
@@ -31,7 +32,7 @@ void test_fill_and_empty() {
         }
 
         for (i = j; i < j + 32; i++) {
-            node = get(&buf, i, false, false);
+            node = get(buf, i, false, false);
             CU_ASSERT(node != NULL);
 
             if (node != NULL) {
@@ -41,7 +42,7 @@ void test_fill_and_empty() {
             unlock(node);
         }
     
-        deallocate_buffer(&buf);
+        deallocate_buffer(buf);
     }
 }
 

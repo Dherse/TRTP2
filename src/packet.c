@@ -1,64 +1,104 @@
-#include <stdio.h>   
-#include <stdlib.h> 
-#include <errno.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <zlib.h>
-#include <time.h>
 #include "../headers/packet.h"
-#include "../headers/errors.h"
 
-int allocate_void(void *data, size_t length) {
-    if (data != NULL) {
-        errno = ALREADY_ALLOCATED;
-        return -1;
-    }
+GETSET_IMPL(packet_t, ptype_t, type);
 
-    void *d = calloc(1, length);
-    if (d == NULL) {
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
+GETSET_IMPL(packet_t, bool, truncated);
 
-    data = d;
+GETSET_IMPL(packet_t, uint8_t, window);
 
-    return 0;
-}
+GETSET_IMPL(packet_t, uint8_t, seqnum);
 
-int deallocate_void(void *data) {
-    if (data == NULL) {
-        errno = ALREADY_DEALLOCATED;
-        return -1;
-    }
+GETSET_IMPL(packet_t, uint32_t, timestamp);
 
-    free(data);
-    return 0;
-}
+GETSET_IMPL(packet_t, uint32_t, crc1);
 
-/*
+GETSET_IMPL(packet_t, uint32_t, crc2);
+
+GETSET_IMPL(packet_t, double, received_time);
+
+/**
  * Refer to headers/packet.h
  */
-int alloc_packet(packet_t* packet) {
-    packet_t* temp = calloc(1, sizeof(packet_t));
-    if (temp == NULL) {
-        errno = FAILED_TO_ALLOCATE;
+uint16_t get_length(packet_t *self) {
+    return self->length;
+}
+
+/**
+ * Refer to headers/packet.h
+ */
+bool is_long(packet_t *self) {
+    return self->long_length;
+}
+
+/**
+ * Refer to headers/packet.h
+ */
+void set_length(packet_t *self, uint16_t length) {
+    if (length > 512) {
+        return;
+    }
+
+    if (length & 0x11111 != length) {
+        self->long_length = true;
+    }
+
+    self->length = length;
+}
+
+/**
+ * Refer to headers/packet.h
+ */
+uint8_t *get_payload(packet_t *self) {
+    return self->payload;
+}
+
+/**
+ * Refer to headers/packet.h
+ */
+void set_payload(packet_t *self, uint8_t *payload, uint16_t len) {
+    if (len > 512) {
+        return;
+    }
+
+    set_length(self, len);
+
+    memcpy(self->payload, payload, len);
+    memset(self->payload + len, 0, 512 - len);
+}
+
+/**
+ * Refer to headers/packet.h
+ */
+int init_packet(packet_t* packet) {
+    if (packet == NULL) {
+        errno = NULL_ARGUMENT;
         return -1;
     }
 
-    *packet = *temp;
+    packet->crc1 = 0;
+    packet->crc2 = 0;
+    packet->length = 0;
+    packet->long_length = false;
+    memset(packet->payload, 0, 512);
+    packet->received_time = 0.0;
+    packet->seqnum = 0;
+    packet->timestamp = 0;
+    packet->truncated = false;
+    packet->type = 0;
+    packet->window = 0;
 
-    free(temp);
     return 0;
 }
 
-/*
+/**
  * Refer to headers/packet.h
  */
 int dealloc_packet(packet_t* packet) {
-    return deallocate_void((void *) packet);
+    free(packet);
+    return 0;
 }
 
-/*
+/**
  * Refer to headers/packet.h
  */
 int unpack(uint8_t *packet, int length, packet_t *out) {
@@ -190,7 +230,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     return 0;
 }
 
-/*
+/**
  * Refer to headers/packet.h
  */
 int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
@@ -255,79 +295,94 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     return 0;
 }
 
-/*
+/**
  * Refer to headers/packet.h
  */
-int packet_to_string(const packet_t* packet, bool print_payload) {
+int packet_to_string(packet_t* packet, bool print_payload) {
     if (packet == NULL) {
         errno = NULL_ARGUMENT;
         return -1;
     }
 
     char s_type[15];
-    char s_trun[6];
-
-    switch(packet->type) {
+    switch(get_type(packet)) {
         case 0: strcpy(s_type, "IGNORE (00)"); break;
         case 1: strcpy(s_type, "DATA (01)"); break;
         case 2: strcpy(s_type, "ACK (10)"); break;
         case 3: strcpy(s_type, "NACK (11)"); break;
     }
-    
-    if(packet->truncated == 1) {
-        strcpy(s_trun, "true");
-    } else {
-        strcpy(s_trun, "false");
-    }
-    
-    printf("type : %s\n truncated : %s\n window : %u\n long length: %d\n length : %u\n seqnum : %u\n timestamp : %u\n",
-     s_type, s_trun, packet->window, packet->long_length, packet->length, packet->seqnum, packet->timestamp);
 
-    uint16_t i;
-    for(i = 0; i < packet->length && print_payload; i= i + 4) {
-        printf(
-            "%02x %02x %02x %02x | %c %c %c %c\n", 
-            packet->payload[i], 
-            packet->payload[i + 1], 
-            packet->payload[i + 2], 
-            packet->payload[i + 3], 
-            (char) packet->payload[i], 
-            (char) packet->payload[i + 1], 
-            (char) packet->payload[i + 2], 
-            (char) packet->payload[i + 3]
-        );
+    uint8_t len = get_length(packet);
+
+    fprintf(stderr, " - - - - - - - - PACKET - - - - - - - - \n");
+    fprintf(stderr, "TYPE:       %s\n", s_type);
+    fprintf(stderr, "TRUNCATED:  %s\n", get_truncated(packet) ? "true" : "false");
+    fprintf(stderr, "WINDOW:     %u\n", get_window(packet));
+    fprintf(stderr, "SEQNUM:     %u\n", get_seqnum(packet));
+    fprintf(stderr, "LENGTH (L): %u (%s)\n", len, is_long(packet) ? "true" : "false");
+    fprintf(stderr, "TIMESTAMP:  %u\n", get_timestamp(packet));
+
+    if (print_payload) {
+        fprintf(stderr, "\n");
+
+        uint8_t *payload = get_payload(packet);
+
+        uint16_t i;
+        for(i = 0; i < len; i= i + 8) {
+            fprintf(
+                stderr, 
+                "%02x %02x %02x %02x %02x %02x %02x %02x | %3s %3s %3s %3s %3s %3s %3s %3s\n", 
+                payload[i], 
+                payload[i + 1], 
+                payload[i + 2], 
+                payload[i + 3], 
+                payload[i + 4], 
+                payload[i + 5], 
+                payload[i + 6], 
+                payload[i + 7], 
+                ascii[payload[i]], 
+                ascii[payload[i + 1]], 
+                ascii[payload[i + 2]], 
+                ascii[payload[i + 3]], 
+                ascii[payload[i + 4]], 
+                ascii[payload[i + 5]], 
+                ascii[payload[i + 6]], 
+                ascii[payload[i + 7]]
+            );
+        }
+    }
+
+    fprintf(stderr, " - - - - - - - - - - - - - - - - - - - -\n");
+
+    return 0;
+}
+
+/**
+ * Refer to headers/packet.h
+ */
+int ip_to_string(uint8_t *ip, char *target) {
+    if (target == NULL) {
+        errno = NULL_ARGUMENT;
+        return -1;
+    }
+
+    struct in6_addr addr;
+    if (addr.__in6_u.__u6_addr8 != memcpy(addr.__in6_u.__u6_addr8, ip, 16)) {
+        errno = FAILED_TO_COPY;
+        return -1;
+    }
+
+    if (target != inet_ntop(AF_INET6, &addr, target, 18)) {
+        errno = FAILED_TO_COPY;
+        return -1;
     }
 
     return 0;
 }
 
-void ip_to_string(uint8_t *ip, char *target) {
-    if (target == NULL) {
-        return;
-    }
-
-    sprintf(
-        target, 
-        "%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X:%02X%02X",
-        ip[0],
-        ip[1],
-        ip[2],
-        ip[3],
-        ip[4],
-        ip[5],
-        ip[6],
-        ip[7],
-        ip[8],
-        ip[9],
-        ip[10],
-        ip[11],
-        ip[12],
-        ip[13],
-        ip[14],
-        ip[15]
-    );
-}
-
+/**
+ * Refer to headers/packet.h
+ */
 bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
     if (ip1 == NULL) {
         return ip2 == NULL;
@@ -353,23 +408,14 @@ bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
     }
 }
 
+/**
+ * Refer to headers/packet.h
+ */
 void *allocate_packet() {
     packet_t *pack = malloc(sizeof(packet_t));
-    if (pack == NULL) {
+    if (pack == NULL || init_packet(pack)) {
         return NULL;
     }
-
-    pack->crc1 = 0;
-    pack->crc2 = 0;
-    pack->length = 0;
-    pack->long_length = false;
-    memset(pack->payload, 0, 512);
-    pack->received_time = 0.0;
-    pack->seqnum = 0;
-    pack->timestamp = 0;
-    pack->truncated = false;
-    pack->type = 0;
-    pack->window = 0;
 
     return pack;
 }

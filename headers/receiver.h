@@ -3,32 +3,29 @@
 #include "stream.h"
 #include "buffer.h"
 #include "lookup.h"
+#include "client.h"
 
 #ifndef RX_H
 
 #define RX_H
 
-typedef struct client {
-    /** 
-     * Protects the file descriptor against
-     * parallel writes.
-     */
-    pthread_mutex_t *file_mutex;
+#ifndef GETSET
 
-    /** Output file descriptor */
-    FILE *out_file;
+#define GETSET(owner, type, var) \
+    // Gets ##var from type \
+    void set_##var(owner *self, type val);\
+    // Sets ##var from type \
+    type get_##var(owner *self);
 
-    /** Client address */
-    struct sockaddr_in6 *address;
+#define GETSET_IMPL(owner, type, var) \
+    void set_##var(owner *self, type val) {\
+        self->var = val;\
+    }\
+    type get_##var(owner *self) {\
+        return self->var;\
+    }
 
-    /** Client address length */
-    socklen_t *addr_len;
-
-    /** Current client receive window */
-    buf_t *window;
-
-    uint32_t id;
-} client_t;
+#endif
 
 typedef struct receive_thread_config {
     /** Thread reference */
@@ -106,6 +103,16 @@ typedef struct handle_request {
     uint8_t buffer[528];
 } hd_req_t;
 
+GETSET(hd_req_t, bool, stop);
+
+GETSET(hd_req_t, client_t, client);
+
+GETSET(hd_req_t, ssize_t, length);
+
+uint8_t *get_buffer(hd_req_t* self);
+
+void set_buffer(hd_req_t* self, uint8_t *buffer, uint16_t len);
+
 typedef struct send_request {
     /** true = the loop should stop */
     bool stop;
@@ -119,6 +126,16 @@ typedef struct send_request {
     /** the packet to send */
     char to_send[11];
 } tx_req_t;
+
+GETSET(tx_req_t, bool, stop);
+
+GETSET(tx_req_t, bool, deallocate_address);
+
+GETSET(tx_req_t, struct sockaddr_in6 *, address);
+
+uint8_t *get_to_send(tx_req_t* self);
+
+void set_to_sendr(tx_req_t* self, uint8_t *to_send, uint16_t len);
 
 /**
  * /!\ This is a THREAD definition
@@ -291,26 +308,6 @@ void *send_thread(void *);
  * If it failed, errno is set to an appropriate error. 
  */
 void move_ip(uint8_t *dst, uint8_t *src);
-
-/**
- * ## Use :
- *
- *  mallocs `client`, its address and addr_len
- *  allocates and initialize it's mutex
- *  calls "allocate_buffer" on it's window
- * 
- * ## Arguments :
- *
- * - `client` - a pointer to the address you want to listen to
- * - `id`     - the ID for the file name format
- * - `format` - the file name format
- *
- * ## Return value:
- *
- * 0 if the process completed successfully. -1 otherwise.
- * If it failed, errno is set to an appropriate error. 
- */
-int allocate_client(client_t *client, uint32_t id, char *format);
 
 
 #endif

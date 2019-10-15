@@ -8,7 +8,7 @@ void *handle_thread(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
 
     packet_t to_send;
-    packet_t *decoded = calloc(1, sizeof(packet_t));
+    packet_t *decoded = (packet_t *) allocate_packet();
     if (decoded == NULL) {
         fprintf(stderr, "[HD] Failed to start handle thread: alloc failed\n");
         return NULL;
@@ -81,7 +81,7 @@ void *handle_thread(void *config) {
                         continue;
                     };
 
-                    pthread_mutex_lock(client->file_mutex);
+                    pthread_mutex_lock(client->lock);
                     bool remove = false;
                     if (decoded->truncated) {
                         fprintf(
@@ -269,7 +269,7 @@ void *handle_thread(void *config) {
 
                                 send_req->stop = false;
                                 send_req->address = client->address;
-                                send_req->deallocate_address = remove;
+                                send_req->deallocate_address = false;
 
                                 to_send.type = ACK;
                                 to_send.truncated = false;
@@ -292,7 +292,7 @@ void *handle_thread(void *config) {
                                         uint16_t port = client->address->sin6_port;
                                         fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
 
-                                        ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
+                                        /*ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
                                         fclose(client->out_file);
 
@@ -305,7 +305,7 @@ void *handle_thread(void *config) {
                                         pthread_mutex_destroy(client->file_mutex);
                                         free(client->file_mutex);
 
-                                        free(client);
+                                        free(client);*/
 
                                         fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);
                                     }
@@ -322,7 +322,7 @@ void *handle_thread(void *config) {
                     }
                     
                     if (!remove) {
-                        pthread_mutex_unlock(client->file_mutex);
+                        pthread_mutex_unlock(client->lock);
                     }
                 }
             }

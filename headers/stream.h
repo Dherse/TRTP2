@@ -82,6 +82,24 @@ typedef struct stream {
 /**
  * ## Use :
  *
+ * Allocates the internal state of a node
+ * 
+ * ## Arguments :
+ *
+ * - `node`      - a pointer to an already allocated node
+ * - `allocator` - an allocator for the content
+ *
+ * ## Return value:
+ * 
+ * 0 if the process completed successfully. -1 otherwise.
+ * If it failed, errno is set to an appropriate error.
+ */
+int allocate_node(s_node_t *node, void *(*allocator)());
+
+
+/**
+ * ## Use :
+ *
  * Allocates the internal state of a stream
  * 
  * ## Arguments :

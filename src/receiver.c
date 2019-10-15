@@ -110,7 +110,7 @@ void *receive_thread(void *receive_config) {
                         fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
                         break;
                     } 
-                    if(allocate_client(contained, rcv_cfg->idx++, rcv_cfg->file_format) == -1) {
+                    if(initialize_client(contained, rcv_cfg->idx++, rcv_cfg->file_format) == -1) {
                         fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
                         free(contained);
                         break;
@@ -163,93 +163,4 @@ void move_ip(uint8_t *destination, uint8_t *source) {
     destination[13] = source[13];
     destination[14] = source[14];
     destination[15] = source[15];
-}
-
-/*
- * Refer to headers/receiver.h
- */
-int allocate_client(client_t *client, uint32_t id, char *format) {
-    client->id = id;
-
-    client->file_mutex = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
-    if(client->file_mutex == NULL) {
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
-    int err = pthread_mutex_init(client->file_mutex,NULL);
-    if(err != 0) {
-        free(client->file_mutex);
-        free(client);
-        errno = FAILED_TO_INIT_MUTEX;
-        return -1;
-    }
-
-    char name[256];
-    sprintf(name, format, id);
-    client->out_file = fopen(name, "wb");
-    if (client->out_file == NULL) {
-        fprintf(stderr, "[RX] Failed to create file: %s", name);
-        pthread_mutex_destroy(client->file_mutex);
-        free(client->file_mutex);
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-    
-    client->address = (struct sockaddr_in6 *) malloc(sizeof(struct sockaddr_in6));
-    if(client->address == NULL) {
-        pthread_mutex_destroy(client->file_mutex);
-        free(client->file_mutex);
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-    client->addr_len = (socklen_t *) malloc(sizeof(socklen_t));
-    if(client->addr_len == NULL) {
-        free(client->address);
-        pthread_mutex_destroy(client->file_mutex);
-        free(client->file_mutex);
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
-    client->window = (buf_t *) malloc(sizeof(buf_t));
-    if(client->window == NULL){
-        free(client->addr_len);
-        free(client->address);
-        pthread_mutex_destroy(client->file_mutex);
-        free(client->file_mutex);
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-    
-    if(allocate_buffer(client->window, &allocate_packet) != 0) { 
-        free(client->addr_len);
-        free(client->address);
-        pthread_mutex_destroy(client->file_mutex);
-        free(client->file_mutex);
-        free(client);
-        free(client->window);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
-    return 0;
-}
-
-int make_listen_socket(const struct sockaddr *src_addr, socklen_t addrlen) {
-    int sock = socket(AF_INET6, SOCK_DGRAM,0);
-    if(sock < 0){ //errno handeled by socket
-        return -1;
-    }
-
-    int err = bind(sock, src_addr, addrlen);
-    if(err == -1){
-        return -1; // errno handeled by bind
-    }
-    return sock;
 }

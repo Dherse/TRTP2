@@ -7,6 +7,24 @@
 #include "../headers/stream.h"
 
 /**
+ * Refer to headers/stream.h
+ */
+int allocate_node(s_node_t *node, void *(*allocator)()) {
+    if (node == NULL) {
+        errno = NULL_ARGUMENT;
+        return -1;
+    }
+
+    node->next = NULL;
+    node->content = allocator();
+    if (node->content == NULL) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/**
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
 int allocate_stream(stream_t *stream, size_t max_len) {
