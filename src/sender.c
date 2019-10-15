@@ -10,9 +10,8 @@ void *send_thread(void *sender_config){
     s_node_t *node;
     tx_req_t *req;
 
-    bool stop = false;
 
-    while (!stop) {
+    while (true) {
         node = stream_pop(snd_cfg->send_rx, true);
         req = (tx_req_t *) node->content;
         if (req == NULL) {
@@ -22,7 +21,6 @@ void *send_thread(void *sender_config){
         }
 
         if (req->stop) {
-            stop = true;
             free(req);
             free(node);
             break;
