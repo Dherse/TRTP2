@@ -312,5 +312,31 @@ void move_ip(uint8_t *dst, uint8_t *src);
  */
 int allocate_client(client_t *client, uint32_t id, char *format);
 
+/**
+ * ## Use :
+ *
+ * mallocs a tx_req_t and initializes all it's fields
+ * 
+ * ## Return value:
+ *
+ * a valid pointer if the process completed successfully. 
+ * NULL otherwise. If it failed, errno is set to an 
+ * appropriate error. 
+ */
+void *allocate_send_request();
+
+/**
+ * ## Use :
+ *
+ * mallocs a hq_req_t and initializes all it's fields
+ * 
+ * ## Return value:
+ *
+ * a valid pointer if the process completed successfully. 
+ * NULL otherwise. If it failed, errno is set to an 
+ * appropriate error. 
+ */
+void *allocate_handle_request();
+
 
 #endif
