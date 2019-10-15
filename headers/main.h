@@ -5,6 +5,7 @@
 #include "cli.h"
 #include "packet.h"
 #include "receiver.h"
+#include "handler.h"
 
 #include <time.h>
 #include <signal.h>

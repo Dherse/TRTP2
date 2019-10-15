@@ -6,10 +6,13 @@
  */
 #include "../headers/stream.h"
 
+GETSET_IMPL(s_node_t, void *, content);
+GETSET_IMPL(s_node_t, s_node_t *, next);
+
 /**
  * Refer to headers/stream.h
  */
-int allocate_node(s_node_t *node, void *(*allocator)()) {
+int initialize_node(s_node_t *node, void *(*allocator)()) {
     if (node == NULL) {
         errno = NULL_ARGUMENT;
         return -1;

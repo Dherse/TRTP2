@@ -1,6 +1,6 @@
-#include "global.h"
-
 #ifndef STREAM_H
+
+#include "global.h"
 
 #define STREAM_H
 
@@ -9,6 +9,9 @@ typedef struct s_node {
 
     struct s_node *next;
 } s_node_t;
+
+GETSET(s_node_t, void *, content);
+GETSET(s_node_t, s_node_t *, next);
 
 /**
  * /!\ READ THIS CAREFULLY IF YOU DON'T UNDERSTAND STREAMS/FIFOs
@@ -94,7 +97,7 @@ typedef struct stream {
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocate_node(s_node_t *node, void *(*allocator)());
+int initialize_node(s_node_t *node, void *(*allocator)());
 
 
 /**

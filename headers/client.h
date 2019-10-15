@@ -1,9 +1,9 @@
+#ifndef CLIENT_H
+
 #include "global.h"
 #include "buffer.h"
 
-#ifndef CL_H
-
-#define CL_H
+#define CLIENT_H
 
 #ifndef GETSET
 
