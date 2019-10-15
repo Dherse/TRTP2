@@ -41,10 +41,19 @@ typedef struct handle_request {
     uint8_t buffer[528];
 } hd_req_t;
 
+/**
+ * Macro to create getters and setters
+ */
 GETSET(hd_req_t, bool, stop);
 
+/**
+ * Macro to create getters and setters
+ */
 GETSET(hd_req_t, client_t, client);
 
+/**
+ * Macro to create getters and setters
+ */
 GETSET(hd_req_t, ssize_t, length);
 
 uint8_t *get_buffer(hd_req_t* self);
@@ -115,16 +124,15 @@ void set_buffer(hd_req_t* self, uint8_t *buffer, uint16_t len);
  * Once a node has been popped from a stream it has to be
  * enqueued onto the return stream. If it cannot be it should be
  * deallocated to avoid memory leaks.
- * 
  */
 void *handle_thread(void *);
 
 /**
- * ## Use :
+ * ## Use
  *
  * mallocs a hq_req_t and initializes all it's fields
  * 
- * ## Return value:
+ * ## Return value
  *
  * a valid pointer if the process completed successfully. 
  * NULL otherwise. If it failed, errno is set to an 
@@ -132,4 +140,17 @@ void *handle_thread(void *);
  */
 void *allocate_handle_request();
 
+/**
+ * ## Use
+ *
+ * tries to enqueue node in stream without waiting
+ * if `enqueue` fails, frees node->content and node
+ * 
+ * ## Arguments
+ * 
+ * - `stream` - the stream to which the node should
+ *              be appended
+ * - `node`   - the node to append
+ */
+void enqueue_or_free(stream_t *stream, s_node_t *node);
 #endif

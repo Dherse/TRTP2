@@ -112,7 +112,7 @@ void *handle_thread_temp(void *config) {
                 //if there is no buffer available, allocate a new one
                 if (send_node == NULL) {
                     send_node = malloc(sizeof(s_node_t));
-                    if(allocate_node(send_node, allocate_send_request)) {
+                    if(initialize_node(send_node, allocate_send_request)) {
                         free(send_node);
                         enqueue_or_free(cfg->tx,node_rx);
                     }
