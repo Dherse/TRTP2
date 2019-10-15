@@ -1,6 +1,9 @@
 #include "../headers/receiver.h"
 #include "../headers/global.h"
 
+/*
+ * Refer to headers/handler.h
+ */
 void *handle_thread_temp(void *config) {
     if(config == NULL) {
         pthread_exit(NULL);
@@ -42,11 +45,7 @@ void *handle_thread_temp(void *config) {
         client_t *client = req->client;
         if(client == NULL) {
             fprintf(stderr, "Unknown client\n");
-            if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                free(node_rx->content);
-                free(node_rx);
-                fprintf(stderr, "[HD] Failed to enqueue packet\n");
-            }
+            enqueue_or_free(cfg->tx,node_rx);
             continue;
         }
 
@@ -83,11 +82,7 @@ void *handle_thread_temp(void *config) {
             }
             
             //if failed to enqueue, free data
-            if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                free(node_rx->content);
-                free(node_rx);
-                fprintf(stderr, "[HD] Failed to enqueue packet\n");
-            }
+            enqueue_or_free(cfg->tx,node_rx);
             continue;
         }
         remove = false;
@@ -95,7 +90,13 @@ void *handle_thread_temp(void *config) {
 
         //we don't expect any ACK/NACK or IGNORE type
         if(decoded->type == DATA) {
+
             // upon truncated DATA packet reception, send NACK
+            /** 
+             * it is not necessary to check this field after the type 
+             * as `unpack` already does it but, we do it to stay 
+             * consistent with the protocol
+             */
             if(decoded->truncated) {
                 fprintf(
                     stderr, 
@@ -107,32 +108,12 @@ void *handle_thread_temp(void *config) {
                 
                 s_node_t *send_node = stream_pop(cfg->send_rx, false);
 
-                //TODO : use allocator and shit to make this if better
+                //if there is no buffer available, allocate a new one
                 if (send_node == NULL) {
-                    send_node = calloc(1, sizeof(s_node_t));
-                    if (send_node == NULL) {
-                        fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
-
-                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                            free(node_rx->content);
-                            free(node_rx);
-                            fprintf(stderr, "[HD] Failed to enqueue packet\n");
-                        }
-
-                        continue;
-                    } else {
-                        send_node->content = calloc(1, sizeof(tx_req_t));
-                        if (send_node->content == NULL) {
-                            fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
-
-                            if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                free(node_rx->content);
-                                free(node_rx);
-                                fprintf(stderr, "[HD] Failed to enqueue packet\n");
-                            }
-
-                            continue;
-                        } 
+                    send_node = malloc(sizeof(s_node_t));
+                    if(allocate_node(send_node, allocate_send_request)) {
+                        free(send_node);
+                        enqueue_or_free(cfg->tx,node_rx);
                     }
                 }
 
@@ -245,12 +226,7 @@ void *handle_thread_temp(void *config) {
                             send_node = malloc(sizeof(s_node_t));
                             if (send_node == NULL) {
                                 fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
-
-                                if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                    free(node_rx->content);
-                                    free(node_rx);
-                                    fprintf(stderr, "[HD] Failed to enqueue packet\n");
-                                }
+                                enqueue_or_free(cfg->tx,node_rx);
 
                                 continue;
                             }
@@ -263,12 +239,7 @@ void *handle_thread_temp(void *config) {
                             tx_req_t* content = malloc(sizeof(tx_req_t));
                             if (content == NULL) {
                                 fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
-
-                                if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                    free(node_rx->content);
-                                    free(node_rx);
-                                    fprintf(stderr, "[HD] Failed to enqueue packet\n");
-                                }
+                                enqueue_or_free(cfg->tx,node_rx);
 
                                 continue;
                             }
@@ -335,12 +306,20 @@ void *handle_thread_temp(void *config) {
             }
         }
         
-        if (!stream_enqueue(cfg->tx, node_rx, false)) {
-            free(node_rx->content);
-            free(node_rx);
-        }
+        enqueue_or_free(cfg->tx,node_rx);
         if (!remove) {
             pthread_mutex_unlock(client->lock);
         }
+    }
+}
+
+/*
+ * Refer to headers/handler.h
+ */
+inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
+    if (!stream_enqueue(stream, node, false)) {
+        //TODO : replace with getter
+        free(node->content);
+        free(node);
     }
 }
