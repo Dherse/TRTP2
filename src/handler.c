@@ -9,6 +9,7 @@ void *handle_thread(void *config) {
 
     packet_t to_send;
     packet_t *decoded = (packet_t *) allocate_packet();
+    char ip_as_str[46];
     if (decoded == NULL) {
         fprintf(stderr, "[HD] Failed to start handle thread: alloc failed\n");
         return NULL;
@@ -36,15 +37,13 @@ void *handle_thread(void *config) {
 
                 ssize_t length = req->length;
 
-                char ip_as_str[40];
-                ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
-
                 client_t *client = req->client;
                 if (client == NULL) {
-                    fprintf(stderr, "[%s][%5u] Unknown client\n", ip_as_str, client->address->sin6_port);
+                    fprintf(stderr, "[HD] Unknown client\n");
                 } else {
                     errno = 0;
                     if (unpack(req->buffer, req->length, decoded) != 0) {
+                        ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                         switch(errno) {
                             case TYPE_IS_WRONG:
                                 fprintf(stderr, "[%s] Type is wrong: %d\n", ip_as_str, decoded->type);
@@ -81,9 +80,10 @@ void *handle_thread(void *config) {
                         continue;
                     };
 
-                    pthread_mutex_lock(client->lock);
+                    pthread_mutex_lock(client_get_lock(client));
                     bool remove = false;
                     if (decoded->truncated) {
+                        ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                         fprintf(
                             stderr, 
                             "[%s][%5u] Packet truncated: %02X\n", 
@@ -144,7 +144,10 @@ void *handle_thread(void *config) {
                         buf_t *window = client->window;
                         node_t *spot;
 
+                        pthread_mutex_lock(buf_get_lock(window));
+
                         if (!sequences[client->window->window_low][decoded->seqnum]) {
+                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
@@ -156,7 +159,9 @@ void *handle_thread(void *config) {
 
                             spot = NULL;
 
-                        } else if(is_used(window, decoded->seqnum)) {
+                        } else if(is_used_nolock(window, decoded->seqnum)) {
+                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                            pthread_mutex_unlock(buf_get_lock(window));
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",
@@ -166,10 +171,7 @@ void *handle_thread(void *config) {
                                 decoded->seqnum
                             );
                         } else {
-                            spot = next(window, decoded->seqnum, true);
-                        }
-
-                        if (spot != NULL) {
+                            spot = next_nolock(window, decoded->seqnum, true);
                             packet_t *temp = (packet_t *) spot->value;
                             packet_t *value = decoded;
 
@@ -185,7 +187,7 @@ void *handle_thread(void *config) {
                             do {
                                 unlock(node);
 
-                                node = get(window, i, false, false);
+                                node = get_nolock(window, i, false, false);
                                 if (node != NULL) {
                                     pak = (packet_t *) node->value;
 
@@ -208,6 +210,7 @@ void *handle_thread(void *config) {
                                 }
                             } while(i & 0xFF < (window->window_low + 30) & 0xFF && node != NULL);
 
+                            pthread_mutex_unlock(buf_get_lock(window));
                             unlock(node);
 
                             if (cnt > 0) {
@@ -280,6 +283,7 @@ void *handle_thread(void *config) {
                                 to_send.window = 31 - window->length;
 
                                 if (pack(send_req->to_send, &to_send, false)) {
+                                    ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                                     fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", ip_as_str, client->address->sin6_port);
 
                                     /** 
@@ -290,6 +294,8 @@ void *handle_thread(void *config) {
                                 } else {
                                     if (remove) {
                                         uint16_t port = client->address->sin6_port;
+
+                                        ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                                         fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
 
                                         /*ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
@@ -351,4 +357,6 @@ void *allocate_handle_request() {
     req->client = NULL;
     req->length = 0;
     memset(req->buffer, 0, 528);
+
+    return req;
 }

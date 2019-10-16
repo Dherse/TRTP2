@@ -83,16 +83,16 @@ typedef struct stream {
 } stream_t;
 
 /**
- * ## Use :
+ * ## Use
  *
  * Allocates the internal state of a node
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `node`      - a pointer to an already allocated node
  * - `allocator` - an allocator for the content
  *
- * ## Return value:
+ * ## Return value
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
@@ -101,16 +101,16 @@ int initialize_node(s_node_t *node, void *(*allocator)());
 
 
 /**
- * ## Use :
+ * ## Use
  *
  * Allocates the internal state of a stream
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `stream`  - a pointer to an already allocated stream
  * - `max_len` - maximum length of the stream
  *
- * ## Return value:
+ * ## Return value
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
@@ -118,15 +118,15 @@ int initialize_node(s_node_t *node, void *(*allocator)());
 int allocate_stream(stream_t *stream, size_t max_len);
 
 /**
- * ## Use :
+ * ## Use
  *
  * Deallocates the internal state of a stream
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `stream` - a pointer to an already allocated stream
  *
- * ## Return value:
+ * ## Return value
  * 
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
@@ -134,17 +134,17 @@ int allocate_stream(stream_t *stream, size_t max_len);
 int dealloc_stream(stream_t *stream);
 
 /**
- * ## Use :
+ * ## Use 
  *
  * Enqueues a node in the stream
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `stream` - a pointer to an already allocated stream
  * - `node`   - the node to enqueue
  * - `wait`   - will wait for room to be available if set to true
  *
- * ## Return value:
+ * ## Return value
  * 
  * - if wait == true: always returns true
  * - if wait == false: returns true if there was room in the stream
@@ -153,16 +153,16 @@ int dealloc_stream(stream_t *stream);
 bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
 
 /**
- * ## Use :
+ * ## Use
  *
  * pops a node from stream
  * 
- * ## Arguments :
+ * ## Arguments
  *
  * - `stream` - a pointer to an already allocated stream
  * - `wait`   - will wait for an element to be available if set to true
  *
- * ## Return value:
+ * ## Return value
  * 
  * - if wait == true: always returns a value
  * - if wait == false: returns NULL if there was no value in the stream
@@ -170,6 +170,16 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
  */
 s_node_t *stream_pop(stream_t *stream, bool wait);
 
+/**
+ * ## Use
+ *
+ * Removes all of the nodes from a stream and deallocate them.
+ * Uses a single lock.
+ * 
+ * ## Arguments
+ *
+ * - `stream` - a pointer to an already allocated stream
+ */
 void drain(stream_t *stream);
 
 #endif

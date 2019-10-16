@@ -12,6 +12,11 @@
         "type_traits": "c",
         "utility": "c",
         "buffer.h": "c",
-        "packet.h": "c"
+        "packet.h": "c",
+        "stdint.h": "c",
+        "string_view": "cpp",
+        "*.tcc": "c",
+        "optional": "c",
+        "system_error": "c"
     }
 }

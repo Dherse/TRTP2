@@ -46,7 +46,7 @@ GETSET(node_t, void *, value);
 
 GETSET(node_t, bool, used);
 
-GETSET(node_t, pthread_mutex_t *, lock);
+pthread_mutex_t *node_get_lock(node_t *self);
 
 GETSET(node_t, pthread_cond_t *, notifier);
 
@@ -62,9 +62,9 @@ typedef struct buf {
 
 GETSET(buf_t, uint8_t, window_low);
 
-GETSET(buf_t, uint8_t, length);
+uint8_t buf_get_length(buf_t *self);
 
-GETSET(buf_t, pthread_mutex_t *, lock);
+pthread_mutex_t *buf_get_lock(buf_t *self);
 
 /**
  * ## Use
@@ -213,6 +213,10 @@ node_t *next(buf_t *buffer, uint8_t seqnum, bool wait);
  * 
  * Does the same thing but without locking, considers the
  * lock has already been grabbed before
+ * 
+ * ## No lock
+ * 
+ * This function considers that the lock has already been acquired!
  */
 node_t *next_nolock(buf_t *buffer, uint8_t seqnum, bool wait);
 
@@ -259,6 +263,10 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
  * 
  * Does the same thing but without locking, considers the
  * lock has already been grabbed before
+ * 
+ * ## No lock
+ * 
+ * This function considers that the lock has already been acquired!
  */
 node_t *get_nolock(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
 
@@ -284,6 +292,10 @@ bool is_used(buf_t *buffer, uint8_t seqnum);
  * 
  * Does the same thing but without locking, considers the
  * lock has already been grabbed before
+ * 
+ * ## No lock
+ * 
+ * This function considers that the lock has already been acquired!
  */
 bool is_used_nolock(buf_t *buffer, uint8_t seqnum);
 

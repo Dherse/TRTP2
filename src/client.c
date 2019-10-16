@@ -1,7 +1,5 @@
 #include "../headers/client.h"
 
-GETSET_IMPL(client_t, pthread_mutex_t *, lock);
-
 GETSET_IMPL(client_t, FILE *, out_file);
 
 GETSET_IMPL(client_t, struct sockaddr_in6 *, address);
@@ -9,6 +7,11 @@ GETSET_IMPL(client_t, struct sockaddr_in6 *, address);
 GETSET_IMPL(client_t, socklen_t *, addr_len);
 
 GETSET_IMPL(client_t, uint32_t, id);
+
+
+pthread_mutex_t *client_get_lock(client_t *self) {
+    return self->lock;
+}
 
 buf_t *get_client_window(client_t *self) {
     return self->window;

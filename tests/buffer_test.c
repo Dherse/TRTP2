@@ -1,10 +1,6 @@
-#include <CUnit/CUnit.h>
-
-#include "../headers/buffer.h"
+#include "./headers/buffer_test.h"
 
 void test_fill_and_empty() {
-
-    
     int i = 0;
     int j = 0;
     for (j = 0; j < 256; j += 16) {

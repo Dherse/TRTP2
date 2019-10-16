@@ -19,7 +19,7 @@ void *receive_thread(void *receive_config) {
     hd_req_t *req;
 
     bool already_popped = false;
-    char ip_as_str[40]; //to print an IP if needed
+    char ip_as_str[46]; //to print an IP if needed
 
     uint16_t port;
     uint8_t ip[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};

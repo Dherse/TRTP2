@@ -1,11 +1,12 @@
 #include "../headers/global.h"
 #include "CUnit/Basic.h"
-#include "packet_test.c"
-#include "cli_test.c"
-#include "buffer_test.c"
-#include "ht_test.c"
-#include "stream_test.c"
-#include "misc.c"
+
+#include "./headers/packet_test.h"
+#include "./headers/cli_test.h"
+#include "./headers/buffer_test.h"
+#include "./headers/ht_test.h"
+#include "./headers/stream_test.h"
+
 /*#include "handler_test.c"
 #include "receiver_test.c"*/
 
@@ -25,8 +26,6 @@ int main() {
     add_ht_tests();
 
     add_stream_tests();
-    
-    add_misc_tests();
 
     /*add_handler_tests();
 

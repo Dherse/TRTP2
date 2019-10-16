@@ -1,6 +1,4 @@
-#include <CUnit/CUnit.h>
-
-#include "../headers/stream.h"
+#include "./headers/stream_test.h"
 
 void test_single() {
     stream_t stream;

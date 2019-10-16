@@ -14,8 +14,6 @@ GETSET_IMPL(packet_t, uint32_t, crc1);
 
 GETSET_IMPL(packet_t, uint32_t, crc2);
 
-GETSET_IMPL(packet_t, double, received_time);
-
 /**
  * Refer to headers/packet.h
  */
@@ -80,7 +78,6 @@ int init_packet(packet_t* packet) {
     packet->length = 0;
     packet->long_length = false;
     memset(packet->payload, 0, 512);
-    packet->received_time = 0.0;
     packet->seqnum = 0;
     packet->timestamp = 0;
     packet->truncated = false;
@@ -214,7 +211,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
 
     if (out->length > 512) {
         errno = PAYLOAD_TOO_LONG;
-
         return -1;
     } else if (out->payload != NULL && out->length > 0 && !out->truncated) {
         crc = crc32(0, (void*) out->payload, (size_t) out->length);
@@ -224,8 +220,6 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
             return -1;
         }
     }
-
-    out->received_time = ((double) clock()) / CLOCKS_PER_SEC;
 
     return 0;
 }

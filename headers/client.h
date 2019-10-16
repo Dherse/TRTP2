@@ -50,12 +50,13 @@ typedef struct client {
     uint32_t id;
 } client_t;
 
-GETSET(client_t, pthread_mutex_t *, lock);
 GETSET(client_t, FILE *, out_file);
 GETSET(client_t, struct sockaddr_in6 *, address);
 GETSET(client_t, socklen_t *, addr_len);
 GETSET(client_t, buf_t *, window);
 GETSET(client_t, uint32_t, id);
+
+pthread_mutex_t *client_get_lock(client_t *self);
 
 bool is_active(client_t *self);
 
