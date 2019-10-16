@@ -34,7 +34,7 @@ void *handle_thread_temp(void *config) {
         if(req == NULL) {
             //TODO
         }
-        
+    
         //check if the thread should stop
         if (req->stop) {
             free(req);
@@ -92,8 +92,9 @@ void *handle_thread_temp(void *config) {
         //we don't expect any ACK/NACK or IGNORE type
         if(decoded->type == DATA) {
 
-            // upon truncated DATA packet reception, send NACK
             /** 
+             * upon truncated DATA packet reception, send NACK
+             * 
              * it is not necessary to check this field after the type 
              * as `unpack` already does it but, we do it to stay 
              * consistent with the protocol
@@ -142,7 +143,7 @@ void *handle_thread_temp(void *config) {
                 }
             } else {
                 buf_t *window = client->window;
-                node_t *spot;
+                node_t *spot = NULL;
 
                 if (!sequences[client->window->window_low][decoded->seqnum]) {
                     fprintf(
@@ -153,9 +154,7 @@ void *handle_thread_temp(void *config) {
                         client->window->window_low,
                         decoded->seqnum
                     );
-
-                    spot = NULL;
-
+                    //TODO : si reception de packet hors sequence send last ACK
                 } else if(is_used(window, decoded->seqnum)) {
                     fprintf(
                         stderr, 
@@ -165,6 +164,7 @@ void *handle_thread_temp(void *config) {
                         client->window->window_low,
                         decoded->seqnum
                     );
+                    //TODO : faire comme pour packet hors sequence ?
                 } else {
                     spot = next(window, decoded->seqnum, true);
                 }
