@@ -34,7 +34,7 @@ void *handle_thread_temp(void *config) {
         if(req == NULL) {
             //TODO
         }
-        
+    
         //check if the thread should stop
         if (req->stop) {
             free(req);
@@ -50,11 +50,9 @@ void *handle_thread_temp(void *config) {
             continue;
         }
 
-        // set ip_as_str for error messages
-        ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
-
         //if failed to unpack, print error message, enqueue and continue
-        if(unpack(req->buffer, req->length, decoded)) {
+        if(unpack(req->buffer, req->length, decoded)) { 
+            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
             switch(errno) {
                 case TYPE_IS_WRONG:
                     fprintf(stderr, "[%s] Type is wrong: %d\n", ip_as_str, decoded->type);
@@ -87,17 +85,19 @@ void *handle_thread_temp(void *config) {
             continue;
         }
         remove = false;
-        pthread_mutex_lock(client->lock);
+        pthread_mutex_lock(client_get_lock(client));
 
         //we don't expect any ACK/NACK or IGNORE type
         if(decoded->type == DATA) {
 
-            // upon truncated DATA packet reception, send NACK
             /** 
+             * upon truncated DATA packet reception, send NACK
+             * 
              * it is not necessary to check this field after the type 
              * as `unpack` already does it but, we do it to stay 
              * consistent with the protocol
              */
+            //mettre les pop et allocation de request en dehors des if pour ne pas les mulktiplier
             if(decoded->truncated) {
                 fprintf(
                     stderr, 
@@ -142,77 +142,118 @@ void *handle_thread_temp(void *config) {
                 }
             } else {
                 buf_t *window = client->window;
-                node_t *spot;
+                node_t *spot = NULL;
 
+                pthread_mutex_lock(buf_get_lock(window));
                 if (!sequences[client->window->window_low][decoded->seqnum]) {
-                    fprintf(
+                    /**
+                     * we store this value so to unlock the mutex
+                     * before the `fprintf` and `ip_to_string` call, 
+                     * because it is slow
+                     */
+                    uint8_t temp = client->window->window_low;
+                    pthread_mutex_unlock(buf_get_lock(window));
+                     ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                     fprintf(
                         stderr, 
                         "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
                         ip_as_str,
                         client->address->sin6_port,
-                        client->window->window_low,
+                        temp,
                         decoded->seqnum
                     );
-
-                    spot = NULL;
-
-                } else if(is_used(window, decoded->seqnum)) {
+                    //TODO : si reception de packet hors sequence send last ACK
+                } else if(is_used_nolock(window, decoded->seqnum)) {
+                    /**
+                     * we store this value so to unlock the mutex
+                     * before the `fprintf` and `ip_to_string` call, 
+                     * because it is slow
+                     */
+                    uint8_t temp = client->window->window_low;
+                    pthread_mutex_unlock(buf_get_lock(window));
+                    ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                     fprintf(
                         stderr, 
                         "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",
                         ip_as_str,
                         client->address->sin6_port,
-                        client->window->window_low,
+                        temp,
                         decoded->seqnum
                     );
+                    //TODO : faire comme pour packet hors sequence ?
                 } else {
-                    spot = next(window, decoded->seqnum, true);
-                }
+                    node_t *spot = next_nolock(window, decoded->seqnum, true);
+                    uint32_t temp_timestamp = decoded->timestamp;
 
-                if (spot != NULL) {
+                    /**
+                     * switch spot->value and decoded
+                     */
                     packet_t *temp = (packet_t *) spot->value;
-                    packet_t *value = decoded;
-
                     spot->value = decoded;
                     decoded = temp;
 
                     unlock(spot);
+                    
 
+                    /**
+                     * printing packets already in buffer and to 
+                     * send only one cumulative ack
+                     */
+                    // seqnum actually being checked
                     uint8_t i = window->window_low;
+
+                    // number of packet successfully checked
                     uint8_t cnt = 0;
+
+                    // TODO : description
                     node_t* node = NULL;
+
+                    // packet actually being checked
                     packet_t *pak;
                     do {
                         unlock(node);
 
                         node = get(window, i, false, false);
-                        if (node != NULL) {
-                            pak = (packet_t *) node->value;
-
-                            if (pak->length > 0) {
-                                int result = fwrite(
-                                    pak->payload,
-                                    sizeof(uint8_t),
-                                    pak->length,
-                                    client->out_file
-                                );
-
-                                if (result != ((packet_t *) node->value)->length) {
-                                    fprintf(stderr, "[HD] Failed to write to file\n");
-                                    break;
-                                }
-                            }
-
-                            cnt++;
-                            i++;
+                        if (node == NULL) {
+                            continue;
                         }
-                    } while(i & 0xFF < (window->window_low + 30) & 0xFF && node != NULL);
+                        pak = (packet_t *) node->value;
 
+                        if (pak->length > 0) {
+                            int result = fwrite(
+                                pak->payload,
+                                sizeof(uint8_t),
+                                pak->length,
+                                client->out_file
+                            );
+
+                            if (result != ((packet_t *) node->value)->length) {
+                                fprintf(stderr, "[HD] Failed to write to file\n");
+                                //TODO : peut être free un truc?
+                                break;
+                            }
+                        }
+
+                        cnt++;
+                        i++;
+                    } while(sequences[client->window->window_low][i] && node != NULL);
+
+                    pthread_mutex_unlock(buf_get_lock(window));
                     unlock(node);
 
                     if (cnt > 0) {
+                        /**
+                         * forces data to actually be printed to the files
+                         * if not called, the data to print may be stored
+                         * in memmory
+                         */
                         fflush(client->out_file);
-
+                        
+                        /**
+                         * according to TRTP protocol, receiving a valid,
+                         * in-sequence DATA packet with length = 0
+                         * means the transfer should end
+                         */
                         if (pak->length == 0) {
                             remove = true;
                         } else {
@@ -225,40 +266,18 @@ void *handle_thread_temp(void *config) {
                         s_node_t *send_node = stream_pop(cfg->send_rx, false);
                         if (send_node == NULL) {
                             send_node = malloc(sizeof(s_node_t));
-                            if (send_node == NULL) {
-                                fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
-                                enqueue_or_free(cfg->tx,node_rx);
-
+                            if(initialize_node(send_node, allocate_send_request)) {
+                                free(send_node);
+                                enqueue_or_free(cfg->tx, node_rx);
                                 continue;
                             }
-
-                            send_node->content = NULL;
-                            send_node->next = NULL;
                         }
-
-                        if (send_node->content == NULL) {
-                            tx_req_t* content = malloc(sizeof(tx_req_t));
-                            if (content == NULL) {
-                                fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
-                                enqueue_or_free(cfg->tx,node_rx);
-
-                                continue;
-                            }
-
-                            content->address = NULL;
-                            content->deallocate_address = false;
-                            content->stop = false;
-                            memset(content->to_send, 0, 11);
-
-                            send_node->content = content;
-                        }
-
-                        send_node->next = NULL;
 
                         tx_req_t *send_req = (tx_req_t *) send_node->content;
 
-                        send_req->stop = false;
                         send_req->address = client->address;
+
+                        //remove or false ? -> pas le même dans handler.c
                         send_req->deallocate_address = remove;
 
                         to_send.type = ACK;
@@ -266,7 +285,7 @@ void *handle_thread_temp(void *config) {
                         to_send.long_length = false;
                         to_send.length = 0;
                         to_send.seqnum = window->window_low;
-                        to_send.timestamp = value->timestamp;
+                        to_send.timestamp = temp_timestamp;
                         to_send.window = 31 - window->length;
 
                         if (pack(send_req->to_send, &to_send, false)) {
@@ -277,37 +296,37 @@ void *handle_thread_temp(void *config) {
                              * retransmission timer do its thing
                              */
                             client->window->window_low--;
-                        } else {
-                            if (remove) {
-                                uint16_t port = client->address->sin6_port;
-                                fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
+                            continue;
+                        } 
+                        if (remove) {
+                            uint16_t port = client->address->sin6_port;
+                            fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
 
-                                ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
+                            ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
-                                fclose(client->out_file);
+                            fclose(client->out_file);
 
-                                free(client->addr_len);
-                                
-                                deallocate_buffer(client->window);
-                                free(client->window);
+                            free(client->addr_len);
+                            
+                            deallocate_buffer(client->window);
+                            free(client->window);
 
-                                pthread_mutex_unlock(client->lock);
-                                pthread_mutex_destroy(client->lock);
-                                free(client->lock);
+                            pthread_mutex_unlock(client->lock);
+                            pthread_mutex_destroy(client->lock);
+                            free(client->lock);
 
-                                free(client);
+                            free(client);
 
-                                fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);
-                            }
-
-                            stream_enqueue(cfg->send_tx, send_node, true);
+                            fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);
                         }
+
+                        stream_enqueue(cfg->send_tx, send_node, true);
                     }
                 }
             }
         }
         
-        enqueue_or_free(cfg->tx,node_rx);
+        enqueue_or_free(cfg->tx, node_rx);
         if (!remove) {
             pthread_mutex_unlock(client->lock);
         }
