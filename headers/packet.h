@@ -68,8 +68,6 @@ typedef struct Packet {
 
     uint32_t crc2;
 
-    double received_time;
-
     uint8_t payload[512];
 } packet_t;
 
@@ -86,8 +84,6 @@ GETSET(packet_t, uint32_t, timestamp);
 GETSET(packet_t, uint32_t, crc1);
 
 GETSET(packet_t, uint32_t, crc2);
-
-GETSET(packet_t, double, received_time);
 
 /**
  * ## Use

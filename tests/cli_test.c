@@ -1,6 +1,4 @@
-#include <CUnit/CUnit.h>
-
-#include "../headers/cli.h"
+#include "./headers/cli_test.h"
 
 void test_cli_noopt() {
     config_rcv_t config;

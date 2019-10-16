@@ -1,10 +1,5 @@
 
-#include <CUnit/CUnit.h>
-
-#include "../headers/hash_table.h"
-
-
-#define N 1024
+#include "./headers/ht_test.h"
 
 void test_ht_put_and_get() {
     ht_t table;

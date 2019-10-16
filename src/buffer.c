@@ -15,8 +15,70 @@
 /**
  * REALLY IMPORTANT, REFER TO headers/buffer.h
  */
-uint8_t hash(uint8_t seqnum) {
+inline uint8_t hash(uint8_t seqnum) {
     return seqnum & 0b00011111;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
+GETSET_IMPL(node_t, void *, value);
+
+/*
+ * Refer to headers/buffer.h
+ */
+GETSET_IMPL(node_t, bool, used);
+
+/*
+ * Refer to headers/buffer.h
+ */
+pthread_mutex_t *node_get_lock(node_t *self) {
+    return self->lock;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
+GETSET_IMPL(node_t, pthread_cond_t *, notifier);
+
+/*
+ * Refer to headers/buffer.h
+ */
+GETSET_IMPL(buf_t, uint8_t, window_low);
+
+/*
+ * Refer to headers/buffer.h
+ */
+uint8_t buf_get_length(buf_t *self) {
+    return self->length;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
+inline pthread_mutex_t *buf_get_lock(buf_t *self) {
+    return self->lock;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
+bool is_used_nolock(buf_t *buffer, uint8_t seqnum) {
+    if (buffer == NULL) {
+        errno = NULL_ARGUMENT;
+        return false;
+    }
+    
+    uint8_t next_written = seqnum;
+    uint8_t next_index = hash(seqnum);
+
+    node_t *node = &buffer->nodes[next_index];
+    if (node == NULL) {
+        errno = UNKNOWN;
+        return false;
+    }
+
+    return node->used;
 }
 
 /*
@@ -30,27 +92,61 @@ bool is_used(buf_t *buffer, uint8_t seqnum) {
 
     pthread_mutex_lock(buffer->lock);
     
+    bool used = is_used_nolock(buffer, seqnum);
+
+    pthread_mutex_unlock(buffer->lock);
+
+    return used;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
+node_t *next_nolock(buf_t *buffer, uint8_t seqnum, bool wait) {
+    if (buffer == NULL) {
+        errno = NULL_ARGUMENT;
+        return NULL;
+    }
+
     uint8_t next_written = seqnum;
     uint8_t next_index = hash(seqnum);
-
+    
     node_t *node = &buffer->nodes[next_index];
     if (node == NULL) {
         pthread_mutex_unlock(buffer->lock);
 
         errno = UNKNOWN;
-        return false;
+        return NULL;
+    }
+
+    /* 
+     * If the node is used wait for a signal indicating it's no longer used.
+     * 
+     * The reason why there is no deadlock is because pthread_cond_wait unlocks
+     * the mutex before going to sleep!
+     */
+    if (wait) {
+        pthread_mutex_lock(node->lock);
+
+        while (node->used) {
+            pthread_cond_wait(node->notifier, node->lock);
+        }
+    } else if(node->used) {
+        return NULL;
+    } else {
+        pthread_mutex_lock(node->lock);
     }
 
     /* Locks the node */
-    pthread_mutex_lock(node->lock);
 
-    bool used = node->used;
+    node->used = true;
 
-    pthread_mutex_unlock(node->lock);
+    buffer->length++;
 
-    pthread_mutex_unlock(buffer->lock);
+    /* We notify any peek waiting that it is available*/
+    pthread_cond_broadcast(node->notifier);
 
-    return used;
+    return node;
 }
 
 /*
@@ -64,46 +160,10 @@ node_t *next(buf_t *buffer, uint8_t seqnum, bool wait) {
 
     pthread_mutex_lock(buffer->lock);
 
-    uint8_t next_written = seqnum;
-    uint8_t next_index = hash(seqnum);
-    
-    node_t *node = &buffer->nodes[next_index];
-    if (node == NULL) {
-        pthread_mutex_unlock(buffer->lock);
-
-        errno = UNKNOWN;
-        return NULL;
-    }
-
-    /* Locks the node */
-    pthread_mutex_lock(node->lock);
-
-    /* 
-     * If the node is used wait for a signal indicating it's no longer used.
-     * 
-     * The reason why there is no deadlock is because pthread_cond_wait unlocks
-     * the mutex before going to sleep!
-     */
-    if (wait) {
-        while (node->used) {
-            pthread_cond_wait(node->notifier, node->lock);
-        }
-    } else if(node->used) {
-        pthread_mutex_unlock(buffer->lock);
-        pthread_mutex_unlock(node->lock);
-
-        return NULL;
-    }
-
-    node->used = true;
-
-    buffer->length++;
+    node_t *node = next_nolock(buffer, seqnum, wait);
 
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->lock);
-
-    /* We notify any peek waiting that it is available*/
-    pthread_cond_broadcast(node->notifier);
 
     return node;
 }
@@ -118,36 +178,31 @@ node_t *peek(buf_t *buffer, bool wait, bool inc) {
 /*
  * Refer to headers/buffer.h
  */
-node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
+node_t *get_nolock(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
         return NULL;
     }
-
-    pthread_mutex_lock(buffer->lock);
 
     uint8_t next_read = seqnum;
     uint8_t next_index = hash(next_read);
     
     node_t *node = &buffer->nodes[next_index];
     if (node == NULL) {
-        pthread_mutex_unlock(buffer->lock);
-
         errno = UNKNOWN;
+
         return NULL;
     }
 
-    pthread_mutex_lock(node->lock);
-
     if (wait) {
+        pthread_mutex_lock(node->lock);
         while(!node->used) {
             pthread_cond_wait(node->notifier, node->lock);
         }
-    } else if (!node->used) {
-        pthread_mutex_unlock(buffer->lock);
-        pthread_mutex_unlock(node->lock);
-
+    } else if (!wait && !node->used) {
         return NULL;
+    } else {
+        pthread_mutex_lock(node->lock);
     }
 
     node->used = false;
@@ -158,7 +213,23 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
     }
 
     /* We notify any next waiting that it is available*/
-    pthread_cond_broadcast(node->notifier);
+    pthread_cond_signal(node->notifier);
+
+    return node;
+}
+
+/*
+ * Refer to headers/buffer.h
+ */
+node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
+    if (buffer == NULL) {
+        errno = NULL_ARGUMENT;
+        return NULL;
+    }
+
+    pthread_mutex_lock(buffer->lock);
+
+    node_t *node = get_nolock(buffer, seqnum, wait, inc);
 
     /* Unlocks the write on the buffer */
     pthread_mutex_unlock(buffer->lock);

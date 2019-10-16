@@ -1,6 +1,4 @@
-#include <CUnit/CUnit.h>
-
-#include "../headers/packet.h"
+#include "./headers/packet_test.h"
 
 uint8_t ack_packet[11] = {
     // Type + TR + Window

@@ -1,92 +1,112 @@
-# ----------------------------
+# ----------------------------------------
 # group nb 138
 # 28871600 : Heuschling Thomas
 # 28751600 : d'Herbais de Thun Sebastien
-# ----------------------------
+# ----------------------------------------
 
+# Tools
 GCC = gcc
 RM = rm
-DEL = del
 VERSION = gnu89
 
+# Binary names
 OUT = trtp_receiver
 TEST = trtp_test
 
 SRC_DIR = ./src
 TEST_DIR = ./tests
-HEADER_DIR = ./headers
 BIN_DIR = ./bin
 
-SRC = $(wildcard $(SRC_DIR)/*.c)
-HEADERS = $(wildcard $(HEADER_DIR)/*.h)
-OBJECTS = $(patsubst $(SRC_DIR)/%.c, $(BIN_DIR)/%.o, $(SRC))
+# Source file
+SRC := $(basename $(shell find $(SRC_DIR) -name *.c))
+OBJECTS := $(SRC:$(SRC_DIR)/%=$(BIN_DIR)/%.o)
 
-TESTS = $(TEST_DIR)/tests.c
-TEST_OBJECTS = $(patsubst $(TEST_DIR)/%.c, $(BIN_DIR)/%.o, $(TESTS))
+# Tests
+TEST_SRC := $(basename $(shell find $(TEST_DIR) -name *.c))
+TEST_OBJECTS := $(TEST_SRC:$(TEST_DIR)/%=$(BIN_DIR)/%.o)
 
-BIN = $(filter-out $(BIN_DIR)/tests.o, $(wildcard $(BIN_DIR)/*.o))
-BIN_DEBUG = $(filter-out $(BIN_DIR)/main.o,$(wildcard $(BIN_DIR)/*.o))
-BIN_DEL = $(filter-out $(BIN_DIR)/.gitkeep, $(wildcard $(BIN_DIR)/*))
+# All
+TEST_MAIN = $(BIN_DIR)/tests.o
+MAIN = $(BIN_DIR)/main.o
+MAINS = $(TEST_MAIN) $(MAIN)
+ALL = $(filter-out $(MAINS), $(OBJECTS) $(TEST_OBJECTS))
 
+# Binaries (to clean)
+BIN := $(wildcard $(BIN_DIR)/*)
+
+# Compiler flags
 LDFLAGS = -lz -lpthread
 FLAGS = -Werror -std=$(VERSION)
 RELEASE_FLAGS = -O3
 DEBUG_FLAGS = -O0 -ggdb
 
-.PHONY: clean report stat install_mdbook
+# does not need verification
+.PHONY: clean report stat install_tectonic
 
-all: clean
-all: 
-	@echo 'sources: $(SRC)'
-	@echo 'headers: $(HEADERS)'
-	@echo 'objects: $(OBJECTS)'
-	@echo 'tests  : $(TEST_OBJECTS)'
-	make run
+# main
+all: clean build run
 
-# Building stuff
+# build
+build: $(OBJECTS)
+	$(GCC) $(FLAGS) $(OBJECTS) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
 
-release: clean
+# release build
+release: FLAGS += $(RELEASE_FLAGS)
 release: build
 
-run: FLAGS += $(RELEASE_FLAGS)
-run: build
-	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
-	$(BIN_DIR)/$(OUT) -o ./bin/out_%d -n 1 -m 1000 :: 5555
+# run
+run:
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 1 :: 5555
 
-build: $(OBJECTS)
+# Build and run tests
+test: build
+test: FLAGS += $(DEBUG_FLAGS)
+test: LDFLAGS += -lcunit 
+test: $(TEST_OBJECTS)
+	$(GCC) $(FLAGS) $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
+	$(BIN_DIR)/$(TEST)
 
+# build individual files
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.c
 	$(GCC) $(FLAGS) -c $< -o $@ $(LDFLAGS)
-
-# Testing stuff
-test_build: FLAGS += $(DEBUG_FLAGS)
-test_build: LDFLAGS += -lcunit
-test_build: build
-test_build: $(TEST_OBJECTS)
-	@echo 'debug: $(BIN_DEBUG)'
-	$(GCC) $(FLAGS) $(BIN) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
-	$(GCC) $(FLAGS) $(BIN_DEBUG) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
-
-test: test_build
-test:
-	$(BIN_DIR)/$(TEST)
 
 $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
 	$(GCC) $(FLAGS) -c $< -o $@ $(LDFLAGS)
 
 # Cleaning stuff
-
 clean: 
-	$(RM) -f $(BIN_DEL)
+	$(RM) -f $(BIN)
 
+# Generated gitlog.stat
 stat:
 	git log --stat > gitlog.stat
 
-# Read mdbook & mdbook-latex github repos for dependencies
-install_mdbook:
-	cargo install mdbook
-	cargo install mdbook-latex
+# Read tectonic github repo for dependencies
+install_tectonic:
+	cargo install tectonic
 
+# Build the report using tectonic
 report:
-	cd report && mdbook build
-	cp report/book/LINGI1341\ -\ Rapport\ de\ projet.pdf ./report.pdf
+	cd report && tectonic main.tex
+	cp ./report/main.pdf ./report.pdf
+
+call: FLAGS += $(DEBUG_FLAGS)
+call: build
+	@echo '----------------------------------------------------------'
+	@echo 'This function runs valgrind followed by gprof2dot.'
+	@echo 'It is used to generate the callgraph of the application'
+	@echo 'profile CPU time. In order to fully test, you also need'
+	@echo 'to start a sender on the side after valgrind has started!'
+	@echo '----------------------------------------------------------'
+
+	valgrind --tool=callgrind --callgrind-out-file=$(BIN_DIR)/callgrind.txt \
+		$(BIN_DIR)/$(OUT) -n 1 -o $(BIN_DIR)/%d :: 5555
+		
+	@echo '----------------------------------------------------------'
+
+plot:
+	./tools/gprof2dot.py -f callgrind $(BIN_DIR)/callgrind.txt | dot -Tpng -o callgraph.png
+
+debug: FLAGS += $(DEBUG_FLAGS)
+debug: build
+	gdb -ex run --args $(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d :: 5555
