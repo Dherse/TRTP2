@@ -5,7 +5,7 @@
 /*
  * Refer to headers/handler.h
  */
-void *handle_thread_temp(void *config) {
+void *handle_thread(void *config) {
     if(config == NULL) {
         pthread_exit(NULL);
     }
@@ -213,7 +213,7 @@ void *handle_thread_temp(void *config) {
                     do {
                         unlock(node);
 
-                        node = get(window, i, false, false);
+                        node = get_nolock(window, i, false, false);
                         if (node == NULL) {
                             continue;
                         }
@@ -300,8 +300,11 @@ void *handle_thread_temp(void *config) {
                         } 
                         if (remove) {
                             uint16_t port = client->address->sin6_port;
-                            fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
 
+                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                            fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
+                            
+                            // DOESN'T ACTUALLY REMOVE JACKSHIT
                             ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
                             fclose(client->out_file);
@@ -309,7 +312,6 @@ void *handle_thread_temp(void *config) {
                             free(client->addr_len);
                             
                             deallocate_buffer(client->window);
-                            free(client->window);
 
                             pthread_mutex_unlock(client->lock);
                             pthread_mutex_destroy(client->lock);
@@ -342,4 +344,22 @@ inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
         free(node->content);
         free(node);
     }
+}
+
+/*
+ * Refer to headers/receiver.h
+ */
+void *allocate_handle_request() {
+    hd_req_t *req = (hd_req_t *) malloc(sizeof(hd_req_t));
+    if(req == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return NULL;
+    }
+    
+    req->stop = false;
+    req->client = NULL;
+    req->length = 0;
+    memset(req->buffer, 0, 528);
+
+    return req;
 }
