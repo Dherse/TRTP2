@@ -46,6 +46,11 @@ GETSET(s_node_t, s_node_t *, next);
  * knowing the amounts of threads reading and writing from
  * these streams it's important to guarentee strong locking.
  * 
+ * ## Implementation details
+ * 
+ * This implementation is a smi-locking implementation based on the
+ * work of user `majek` on GitHub. Link in the sources below
+ * 
  * ## For anybody still reading
  * 
  * This is taught in OZ 2 and is a classic piece of
@@ -60,10 +65,21 @@ GETSET(s_node_t, s_node_t *, next);
  * - [Mutex](https://en.wikipedia.org/wiki/Lock_(computer_science))
  * - [Conditions](https://en.wikipedia.org/wiki/Monitor_(synchronization)#Condition_variables)
  * - [Stream](https://en.wikipedia.org/wiki/Stream_(computer_science))
+ * - [SemiBlocking Queue](https://github.com/majek/dump/blob/master/msqueue/queue_semiblocking.c)
  * 
  */
 typedef struct stream {
-    size_t max_length;
+    s_node_t *in_queue;
+    s_node_t *out_queue;
+
+    pthread_mutex_t lock;
+
+    size_t length;
+
+    pthread_cond_t read_cond;
+
+
+    /*size_t max_length;
 
     size_t length;
 
@@ -71,16 +87,35 @@ typedef struct stream {
 
     s_node_t *tail;
 
-    pthread_mutex_t *lock;
+    pthread_mutex_t *head_lock;
 
-    pthread_cond_t *read_cond;
+    pthread_mutex_t *tail_lock;*/
 
-    pthread_cond_t *write_cond;
+    /*pthread_cond_t *read_cond;
 
-    int value;
+    pthread_cond_t *write_cond;*/
+
+    /*int value;
     int waiting;
-    int released;
+    int released;*/
 } stream_t;
+
+#define QUEUE_POISON1 ((void*)0xCAFEBAB5)
+
+#ifndef _cas
+#define _cas(ptr, oldval, newval) \
+    __sync_bool_compare_and_swap(ptr, oldval, newval)
+#endif
+
+#ifndef _faa
+#define _faa(ptr, inc) \
+    __sync_fetch_and_add(ptr, inc)
+#endif
+
+#ifndef _fas
+#define _fas(ptr, dec) \
+    __sync_fetch_and_sub(ptr, dec)
+#endif
 
 /**
  * ## Use
@@ -99,6 +134,16 @@ typedef struct stream {
  */
 int initialize_node(s_node_t *node, void *(*allocator)());
 
+/**
+ * ## Use
+ *
+ * Deallocate a node
+ * 
+ * ## Arguments
+ *
+ * - `node`      - a pointer to an already allocated node
+ */
+void deallocate_node(s_node_t *node);
 
 /**
  * ## Use

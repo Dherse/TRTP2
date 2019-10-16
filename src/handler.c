@@ -28,8 +28,7 @@ void *handle_thread(void *config) {
             hd_req_t *req = (hd_req_t *) node_rx->content;
             if (req != NULL) {
                 if (req->stop) {
-                    free(req);
-                    free(node_rx);
+                    deallocate_node(node_rx);
                     
                     exit = true;
                     break;
@@ -41,8 +40,8 @@ void *handle_thread(void *config) {
                 if (client == NULL) {
                     fprintf(stderr, "[HD] Unknown client\n");
                 } else {
-                    errno = 0;
-                    if (unpack(req->buffer, req->length, decoded) != 0) {
+                    pthread_mutex_lock(client_get_lock(client));
+                    if (unpack(req->buffer, req->length, decoded)) {
                         ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                         switch(errno) {
                             case TYPE_IS_WRONG:
@@ -72,15 +71,13 @@ void *handle_thread(void *config) {
                         }
 
                         if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                            free(node_rx->content);
-                            free(node_rx);
-                            fprintf(stderr, "[HD] Failed to enqueue packet\n");
+                            deallocate_node(node_rx);
                         }
 
+                        pthread_mutex_unlock(client_get_lock(client));
                         continue;
                     };
 
-                    pthread_mutex_lock(client_get_lock(client));
                     bool remove = false;
                     if (decoded->truncated) {
                         ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
@@ -96,29 +93,14 @@ void *handle_thread(void *config) {
 
                         if (send_node == NULL) {
                             send_node = calloc(1, sizeof(s_node_t));
-                            if (send_node == NULL) {
+                            if (send_node == NULL || initialize_node(send_node, allocate_send_request)) {
                                 fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
                                 if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                    free(node_rx->content);
-                                    free(node_rx);
-                                    fprintf(stderr, "[HD] Failed to enqueue packet\n");
+                                    deallocate_node(node_rx);
                                 }
 
                                 continue;
-                            } else {
-                                send_node->content = calloc(1, sizeof(tx_req_t));
-                                if (send_node->content == NULL) {
-                                    fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
-
-                                    if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                        free(node_rx->content);
-                                        free(node_rx);
-                                        fprintf(stderr, "[HD] Failed to enqueue packet\n");
-                                    }
-
-                                    continue;
-                                } 
                             }
                         }
 
@@ -142,12 +124,13 @@ void *handle_thread(void *config) {
                         stream_enqueue(cfg->send_tx, send_node, true);
                     } else if (decoded->type == DATA) {
                         buf_t *window = client->window;
-                        node_t *spot;
 
                         pthread_mutex_lock(buf_get_lock(window));
 
                         if (!sequences[client->window->window_low][decoded->seqnum]) {
                             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                            pthread_mutex_unlock(buf_get_lock(window));
+
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
@@ -156,12 +139,10 @@ void *handle_thread(void *config) {
                                 client->window->window_low,
                                 decoded->seqnum
                             );
-
-                            spot = NULL;
-
                         } else if(is_used_nolock(window, decoded->seqnum)) {
                             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             pthread_mutex_unlock(buf_get_lock(window));
+
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",
@@ -171,7 +152,7 @@ void *handle_thread(void *config) {
                                 decoded->seqnum
                             );
                         } else {
-                            spot = next_nolock(window, decoded->seqnum, true);
+                            node_t *spot = next_nolock(window, decoded->seqnum, true);
                             packet_t *temp = (packet_t *) spot->value;
                             packet_t *value = decoded;
 
@@ -208,13 +189,13 @@ void *handle_thread(void *config) {
                                     cnt++;
                                     i++;
                                 }
-                            } while(i & 0xFF < (window->window_low + 30) & 0xFF && node != NULL);
+                            } while(sequences[client->window->window_low][i] && node != NULL);
 
                             pthread_mutex_unlock(buf_get_lock(window));
                             unlock(node);
 
                             if (cnt > 0) {
-                                fflush(client->out_file);
+                                //fflush(client->out_file);
 
                                 if (pak->length == 0) {
                                     remove = true;
@@ -228,13 +209,11 @@ void *handle_thread(void *config) {
                                 s_node_t *send_node = stream_pop(cfg->send_rx, false);
                                 if (send_node == NULL) {
                                     send_node = malloc(sizeof(s_node_t));
-                                    if (send_node == NULL) {
+                                    if (send_node == NULL || initialize_node(send_node, allocate_send_request)) {
                                         fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
 
                                         if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                            free(node_rx->content);
-                                            free(node_rx);
-                                            fprintf(stderr, "[HD] Failed to enqueue packet\n");
+                                            deallocate_node(node_rx);
                                         }
 
                                         continue;
@@ -245,25 +224,16 @@ void *handle_thread(void *config) {
                                 }
 
                                 if (send_node->content == NULL) {
-                                    tx_req_t* content = malloc(sizeof(tx_req_t));
-                                    if (content == NULL) {
+                                    send_node->content = allocate_send_request();
+                                    if (send_node->content == NULL) {
                                         fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
 
                                         if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                                            free(node_rx->content);
-                                            free(node_rx);
-                                            fprintf(stderr, "[HD] Failed to enqueue packet\n");
+                                            deallocate_node(node_rx);
                                         }
 
                                         continue;
                                     }
-
-                                    content->address = NULL;
-                                    content->deallocate_address = false;
-                                    content->stop = false;
-                                    memset(content->to_send, 0, 11);
-
-                                    send_node->content = content;
                                 }
 
                                 send_node->next = NULL;
@@ -280,7 +250,7 @@ void *handle_thread(void *config) {
                                 to_send.length = 0;
                                 to_send.seqnum = window->window_low;
                                 to_send.timestamp = value->timestamp;
-                                to_send.window = 31 - window->length;
+                                to_send.window = min(cfg->max_window_size, 31 - window->length);
 
                                 if (pack(send_req->to_send, &to_send, false)) {
                                     ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
@@ -297,6 +267,7 @@ void *handle_thread(void *config) {
 
                                         ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                                         fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
+                                        pthread_mutex_unlock(client->lock);
 
                                         /*ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
@@ -307,7 +278,6 @@ void *handle_thread(void *config) {
                                         deallocate_buffer(client->window);
                                         free(client->window);
 
-                                        pthread_mutex_unlock(client->file_mutex);
                                         pthread_mutex_destroy(client->file_mutex);
                                         free(client->file_mutex);
 
@@ -323,8 +293,7 @@ void *handle_thread(void *config) {
                     }
 
                     if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                        free(node_rx->content);
-                        free(node_rx);
+                        deallocate_node(node_rx);
                     }
                     
                     if (!remove) {

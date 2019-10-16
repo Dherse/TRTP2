@@ -4,32 +4,30 @@ void *send_thread(void *sender_config){
     if(sender_config == NULL) {
         pthread_exit(NULL_ARGUMENT);
     }
+    
     tx_cfg_t *snd_cfg = (tx_cfg_t *) sender_config;
 
     socklen_t addr_len = sizeof(struct sockaddr_in6);
     s_node_t *node;
     tx_req_t *req;
 
-
     while (true) {
         node = stream_pop(snd_cfg->send_rx, true);
         if (node == NULL) {
             fprintf(stderr, "[TX] `node` is NULL\n");
-
             continue;
         }
 
         req = (tx_req_t *) node->content;
         if (req == NULL) {
-            free(node);
             fprintf(stderr, "[TX] `content` is NULL\n");
+            deallocate_node(node);
             
             continue;
         }
 
         if (req->stop) {
-            free(req);
-            free(node);
+            deallocate_node(node);
             break;
         } else {
             ssize_t n_sent = sendto(snd_cfg->sockfd, req->to_send, 11, 0, (struct sockaddr *) req->address, addr_len);
@@ -65,8 +63,7 @@ void *send_thread(void *sender_config){
             }
 
             if(!stream_enqueue(snd_cfg->send_tx, node, false)){
-                free(req);
-                free(node);
+                deallocate_node(node);
             }
         }
     }

@@ -1,16 +1,23 @@
 #include "./headers/stream_test.h"
 
+int global_value = 0;
+
+void *empty_allocator() {
+    return &global_value;
+}
+
 void test_single() {
     stream_t stream;
     allocate_stream(&stream, 1);
 
     s_node_t *node = calloc(1, sizeof(s_node_t));
+    CU_ASSERT(initialize_node(node, empty_allocator) == 0);
 
     CU_ASSERT(stream_enqueue(&stream, node, false) == true);
-    CU_ASSERT(stream.length == 1);
+    //CU_ASSERT(stream.length == 1);
 
     CU_ASSERT(stream_pop(&stream, false) != NULL);
-    CU_ASSERT(stream.length == 0);
+    //CU_ASSERT(stream.length == 0);
 
     dealloc_stream(&stream);
 
@@ -22,19 +29,20 @@ void test_many() {
     allocate_stream(&stream, 2048);
 
     int i;
-    for (i = 0; i < 1024; i++) {
+    for (i = 0; i < 1024*1024; i++) {
         int *cnt = calloc(1, sizeof(int));
         *cnt = i;
         
         s_node_t *node = calloc(1, sizeof(s_node_t));
+        CU_ASSERT(initialize_node(node, empty_allocator) == 0);
         node->content = cnt;
 
 
         CU_ASSERT(stream_enqueue(&stream, node, false) == true);
-        CU_ASSERT(stream.length == i + 1);
+        //CU_ASSERT(stream.length == i + 1);
     }
 
-    for (i = 0; i < 1024; i++) {
+    for (i = 0; i < 1024*1024; i++) {
         s_node_t *node = stream_pop(&stream, false);
         CU_ASSERT(node != NULL);
         if (node != NULL) {
@@ -45,7 +53,7 @@ void test_many() {
             free(node);
         }
 
-        CU_ASSERT(stream.length == 1023 - i);
+        //CU_ASSERT(stream.length == 1023 - i);
     }
 
     dealloc_stream(&stream);

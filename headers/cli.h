@@ -15,6 +15,7 @@
  */
 typedef struct config_receiver {
     int handle_num;
+    int max_window;
 
     size_t format_len;
     char *format;

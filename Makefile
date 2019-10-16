@@ -38,7 +38,7 @@ BIN := $(wildcard $(BIN_DIR)/*)
 LDFLAGS = -lz -lpthread
 FLAGS = -Werror -std=$(VERSION)
 RELEASE_FLAGS = -O3
-DEBUG_FLAGS = -O0 -ggdb
+DEBUG_FLAGS = -O3 -ggdb
 
 # does not need verification
 .PHONY: clean report stat install_tectonic
@@ -56,7 +56,7 @@ release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 1 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 16 -w 16 :: 5555
 
 # Build and run tests
 test: build
@@ -90,8 +90,18 @@ report:
 	cd report && tectonic main.tex
 	cp ./report/main.pdf ./report.pdf
 
-call: FLAGS += $(DEBUG_FLAGS)
-call: build
+valgrind: FLAGS += $(DEBUG_FLAGS)
+valgrind: build
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose \
+		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/valgrind.txt
+
+helgrind: FLAGS += $(DEBUG_FLAGS)
+helgrind: build
+	valgrind --tool=helgrind \
+		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
+
+callgrind: FLAGS += $(DEBUG_FLAGS)
+callgrind: build
 	@echo '----------------------------------------------------------'
 	@echo 'This function runs valgrind followed by gprof2dot.'
 	@echo 'It is used to generate the callgraph of the application'
@@ -100,7 +110,7 @@ call: build
 	@echo '----------------------------------------------------------'
 
 	valgrind --tool=callgrind --callgrind-out-file=$(BIN_DIR)/callgrind.txt \
-		$(BIN_DIR)/$(OUT) -n 1 -o $(BIN_DIR)/%d :: 5555
+		$(BIN_DIR)/$(OUT) -n 4 -w 1 -o $(BIN_DIR)/%d :: 5555
 		
 	@echo '----------------------------------------------------------'
 

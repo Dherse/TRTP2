@@ -9,6 +9,9 @@
 
 #define HD_H
 
+#define min(num1, num2) \
+    num1 > num2 ? num2 : num1
+
 typedef struct handle_thread_config {
     /** Thread reference */
     pthread_t *thread;
@@ -25,6 +28,9 @@ typedef struct handle_thread_config {
 
     /** Hash table of client */
     ht_t *clients;
+
+    /** Maximum size of the window */
+    int max_window_size;
 } hd_cfg_t;
 
 typedef struct handle_request {
