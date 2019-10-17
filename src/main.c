@@ -244,15 +244,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int reuseaddr = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr))) {
-        fprintf(stderr, "[MAIN] Failed to set reuse addr");
-
-        close(sockfd);
-
-        return -1;
-    }
-
     int status = bind(sockfd, config.addr_info->ai_addr, config.addr_info->ai_addrlen);
     if (status) {
         fprintf(stderr, "[MAIN] Failed to bind socket");

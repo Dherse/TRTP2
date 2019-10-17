@@ -87,7 +87,7 @@ void *handle_thread(void *config) {
                             stderr, 
                             "[%s][%5u] Packet truncated: %02X\n", 
                             ip_as_str,
-                            client->address->sin6_port,
+                            ntohs(client->address->sin6_port),
                             decoded->seqnum
                         );
                         
@@ -137,7 +137,7 @@ void *handle_thread(void *config) {
                                 stderr, 
                                 "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
                                 ip_as_str,
-                                client->address->sin6_port,
+                                ntohs(client->address->sin6_port),
                                 client->window->window_low,
                                 decoded->seqnum
                             );
@@ -202,7 +202,7 @@ void *handle_thread(void *config) {
                                 stderr, 
                                 "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",
                                 ip_as_str,
-                                client->address->sin6_port,
+                                ntohs(client->address->sin6_port),
                                 client->window->window_low,
                                 decoded->seqnum
                             );

@@ -42,15 +42,11 @@ void *receive_thread(void *receive_config) {
                 req = (hd_req_t *) node->content;
             }
         }
-        
-        memset(req->buffer, 0, 528);
-        memset(&sockaddr, 0, sizeof(struct sockaddr_in6));
-        req->length = 0;
 
         req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
         if(req->length == -1) {
             switch(errno) {
-                case EWOULDBLOCK : 
+                case EAGAIN:
                     already_popped = true;
                     break;
 
