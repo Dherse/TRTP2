@@ -97,7 +97,7 @@ void *handle_thread_temp(void *config) {
              * as `unpack` already does it but, we do it to stay 
              * consistent with the protocol
              */
-            //mettre les pop et allocation de request en dehors des if pour ne pas les mulktiplier
+            //mettre les pop et allocation de request en dehors des if pour ne pas les multiplier
             if(decoded->truncated) {
                 fprintf(
                     stderr, 
@@ -153,8 +153,8 @@ void *handle_thread_temp(void *config) {
                      */
                     uint8_t temp = client->window->window_low;
                     pthread_mutex_unlock(buf_get_lock(window));
-                     ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
-                     fprintf(
+                    ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                    fprintf(
                         stderr, 
                         "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
                         ip_as_str,
@@ -180,7 +180,6 @@ void *handle_thread_temp(void *config) {
                         temp,
                         decoded->seqnum
                     );
-                    //TODO : faire comme pour packet hors sequence ?
                 } else {
                     node_t *spot = next_nolock(window, decoded->seqnum, true);
                     uint32_t temp_timestamp = decoded->timestamp;
@@ -205,7 +204,7 @@ void *handle_thread_temp(void *config) {
                     // number of packet successfully checked
                     uint8_t cnt = 0;
 
-                    // TODO : description
+                    // node conatining `pak`
                     node_t* node = NULL;
 
                     // packet actually being checked
