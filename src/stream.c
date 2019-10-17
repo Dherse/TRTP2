@@ -50,6 +50,7 @@ int allocate_stream(stream_t *stream, size_t max_len) {
     stream->in_queue = NULL;
     stream->out_queue = NULL;
     stream->length = 0;
+    stream->waiting = 0;
 
     if (pthread_mutex_init(&stream->lock, NULL)) {
         dealloc_stream(stream);
@@ -97,7 +98,6 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     if (node == NULL) {
         return false;
     }
-    pthread_mutex_lock(&stream->lock);
 
     while (true) {
         s_node_t *in_queue = stream->in_queue;
@@ -108,9 +108,9 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     }
 
     _faa(&stream->length, 1);
-    pthread_cond_signal(&stream->read_cond);
-    
-    pthread_mutex_unlock(&stream->lock);
+    if (stream->waiting > 0) {
+        pthread_cond_signal(&stream->read_cond);
+    }
     
     return true;
 }
@@ -122,7 +122,11 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
     pthread_mutex_lock(&stream->lock);
 
     while (wait && stream->length == 0) {
+        _faa(&stream->waiting, 1);
+
         pthread_cond_wait(&stream->read_cond, &stream->lock);
+
+        _fas(&stream->waiting, 1);
     }
 
     if (!stream->out_queue) {

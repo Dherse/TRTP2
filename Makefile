@@ -59,7 +59,7 @@ release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 8 -w 31 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 3 -w 31 :: 5555
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -100,7 +100,7 @@ valgrind: build
 
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
-	valgrind --tool=helgrind --track-origins=yes \
+	valgrind --tool=helgrind \
 		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
 
 memcheck: FLAGS += $(DEBUG_FLAGS)

@@ -23,7 +23,7 @@ void *receive_thread(void *receive_config) {
 
     uint16_t port;
     uint8_t ip[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
+    
     while(!rcv_cfg->stop) {
         if(!already_popped) {
             node = stream_pop(rcv_cfg->rx, false);
