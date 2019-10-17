@@ -47,9 +47,6 @@ void test_many() {
         CU_ASSERT(node != NULL);
         if (node != NULL) {
             CU_ASSERT(*((int *) node->content) == i);
-            if (node->content != NULL) {
-                free(node->content);
-            }
             free(node);
         }
 
