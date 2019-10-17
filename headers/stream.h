@@ -78,6 +78,8 @@ typedef struct stream {
 
     pthread_cond_t read_cond;
 
+    int waiting;
+
 
     /*size_t max_length;
 

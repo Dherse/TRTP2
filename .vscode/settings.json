@@ -19,6 +19,7 @@
         "optional": "c",
         "system_error": "c",
         "stdio.h": "c",
-        "list": "c"
+        "list": "c",
+        "thread": "c"
     }
 }

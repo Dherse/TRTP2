@@ -239,7 +239,7 @@ node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc) {
 /*
  * Refer to headers/buffer.h
  */
-void unlock(node_t* node) {
+inline void unlock(node_t* node) {
     if (node != NULL) {
         pthread_mutex_unlock(node->lock);
     }
