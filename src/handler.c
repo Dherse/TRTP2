@@ -2,7 +2,7 @@
 #include "../headers/handler.h"
 
 /*
- * Refer to headers/receiver.h
+ * Refer to headers/handler.h
  */
 void *handle_thread(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
@@ -80,6 +80,8 @@ void *handle_thread(void *config) {
 
                     bool remove = false;
                     if (decoded->truncated) {
+                        buf_t *window = client->window;
+                        
                         ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                         fprintf(
                             stderr, 
@@ -114,7 +116,7 @@ void *handle_thread(void *config) {
                         to_send.window = 31 - client->window->length;
                         to_send.long_length = false;
                         to_send.length = 0;
-                        to_send.seqnum = decoded->seqnum;
+                        to_send.seqnum = min(cfg->max_window_size, 31 - window->window_low);
                         to_send.timestamp = decoded->timestamp;
 
                         if (pack(send_req->to_send, &to_send, false)) {
@@ -139,6 +141,59 @@ void *handle_thread(void *config) {
                                 client->window->window_low,
                                 decoded->seqnum
                             );
+
+                            s_node_t *send_node = stream_pop(cfg->send_rx, false);
+                                if (send_node == NULL) {
+                                    send_node = malloc(sizeof(s_node_t));
+                                    if (send_node == NULL || initialize_node(send_node, allocate_send_request)) {
+                                        fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
+
+                                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
+                                            deallocate_node(node_rx);
+                                        }
+
+                                        continue;
+                                    }
+
+                                    send_node->content = NULL;
+                                    send_node->next = NULL;
+                                }
+
+                                if (send_node->content == NULL) {
+                                    send_node->content = allocate_send_request();
+                                    if (send_node->content == NULL) {
+                                        fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
+
+                                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
+                                            deallocate_node(node_rx);
+                                        }
+
+                                        continue;
+                                    }
+                                }
+
+                                send_node->next = NULL;
+
+                                tx_req_t *send_req = (tx_req_t *) send_node->content;
+
+                                send_req->stop = false;
+                                send_req->address = client->address;
+                                send_req->deallocate_address = false;
+
+                                to_send.type = ACK;
+                                to_send.truncated = false;
+                                to_send.long_length = false;
+                                to_send.length = 0;
+                                to_send.seqnum = window->window_low;
+                                to_send.timestamp = decoded->timestamp;
+                                to_send.window = min(cfg->max_window_size, 31 - window->length);
+
+                                if (pack(send_req->to_send, &to_send, false)) {
+                                    ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                                    fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", ip_as_str, client->address->sin6_port);
+                                } else {
+                                    stream_enqueue(cfg->send_tx, send_node, true);
+                                }
                         } else if(is_used_nolock(window, decoded->seqnum)) {
                             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             pthread_mutex_unlock(buf_get_lock(window));
@@ -151,6 +206,59 @@ void *handle_thread(void *config) {
                                 client->window->window_low,
                                 decoded->seqnum
                             );
+
+                            s_node_t *send_node = stream_pop(cfg->send_rx, false);
+                                if (send_node == NULL) {
+                                    send_node = malloc(sizeof(s_node_t));
+                                    if (send_node == NULL || initialize_node(send_node, allocate_send_request)) {
+                                        fprintf(stderr, "[HD] Failed to allocated s_node_t\n");
+
+                                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
+                                            deallocate_node(node_rx);
+                                        }
+
+                                        continue;
+                                    }
+
+                                    send_node->content = NULL;
+                                    send_node->next = NULL;
+                                }
+
+                                if (send_node->content == NULL) {
+                                    send_node->content = allocate_send_request();
+                                    if (send_node->content == NULL) {
+                                        fprintf(stderr, "[HD] Failed to allocated tx_req_t\n");
+
+                                        if (!stream_enqueue(cfg->tx, node_rx, false)) {
+                                            deallocate_node(node_rx);
+                                        }
+
+                                        continue;
+                                    }
+                                }
+
+                                send_node->next = NULL;
+
+                                tx_req_t *send_req = (tx_req_t *) send_node->content;
+
+                                send_req->stop = false;
+                                send_req->address = client->address;
+                                send_req->deallocate_address = false;
+
+                                to_send.type = ACK;
+                                to_send.truncated = false;
+                                to_send.long_length = false;
+                                to_send.length = 0;
+                                to_send.seqnum = window->window_low;
+                                to_send.timestamp = decoded->timestamp;
+                                to_send.window = min(cfg->max_window_size, 31 - window->length);
+
+                                if (pack(send_req->to_send, &to_send, false)) {
+                                    ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
+                                    fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", ip_as_str, client->address->sin6_port);
+                                } else {
+                                    stream_enqueue(cfg->send_tx, send_node, true);
+                                }
                         } else {
                             node_t *spot = next_nolock(window, decoded->seqnum, true);
                             packet_t *temp = (packet_t *) spot->value;
@@ -161,18 +269,17 @@ void *handle_thread(void *config) {
 
                             unlock(spot);
 
-                            uint8_t i = window->window_low;
-                            uint8_t cnt = 0;
-                            node_t* node = NULL;
+                            int i = window->window_low;
+                            int cnt = 0;
+                            node_t *node = NULL;
                             packet_t *pak;
                             do {
-                                unlock(node);
-
-                                node = get_nolock(window, i, false, false);
+                                node = get_nolock(window, i & 0xFF, false, false);
                                 if (node != NULL) {
                                     pak = (packet_t *) node->value;
 
                                     if (pak->length > 0) {
+                                        remove = false;
                                         int result = fwrite(
                                             pak->payload,
                                             sizeof(uint8_t),
@@ -180,30 +287,30 @@ void *handle_thread(void *config) {
                                             client->out_file
                                         );
 
-                                        if (result != ((packet_t *) node->value)->length) {
+                                        if (result != pak->length) {
                                             fprintf(stderr, "[HD] Failed to write to file\n");
                                             break;
                                         }
+                                    } else {
+                                        remove = true;
                                     }
 
                                     cnt++;
                                     i++;
                                 }
-                            } while(sequences[client->window->window_low][i] && node != NULL);
+                                
+                                unlock(node);
+                            } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt < 31);
 
                             pthread_mutex_unlock(buf_get_lock(window));
-                            unlock(node);
 
+                            
                             if (cnt > 0) {
                                 //fflush(client->out_file);
 
-                                if (pak->length == 0) {
-                                    remove = true;
-                                } else {
-                                    remove = false;
-                                }
-
-                                window->length -= cnt;
+                                //fprintf(stderr, "LEN: old: %3d, new: %3d, count: %2d\n", window->length, window->length - cnt, cnt);
+                                //fprintf(stderr, "LOW: old: %3d, new: %3d, count: %2d\n", window->window_low, window->window_low + cnt, cnt);
+                                window->length = (window->length - cnt);
                                 window->window_low += cnt;
 
                                 s_node_t *send_node = stream_pop(cfg->send_rx, false);

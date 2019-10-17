@@ -74,7 +74,7 @@ typedef struct stream {
 
     pthread_mutex_t lock;
 
-    size_t length;
+    int length;
 
     pthread_cond_t read_cond;
 

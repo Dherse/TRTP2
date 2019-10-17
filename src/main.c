@@ -24,11 +24,12 @@ void handle_stop(int signo) {
 void print_usage(char *exec) {
     fprintf(stderr, "Multithreaded TRTP receiver.\n\n");
     fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "  %s <ip> <port>\n\n", exec);
+    fprintf(stderr, "  %s [options] <ip> <port>\n\n", exec);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -m  Max. number of connection  [default: 100]\n");
     fprintf(stderr, "  -o  Output file format         [default: %%d]\n");
     fprintf(stderr, "  -n  Number of handler threads  [default: 4]\n");
+    fprintf(stderr, "  -w  Maximum window size        [default: 31]\n");
 }
 
 void deallocate_everything(

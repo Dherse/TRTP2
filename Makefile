@@ -38,7 +38,7 @@ BIN := $(wildcard $(BIN_DIR)/*)
 LDFLAGS = -lz -lpthread
 FLAGS = -Werror -std=$(VERSION)
 RELEASE_FLAGS = -O3
-DEBUG_FLAGS = -O3 -ggdb
+DEBUG_FLAGS = -O0 -ggdb
 
 # does not need verification
 .PHONY: clean report stat install_tectonic
@@ -50,17 +50,20 @@ all: clean build run
 build: $(OBJECTS)
 	$(GCC) $(FLAGS) $(OBJECTS) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
 
+test_build: FLAGS += $(DEBUG_FLAGS)
+test_build: build
+
 # release build
 release: FLAGS += $(RELEASE_FLAGS)
 release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 16 -w 16 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 1 -w 31 :: 5555
 
 # Build and run tests
-test: build
 test: FLAGS += $(DEBUG_FLAGS)
+test: build
 test: LDFLAGS += -lcunit 
 test: $(TEST_OBJECTS)
 	$(GCC) $(FLAGS) $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
@@ -97,8 +100,13 @@ valgrind: build
 
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
-	valgrind --tool=helgrind \
+	valgrind --tool=helgrind --track-origins=yes \
 		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
+
+memcheck: FLAGS += $(DEBUG_FLAGS)
+memcheck: build
+	valgrind --tool=memcheck --track-origins=yes \
+		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/memcheck.txt
 
 callgrind: FLAGS += $(DEBUG_FLAGS)
 callgrind: build

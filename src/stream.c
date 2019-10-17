@@ -80,8 +80,7 @@ int dealloc_stream(stream_t *stream) {
         non_null = node != NULL;
 
         if (non_null) {
-            free(node->content);
-            free(node);
+            deallocate_node(node);
         }
     } while(non_null);
 
@@ -98,6 +97,7 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     if (node == NULL) {
         return false;
     }
+    pthread_mutex_lock(&stream->lock);
 
     while (true) {
         s_node_t *in_queue = stream->in_queue;
@@ -109,6 +109,8 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
 
     _faa(&stream->length, 1);
     pthread_cond_signal(&stream->read_cond);
+    
+    pthread_mutex_unlock(&stream->lock);
     
     return true;
 }

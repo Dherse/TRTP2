@@ -3,6 +3,7 @@
 #define HT_H
 
 #include "global.h"
+#include "packet.h"
 
 #define INITIAL_SIZE 16
 #define IP_LEN 16

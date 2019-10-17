@@ -50,6 +50,8 @@ typedef enum PType {
  * has already been processed.
  */
 typedef struct Packet {
+    bool used;
+
     ptype_t type;
 
     bool truncated;

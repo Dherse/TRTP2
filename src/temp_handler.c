@@ -213,7 +213,7 @@ void *handle_thread_temp(void *config) {
                     do {
                         unlock(node);
 
-                        node = get(window, i, false, false);
+                        node = get_nolock(window, i, false, false);
                         if (node == NULL) {
                             continue;
                         }
@@ -286,7 +286,7 @@ void *handle_thread_temp(void *config) {
                         to_send.length = 0;
                         to_send.seqnum = window->window_low;
                         to_send.timestamp = temp_timestamp;
-                        to_send.window = 31 - window->length;
+                        to_send.window = min(31 - window->length, cfg->max_window_size);
 
                         if (pack(send_req->to_send, &to_send, false)) {
                             fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", ip_as_str, client->address->sin6_port);
@@ -304,18 +304,7 @@ void *handle_thread_temp(void *config) {
 
                             ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
-                            fclose(client->out_file);
-
-                            free(client->addr_len);
-                            
-                            deallocate_buffer(client->window);
-                            free(client->window);
-
-                            pthread_mutex_unlock(client->lock);
-                            pthread_mutex_destroy(client->lock);
-                            free(client->lock);
-
-                            free(client);
+                            deallocate_client(client, false, true);
 
                             fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);
                         }
