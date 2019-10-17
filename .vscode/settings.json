@@ -20,6 +20,11 @@
         "system_error": "c",
         "stdio.h": "c",
         "list": "c",
-        "thread": "c"
+        "thread": "c",
+        "chrono": "c",
+        "functional": "c",
+        "ratio": "c",
+        "variant": "c",
+        "stream.h": "c"
     }
 }

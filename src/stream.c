@@ -24,7 +24,6 @@ int initialize_node(s_node_t *node, void *(*allocator)()) {
         return -1;
     }
     
-
     return 0;
 }
 
@@ -120,14 +119,15 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
  */
 s_node_t *stream_pop(stream_t *stream, bool wait) {
     pthread_mutex_lock(&stream->lock);
+    
+    _faa(&stream->waiting, 1);
 
     while (wait && stream->length == 0) {
-        _faa(&stream->waiting, 1);
 
         pthread_cond_wait(&stream->read_cond, &stream->lock);
 
-        _fas(&stream->waiting, 1);
     }
+    _fas(&stream->waiting, 1);
 
     if (!stream->out_queue) {
         while (true) {

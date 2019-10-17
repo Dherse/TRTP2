@@ -5,7 +5,7 @@
 /*
  * Refer to headers/handler.h
  */
-void *handle_thread(void *config) {
+void *handle_thread_temp(void *config) {
     if(config == NULL) {
         pthread_exit(NULL);
     }

@@ -31,6 +31,9 @@ typedef struct handle_thread_config {
 
     /** Maximum size of the window */
     int max_window_size;
+    
+    /** The socket file descriptor */
+    int sockfd;
 } hd_cfg_t;
 
 typedef struct handle_request {

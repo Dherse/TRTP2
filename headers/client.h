@@ -14,10 +14,10 @@
     type get_##var(owner *self);
 
 #define GETSET_IMPL(owner, type, var) \
-    void set_##var(owner *self, type val) {\
+    inline void set_##var(owner *self, type val) {\
         self->var = val;\
     }\
-    type get_##var(owner *self) {\
+    inline type get_##var(owner *self) {\
         return self->var;\
     }
 

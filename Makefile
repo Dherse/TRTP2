@@ -59,7 +59,7 @@ release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 3 -w 31 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 16 -w 31 :: 5555
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)

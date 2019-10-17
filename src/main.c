@@ -244,6 +244,24 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    int size = 4000000;
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size))) {
+        fprintf(stderr, "[MAIN] Failed to set send buffer size");
+
+        close(sockfd);
+
+        return -1;
+    }
+
+    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size))) {
+        fprintf(stderr, "[MAIN] Failed to set receive buffer size");
+
+        close(sockfd);
+
+        return -1;
+    }
+
     int status = bind(sockfd, config.addr_info->ai_addr, config.addr_info->ai_addrlen);
     if (status) {
         fprintf(stderr, "[MAIN] Failed to bind socket");
@@ -467,6 +485,7 @@ int main(int argc, char *argv[]) {
     tx_config->sockfd = sockfd;
 
     for (i = 0; i < config.handle_num; i++) {
+        hd_configs[i]->sockfd = sockfd;
         hd_configs[i]->clients = clients;
         hd_configs[i]->rx = rx_to_hd;
         hd_configs[i]->tx = hd_to_rx;

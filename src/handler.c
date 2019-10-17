@@ -4,7 +4,7 @@
 /*
  * Refer to headers/handler.h
  */
-void *handle_thread_temp(void *config) {
+void *handle_thread(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
 
     packet_t to_send;
@@ -130,9 +130,9 @@ void *handle_thread_temp(void *config) {
                         pthread_mutex_lock(buf_get_lock(window));
 
                         if (!sequences[client->window->window_low][decoded->seqnum]) {
-                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             pthread_mutex_unlock(buf_get_lock(window));
 
+                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
@@ -142,9 +142,9 @@ void *handle_thread_temp(void *config) {
                                 decoded->seqnum
                             );
                         } else if(is_used_nolock(window, decoded->seqnum)) {
-                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             pthread_mutex_unlock(buf_get_lock(window));
 
+                            ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",

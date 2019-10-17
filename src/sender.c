@@ -14,7 +14,6 @@ void *send_thread(void *sender_config){
     while (true) {
         node = stream_pop(snd_cfg->send_rx, true);
         if (node == NULL) {
-            fprintf(stderr, "[TX] `node` is NULL\n");
             continue;
         }
 
