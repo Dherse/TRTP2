@@ -304,7 +304,6 @@ void *handle_thread(void *config) {
                             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
                             
-                            // DOESN'T ACTUALLY REMOVE JACKSHIT
                             ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
                             fclose(client->out_file);
