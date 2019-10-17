@@ -18,52 +18,50 @@ int initialize_node(s_node_t *node, void *(*allocator)()) {
         return -1;
     }
 
-    node->next = NULL;
+    node->next = QUEUE_POISON1;
     node->content = allocator();
     if (node->content == NULL) {
         return -1;
     }
+    
 
     return 0;
+}
+
+/**
+ * Refer to headers/stream.h
+ */
+void deallocate_node(s_node_t *node) {
+    if (node == NULL) {
+        return;
+    }
+
+    if (node->content != NULL) {
+        free(node->content);
+    }
+
+    free(node);
 }
 
 /**
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
 int allocate_stream(stream_t *stream, size_t max_len) {
-    stream->max_length = max_len;
+    stream->in_queue = NULL;
+    stream->out_queue = NULL;
     stream->length = 0;
-    stream->head = NULL;
-    stream->tail = NULL;
 
-    stream->lock = malloc(sizeof(pthread_mutex_t));
-    if (stream->lock == NULL || pthread_mutex_init(stream->lock, NULL) != 0) {
+    if (pthread_mutex_init(&stream->lock, NULL)) {
         dealloc_stream(stream);
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
 
-    pthread_mutex_lock(stream->lock);
-
-    stream->read_cond = malloc(sizeof(pthread_cond_t));
-    if (stream->read_cond == NULL || pthread_cond_init(stream->read_cond, NULL) != 0) {
-        pthread_mutex_unlock(stream->lock);
+    if (pthread_cond_init(&stream->read_cond, NULL)) {
         dealloc_stream(stream);
-
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
-
-    stream->write_cond = malloc(sizeof(pthread_cond_t));
-    if (stream->write_cond == NULL || pthread_cond_init(stream->write_cond, NULL) != 0) {
-        pthread_mutex_unlock(stream->lock);
-        dealloc_stream(stream);
-
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
-    pthread_mutex_unlock(stream->lock);
 
     return 0;
 }
@@ -76,32 +74,19 @@ int dealloc_stream(stream_t *stream) {
         return 0;
     }
 
-    s_node_t *node = stream->head;
-    while (node != NULL) {
-        s_node_t *old = node;
-        node = node->next;
-        if (old->content != NULL) {
-            free(old->content);
+    bool non_null = false;
+    do {
+        s_node_t *node = stream_pop(stream, false);
+        non_null = node != NULL;
+
+        if (non_null) {
+            deallocate_node(node);
         }
+    } while(non_null);
 
-        free(old);
-    }
-
-    if (stream->lock != NULL) {
-        pthread_mutex_destroy(stream->lock);
-        free(stream->lock);
-    }
-
-    if (stream->read_cond != NULL) {
-        pthread_cond_destroy(stream->read_cond);
-        free(stream->read_cond);
-    }
-
-    if (stream->write_cond != NULL) {
-        pthread_cond_destroy(stream->write_cond);
-        free(stream->write_cond);
-    }
-
+    pthread_mutex_destroy(&stream->lock);
+    pthread_cond_destroy(&stream->read_cond);
+    
     return 0;
 }
 
@@ -112,33 +97,21 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
     if (node == NULL) {
         return false;
     }
+    pthread_mutex_lock(&stream->lock);
 
-    pthread_mutex_lock(stream->lock);
-
-    while(stream->length >= stream->max_length) {
-        if (!wait) {
-            pthread_mutex_unlock(stream->lock);
-            return false;
+    while (true) {
+        s_node_t *in_queue = stream->in_queue;
+        node->next = in_queue;
+        if (_cas(&stream->in_queue, in_queue, node)) {
+            break;
         }
-
-        pthread_cond_wait(stream->write_cond, stream->lock);
     }
 
-    if (stream->head == NULL) {
-        stream->head = node;
-    }
-
-    if (stream->tail != NULL) {
-        stream->tail->next = node;
-    }
-
-    stream->tail = node;
-    stream->length++;
-
-    pthread_cond_signal(stream->read_cond);
-
-    pthread_mutex_unlock(stream->lock);
-
+    _faa(&stream->length, 1);
+    pthread_cond_signal(&stream->read_cond);
+    
+    pthread_mutex_unlock(&stream->lock);
+    
     return true;
 }
 
@@ -146,36 +119,45 @@ bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
 s_node_t *stream_pop(stream_t *stream, bool wait) {
-    pthread_mutex_lock(stream->lock);
+    pthread_mutex_lock(&stream->lock);
 
-    while (stream->length == 0 || stream->head == NULL) {
-        if (!wait) {
-            pthread_mutex_unlock(stream->lock);
-            return NULL;
+    while (wait && stream->length == 0) {
+        pthread_cond_wait(&stream->read_cond, &stream->lock);
+    }
+
+    if (!stream->out_queue) {
+        while (true) {
+            s_node_t *head = stream->in_queue;
+            if (!head) {
+                break;
+            }
+
+            if (_cas(&stream->in_queue, head, NULL)) {
+                while (head) {
+                    s_node_t *next = head->next;
+                    head->next = stream->out_queue;
+                    stream->out_queue = head;
+                    head = next;
+                }
+                break;
+            }
         }
-
-        pthread_cond_wait(stream->read_cond, stream->lock);
     }
 
-    s_node_t *head = stream->head;
-    s_node_t *next = head->next;
+    s_node_t *head = stream->out_queue;
+    if (head) {
+        _fas(&stream->length, 1);
+        stream->out_queue = head->next;
+    }
     
-    stream->head = next;
-    stream->length--;
-
-    if (head == stream->tail) {
-        stream->tail = NULL;
-    }
-
-    pthread_cond_signal(stream->write_cond);
-
-    pthread_mutex_unlock(stream->lock);
+    pthread_mutex_unlock(&stream->lock);
 
     return head;
+
 }
 
 void drain(stream_t *stream) {
-    pthread_mutex_lock(stream->lock);
+    /*pthread_mutex_lock(stream->lock);
 
     while (stream->head != NULL) {
         s_node_t *head = stream->head;
@@ -192,9 +174,8 @@ void drain(stream_t *stream) {
         free(head);
     }
 
-
     pthread_cond_broadcast(stream->write_cond);
     pthread_cond_broadcast(stream->read_cond);
 
-    pthread_mutex_unlock(stream->lock);
+    pthread_mutex_unlock(stream->lock);*/
 }

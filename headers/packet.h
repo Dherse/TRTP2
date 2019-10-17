@@ -50,6 +50,8 @@ typedef enum PType {
  * has already been processed.
  */
 typedef struct Packet {
+    bool used;
+
     ptype_t type;
 
     bool truncated;
@@ -257,6 +259,11 @@ int packet_to_string(packet_t *packet, bool print_payload);
  *
  * - `ip` - the IP to print
  * - `target` - the target string, should be 46 characters long
+ * 
+ * ## Performance
+ * 
+ * According to our testing, this function is extremely slow and
+ * should only be called in case of errors.
  *
  * ## Return value
  * 

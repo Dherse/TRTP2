@@ -109,11 +109,9 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     uint8_t *header = packet++;
 
     uint8_t ttrwin = *header;
-    uint8_t type = (ttrwin & 0b11000000) >> 6;
+    out->type = (ttrwin & 0b11000000) >> 6;
     out->truncated = (ttrwin & 0b00100000) >> 5;
     out->window = ttrwin & 0b00011111;
-
-    out->type = type;
 
     if (--length <= 0) {
         errno = PACKET_TOO_SHORT;
@@ -197,13 +195,13 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         return -1;
     }
 
-    if (type == 0) {
+    if (out->type == IGNORE) {
         errno = TYPE_IS_WRONG;
 
         return -1;
     }
 
-    if (type != DATA && out->truncated) {
+    if (out->type != DATA && out->truncated) {
         errno = NON_DATA_TRUNCATED;
 
         return -1;
@@ -237,6 +235,8 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 
     uint8_t *header = packet++;
 
+    *header = (in->type << 6) | (in->window & 0b00011111);
+
     uint8_t length = 7;
     if (in->long_length) {
         length++;
@@ -256,8 +256,6 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     (*packet++) = (uint8_t) (timestamp >> 8);
     (*packet++) = (uint8_t) (timestamp >> 16);
     (*packet++) = (uint8_t) (timestamp >> 24);
-
-    *header = (in->type << 6) | (in->window & 0b00011111);
 
     uint32_t crc1 = htonl(crc32(0, (uint8_t *) raw, length));
 
@@ -306,7 +304,7 @@ int packet_to_string(packet_t* packet, bool print_payload) {
         case 3: strcpy(s_type, "NACK (11)"); break;
     }
 
-    uint8_t len = get_length(packet);
+    uint16_t len = get_length(packet);
 
     fprintf(stderr, " - - - - - - - - PACKET - - - - - - - - \n");
     fprintf(stderr, "TYPE:       %s\n", s_type);

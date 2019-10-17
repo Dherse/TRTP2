@@ -85,6 +85,7 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     int c;
 
     char *m = "100";
+    char *w = "31";
     char *n = "4";
     char *o = "%d";
     char *ip = NULL;
@@ -93,7 +94,7 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     /* format and concurrent connection parameters */
 
     optind = 0;
-    while((c = getopt(argc, argv, ":m:o:n:")) != -1) {
+    while((c = getopt(argc, argv, ":m:o:n:w:")) != -1) {
         switch(c) {
             case 'm':
                 m = optarg;
@@ -101,6 +102,10 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
 
             case 'o':
                 o = optarg;
+                break;
+
+            case 'w':
+                w = optarg;
                 break;
 
             case 'n':
@@ -211,6 +216,16 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     }
 
     config->handle_num = (uint16_t) handle_num;
+
+    /* max window size */
+
+    int max_window;
+    if (str2int(&max_window, w, 10) == -1 || max_window < 0 || max_window > 31) {
+        errno = CLI_WINDOW_INVALID;
+        return -1;
+    }
+
+    config->max_window = (uint16_t) max_window;
 
     /* IPv6 validation */
 

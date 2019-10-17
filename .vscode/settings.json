@@ -17,6 +17,8 @@
         "string_view": "cpp",
         "*.tcc": "c",
         "optional": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "stdio.h": "c",
+        "list": "c"
     }
 }

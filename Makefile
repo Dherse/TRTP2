@@ -50,17 +50,20 @@ all: clean build run
 build: $(OBJECTS)
 	$(GCC) $(FLAGS) $(OBJECTS) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
 
+test_build: FLAGS += $(DEBUG_FLAGS)
+test_build: build
+
 # release build
 release: FLAGS += $(RELEASE_FLAGS)
 release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 1 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 8 -w 31 :: 5555
 
 # Build and run tests
-test: build
 test: FLAGS += $(DEBUG_FLAGS)
+test: build
 test: LDFLAGS += -lcunit 
 test: $(TEST_OBJECTS)
 	$(GCC) $(FLAGS) $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
@@ -90,8 +93,23 @@ report:
 	cd report && tectonic main.tex
 	cp ./report/main.pdf ./report.pdf
 
-call: FLAGS += $(DEBUG_FLAGS)
-call: build
+valgrind: FLAGS += $(DEBUG_FLAGS)
+valgrind: build
+	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose \
+		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/valgrind.txt
+
+helgrind: FLAGS += $(DEBUG_FLAGS)
+helgrind: build
+	valgrind --tool=helgrind --track-origins=yes \
+		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
+
+memcheck: FLAGS += $(DEBUG_FLAGS)
+memcheck: build
+	valgrind --tool=memcheck --track-origins=yes \
+		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/memcheck.txt
+
+callgrind: FLAGS += $(DEBUG_FLAGS)
+callgrind: build
 	@echo '----------------------------------------------------------'
 	@echo 'This function runs valgrind followed by gprof2dot.'
 	@echo 'It is used to generate the callgraph of the application'
@@ -100,7 +118,7 @@ call: build
 	@echo '----------------------------------------------------------'
 
 	valgrind --tool=callgrind --callgrind-out-file=$(BIN_DIR)/callgrind.txt \
-		$(BIN_DIR)/$(OUT) -n 1 -o $(BIN_DIR)/%d :: 5555
+		$(BIN_DIR)/$(OUT) -n 4 -w 1 -o $(BIN_DIR)/%d :: 5555
 		
 	@echo '----------------------------------------------------------'
 
@@ -110,3 +128,6 @@ plot:
 debug: FLAGS += $(DEBUG_FLAGS)
 debug: build
 	gdb -ex run --args $(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d :: 5555
+
+tcpdump:
+	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap 

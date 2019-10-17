@@ -24,11 +24,12 @@ void handle_stop(int signo) {
 void print_usage(char *exec) {
     fprintf(stderr, "Multithreaded TRTP receiver.\n\n");
     fprintf(stderr, "Usage:\n");
-    fprintf(stderr, "  %s <ip> <port>\n\n", exec);
+    fprintf(stderr, "  %s [options] <ip> <port>\n\n", exec);
     fprintf(stderr, "Options:\n");
     fprintf(stderr, "  -m  Max. number of connection  [default: 100]\n");
     fprintf(stderr, "  -o  Output file format         [default: %%d]\n");
     fprintf(stderr, "  -n  Number of handler threads  [default: 4]\n");
+    fprintf(stderr, "  -w  Maximum window size        [default: 31]\n");
 }
 
 void deallocate_everything(
@@ -64,18 +65,12 @@ void deallocate_everything(
     if (tx_config != NULL) {
         if (tx_config->thread != NULL) {
             if (tx_config->send_rx != NULL) {
-                tx_req_t *stop_req = malloc(sizeof(tx_req_t));
-
                 s_node_t *stop_node = malloc(sizeof(s_node_t));
 
-                if (stop_req != NULL && stop_node != NULL) {
-                    stop_req->deallocate_address = false;
-                    stop_req->address = NULL;
+                if (stop_node != NULL && !initialize_node(stop_node, allocate_send_request)) {
+                    tx_req_t *stop_req = (tx_req_t *) stop_node->content;
                     stop_req->stop = true;
-                    memset(stop_req->to_send, 0, 11);
 
-                    stop_node->content = stop_req;
-                    stop_node->next = NULL;
                     stream_enqueue(tx_config->send_rx, stop_node, true);
                 }
             }
@@ -90,13 +85,13 @@ void deallocate_everything(
 
     int i;
     for(i = 0; i < hd_count; i++) {
-        s_node_t *node = calloc(1, sizeof(s_node_t));
-        hd_req_t *stop_req = calloc(1, sizeof(hd_req_t));
-        if (node != NULL && stop_req != NULL) {
-            stop_req->stop = true;
-            node->content = stop_req;
+        s_node_t *stop_node = malloc(sizeof(s_node_t));
 
-            stream_enqueue(rx_to_hd, node, true);
+        if (stop_node != NULL && !initialize_node(stop_node, allocate_handle_request)) {
+            hd_req_t *stop_req = (hd_req_t *) stop_node->content;
+            stop_req->stop = true;
+            
+            stream_enqueue(rx_to_hd, stop_node, true);
         }
     }
 
@@ -243,15 +238,6 @@ int main(int argc, char *argv[]) {
 
     if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) {
         fprintf(stderr, "[MAIN] Failed to set receive timeout");
-
-        close(sockfd);
-
-        return -1;
-    }
-
-    int reuseaddr = 1;
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr))) {
-        fprintf(stderr, "[MAIN] Failed to set reuse addr");
 
         close(sockfd);
 
@@ -486,6 +472,7 @@ int main(int argc, char *argv[]) {
         hd_configs[i]->tx = hd_to_rx;
         hd_configs[i]->send_tx = hd_to_tx;
         hd_configs[i]->send_rx = tx_to_hd;
+        hd_configs[i]->max_window_size = config.max_window;
     }
 
     // -------------------------------------------------------------------------

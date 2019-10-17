@@ -42,11 +42,11 @@ void *receive_thread(void *receive_config) {
                 req = (hd_req_t *) node->content;
             }
         }
-        
+
         req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
         if(req->length == -1) {
             switch(errno) {
-                case EWOULDBLOCK : 
+                case EAGAIN:
                     already_popped = true;
                     break;
 
@@ -54,7 +54,7 @@ void *receive_thread(void *receive_config) {
                     already_popped = true;
                     fprintf(stderr, "[RX] recvfrom failed. (errno = %d)\n", errno);
             }
-        } else {
+        } else if (req->length >= 11) {
             /** set the last handle_request parameters */
             port = (uint16_t) sockaddr.sin6_port;
             move_ip(ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
@@ -89,7 +89,7 @@ void *receive_thread(void *receive_config) {
                     
                     ht_put(rcv_cfg->clients, port, ip, (void *) contained);
 
-                    fprintf(stderr, "[%s][%u] New client\n", ip_as_str, port);
+                    fprintf(stderr, "[%s][%5u] New client\n", ip_as_str, port);
                 }
 
                 req->client = contained;
@@ -146,5 +146,5 @@ void *allocate_send_request() {
     req->stop = false;
     req->deallocate_address = false;
     req->address = NULL;
-    memset(req->to_send, 0, 11);
+    memset(req->to_send, 0, 32);
 }

@@ -82,7 +82,7 @@ typedef struct send_request {
     struct sockaddr_in6 *address;
 
     /** the packet to send */
-    char to_send[11];
+    uint8_t to_send[32];
 } tx_req_t;
 
 GETSET(tx_req_t, bool, stop);

@@ -119,7 +119,7 @@ void *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool re
     void *old = NULL;
     while(table->items[index].used) {
         if (table->items[index].port == port) {
-            if (ip_equals(table->items[index].ip, ip, 16)) {
+            if (ip_equals(table->items[index].ip, ip)) {
                 old = table->items[index].value;
                 break;
             }
