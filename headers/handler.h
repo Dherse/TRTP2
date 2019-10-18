@@ -175,5 +175,5 @@ void enqueue_or_free(stream_t *stream, s_node_t *node);
  * - `stream` - the stream from which the node should
  *              be popped
  */
-s_node_t *pop_and_check_req(stream_t *stream);
+s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)());
 #endif

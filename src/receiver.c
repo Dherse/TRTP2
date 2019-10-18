@@ -25,22 +25,13 @@ void *receive_thread(void *receive_config) {
     uint8_t ip[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
     
     while(!rcv_cfg->stop) {
+        //TODO make it shorter
         if(!already_popped) {
-            node = stream_pop(rcv_cfg->rx, false);
+            node = pop_and_check_req(rcv_cfg->rx, allocate_handle_request);
             if(node == NULL) {
-                node = malloc(sizeof(s_node_t));
-                if (initialize_node(node, allocate_handle_request)) {
-                    fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
-                    break;
-                }
+                break;
             }
-
             req = (hd_req_t *) node->content;
-            if(req == NULL) {
-                fprintf(stderr, "[RX] `content` in a node was NULL\n");
-                node->content = (hd_req_t *) allocate_handle_request();
-                req = (hd_req_t *) node->content;
-            }
         }
 
         req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
@@ -147,4 +138,5 @@ void *allocate_send_request() {
     req->deallocate_address = false;
     req->address = NULL;
     memset(req->to_send, 0, 32);
+    return req;
 }

@@ -100,7 +100,7 @@ void *handle_thread(void *config) {
 
         //we don't expect any ACK/NACK or IGNORE type
         if(decoded->type == DATA) {
-            s_node_t *send_node = pop_and_check_req(cfg->send_rx);
+            s_node_t *send_node = pop_and_check_req(cfg->send_rx, allocate_send_request);
             if(send_node == NULL) {
                 enqueue_or_free(cfg->tx, node_rx);
                 continue;
@@ -229,7 +229,6 @@ void *handle_thread(void *config) {
                                 pak->length,
                                 client->out_file
                             );
-
                             if (result != ((packet_t *) node->value)->length) {
                                 fprintf(stderr, "[HD] Failed to write to file\n");
                                 //TODO : peut être free un truc?
@@ -350,12 +349,12 @@ void *allocate_handle_request() {
 /**
  * Refer to headers/receiver.h
  */
-s_node_t *pop_and_check_req(stream_t *stream) {
+s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)()) {
     s_node_t *node = stream_pop(stream, false);
 
     if (node == NULL) {
         node = malloc(sizeof(s_node_t));
-        if(initialize_node(node, allocate_send_request)) {
+        if(initialize_node(node, allocator)) {
             free(node);
             return NULL;
         }
