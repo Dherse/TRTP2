@@ -3,6 +3,18 @@
 #include "../headers/global.h"
 
 /**
+ * Macro to create getters and setters
+ */
+GETSET_IMPL(hd_req_t, bool, stop);
+
+/**
+ * Macro to create getters and setters
+ */
+GETSET_IMPL(hd_req_t, client_t *, client);
+
+
+
+/**
  * Refer to headers/receiver.h
  */
 void *handle_thread(void *config) {
@@ -46,9 +58,10 @@ void *handle_thread(void *config) {
         client_t *client = req->client;
         if(client == NULL) {
             fprintf(stderr, "Unknown client\n");
-            enqueue_or_free(cfg->tx,node_rx);
+            enqueue_or_free(cfg->tx, node_rx);
             continue;
         }
+
         //if failed to unpack, print error message, enqueue and continue
         if(unpack(req->buffer, req->length, decoded)) { 
             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
@@ -325,10 +338,10 @@ void *allocate_handle_request() {
         return NULL;
     }
     
-    req->stop = false;
-    req->client = NULL;
-    req->length = 0;
-    memset(req->buffer, 0, 528);
+    set_stop(req, false);
+    set_client(req, NULL);
+    hd_set_length(req, 0);
+    memset(get_buffer(req), 0, 528);
 
     return req;
 }
@@ -347,4 +360,18 @@ inline s_node_t *pop_and_check_req(stream_t *stream) {
         }
     }
     return node;
+}
+
+/**
+ * Refer to headers/receiver.h
+ */
+inline void hd_set_length(hd_req_t *req, ssize_t length) {
+    req->length = length;
+}
+
+/**
+ * Refer to headers/receiver.h
+ */
+uint8_t *get_buffer(hd_req_t* self) {
+    return self->buffer;
 }

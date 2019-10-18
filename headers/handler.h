@@ -58,12 +58,11 @@ GETSET(hd_req_t, bool, stop);
 /**
  * Macro to create getters and setters
  */
-GETSET(hd_req_t, client_t, client);
+GETSET(hd_req_t, client_t *, client);
 
-/**
- * Macro to create getters and setters
- */
-GETSET(hd_req_t, ssize_t, length);
+void hd_set_length(hd_req_t *req, ssize_t length);
+
+uint8_t hd_get_length(hd_req_t *req);
 
 uint8_t *get_buffer(hd_req_t* self);
 
