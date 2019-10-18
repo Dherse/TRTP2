@@ -4,6 +4,7 @@
 
 #include "global.h"
 #include "packet.h"
+#include "client.h"
 
 #define INITIAL_SIZE 16
 #define IP_LEN 16
@@ -11,7 +12,7 @@
 typedef struct item {
     bool used;
 
-    void *value;
+    client_t *value;
 
     uint16_t port;
     uint8_t ip[16];
@@ -208,7 +209,7 @@ bool ht_contains(ht_t* table, uint16_t port, uint8_t *ip);
  * NULL otherwise
  * 
  */
-void *ht_get(ht_t *table, uint16_t port, uint8_t *ip);
+client_t *ht_get(ht_t *table, uint16_t port, uint8_t *ip);
 
 /**
  * ## Use :
@@ -228,7 +229,7 @@ void *ht_get(ht_t *table, uint16_t port, uint8_t *ip);
  * NULL & errono != 0 if there was an error.
  * 
  */
-void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item);
+client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, client_t *item);
 
 /**
  * ## Use :
@@ -247,7 +248,7 @@ void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item);
  * NULL otherwise
  * 
  */
-void *ht_remove(ht_t *table, uint16_t port, uint8_t *ip);
+client_t *ht_remove(ht_t *table, uint16_t port, uint8_t *ip);
 
 /**
  * ## Use :

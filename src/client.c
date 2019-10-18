@@ -76,6 +76,7 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
     client->addr_len = (socklen_t *) malloc(sizeof(socklen_t));
     if(client->addr_len == NULL) {
         free(client->address);

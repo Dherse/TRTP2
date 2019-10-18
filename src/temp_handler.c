@@ -49,6 +49,7 @@ void *handle_thread(void *config) {
     
         //check if the thread should stop
         if (req->stop) {
+            free(decoded);
             deallocate_node(node_rx);
             break;
         }
@@ -296,8 +297,8 @@ void *handle_thread(void *config) {
                             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
                             fprintf(stderr, "[%s][%5u] Done transferring file\n", ip_as_str, client->address->sin6_port);
                             
-                            ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
                             pthread_mutex_unlock(client_get_lock(client));
+                            ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
                             deallocate_client(client, false, true);
 
                             fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);
@@ -323,7 +324,6 @@ void *handle_thread(void *config) {
  */
 inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
     if (!stream_enqueue(stream, node, false)) {
-        //TODO : replace with getter
         deallocate_node(node);
     }
 }

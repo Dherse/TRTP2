@@ -299,7 +299,6 @@ int initialize_buffer(buf_t *buffer, void *(*allocator)()) {
             errno = FAILED_TO_ALLOCATE;
             return -1;
         }
-
         pthread_mutex_unlock(buffer->nodes[i].lock);
     }
 
