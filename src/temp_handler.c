@@ -5,7 +5,7 @@
 /*
  * Refer to headers/handler.h
  */
-void *handle_thread_temp(void *config) {
+void *handle_thread(void *config) {
     if(config == NULL) {
         pthread_exit(NULL);
     }
@@ -19,7 +19,7 @@ void *handle_thread_temp(void *config) {
     }
 
     /** string to print error messages */ 
-    char ip_as_str[40];
+    char ip_as_str[46];
 
     //should the client be removed from the hash-table
     bool remove = false;
@@ -49,7 +49,6 @@ void *handle_thread_temp(void *config) {
             enqueue_or_free(cfg->tx,node_rx);
             continue;
         }
-
         //if failed to unpack, print error message, enqueue and continue
         if(unpack(req->buffer, req->length, decoded)) { 
             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
@@ -112,9 +111,10 @@ void *handle_thread_temp(void *config) {
                 //if there is no buffer available, allocate a new one
                 if (send_node == NULL) {
                     send_node = malloc(sizeof(s_node_t));
-                    if(initialize_node(send_node, allocate_send_request)) {
+                    if(send_node == NULL || initialize_node(send_node, allocate_send_request)) {
                         free(send_node);
                         enqueue_or_free(cfg->tx,node_rx);
+                        continue;
                     }
                 }
 
@@ -129,7 +129,7 @@ void *handle_thread_temp(void *config) {
                 to_send.window = 31 - client->window->length;
                 to_send.long_length = false;
                 to_send.length = 0;
-                to_send.seqnum = decoded->seqnum;
+                to_send.seqnum = min(cfg->max_window_size, 31 - client->window->window_low);
                 to_send.timestamp = decoded->timestamp;
 
                 if (pack(send_req->to_send, &to_send, false)) {
@@ -147,9 +147,9 @@ void *handle_thread_temp(void *config) {
                 pthread_mutex_lock(buf_get_lock(window));
                 if (!sequences[client->window->window_low][decoded->seqnum]) {
                     /**
-                     * we store this value so to unlock the mutex
-                     * before the `fprintf` and `ip_to_string` call, 
-                     * because it is slow
+                     * we store this value so that we can unlock the 
+                     * mutex before the `fprintf` and `ip_to_string` 
+                     * call, because it is slow.
                      */
                     uint8_t temp = client->window->window_low;
                     pthread_mutex_unlock(buf_get_lock(window));
@@ -158,7 +158,7 @@ void *handle_thread_temp(void *config) {
                         stderr, 
                         "[%s][%5u] Out of order packet (window low: %d, got: %d)\n",
                         ip_as_str,
-                        client->address->sin6_port,
+                        ntohs(client->address->sin6_port),
                         temp,
                         decoded->seqnum
                     );
@@ -176,7 +176,7 @@ void *handle_thread_temp(void *config) {
                         stderr, 
                         "[%s][%5u] Packet received twice (window low: %d, got: %d)\n",
                         ip_as_str,
-                        client->address->sin6_port,
+                        ntohs(client->address->sin6_port),
                         temp,
                         decoded->seqnum
                     );
@@ -253,6 +253,7 @@ void *handle_thread_temp(void *config) {
                          * in-sequence DATA packet with length = 0
                          * means the transfer should end
                          */
+                        fprintf(stderr,"%u\n", pak->length);
                         if (pak->length == 0) {
                             remove = true;
                         } else {
@@ -301,10 +302,10 @@ void *handle_thread_temp(void *config) {
                             uint16_t port = client->address->sin6_port;
 
                             ip_to_string(req->client->address->sin6_addr.__in6_u.__u6_addr8, ip_as_str);
-                            fprintf(stderr, "[%s][%5u] Done transfering file\n", ip_as_str, client->address->sin6_port);
+                            fprintf(stderr, "[%s][%5u] Done transferring file\n", ip_as_str, client->address->sin6_port);
                             
                             ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
-
+                            pthread_mutex_unlock(client_get_lock(client));
                             deallocate_client(client, false, true);
 
                             fprintf(stderr, "[%s][%5u] Destroyed\n", ip_as_str, port);

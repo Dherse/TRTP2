@@ -4,7 +4,7 @@
 /*
  * Refer to headers/handler.h
  */
-void *handle_thread(void *config) {
+void *handle_thread_temp(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
 
     packet_t to_send;
@@ -200,7 +200,7 @@ void *handle_thread(void *config) {
 
                             
                             if (cnt > 0) {
-                                //fflush(client->out_file);
+                                fflush(client->out_file);
 
                                 //fprintf(stderr, "LEN: old: %3d, new: %3d, count: %2d\n", window->length, window->length - cnt, cnt);
                                 //fprintf(stderr, "LOW: old: %3d, new: %3d, count: %2d\n", window->window_low, window->window_low + cnt, cnt);
@@ -272,7 +272,7 @@ void *handle_thread(void *config) {
 
                                         /*ht_remove(cfg->clients, port, client->address->sin6_addr.__in6_u.__u6_addr8);
 
-                                        fclose(client->out_file);
+                                        */fclose(client->out_file);/*
 
                                         free(client->addr_len);
                                         
