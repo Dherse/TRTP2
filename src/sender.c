@@ -1,4 +1,5 @@
 #include "../headers/receiver.h"
+#include "../headers/handler.h"
 
 void *send_thread(void *sender_config){
     if(sender_config == NULL) {
@@ -20,7 +21,7 @@ void *send_thread(void *sender_config){
         req = (tx_req_t *) node->content;
         if (req == NULL) {
             fprintf(stderr, "[TX] `content` is NULL\n");
-            deallocate_node(node);
+            enqueue_or_free(snd_cfg->send_tx, node);
             
             continue;
         }
@@ -60,10 +61,7 @@ void *send_thread(void *sender_config){
             if (req->deallocate_address) {
                 free(req->address);
             }
-
-            if(!stream_enqueue(snd_cfg->send_tx, node, false)){
-                deallocate_node(node);
-            }
+            enqueue_or_free(snd_cfg->send_tx, node);
         }
     }
 
