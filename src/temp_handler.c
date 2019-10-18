@@ -350,7 +350,7 @@ void *allocate_handle_request() {
 /**
  * Refer to headers/receiver.h
  */
-inline s_node_t *pop_and_check_req(stream_t *stream) {
+s_node_t *pop_and_check_req(stream_t *stream) {
     s_node_t *node = stream_pop(stream, false);
 
     if (node == NULL) {
