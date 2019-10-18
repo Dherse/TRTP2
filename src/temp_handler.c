@@ -49,8 +49,7 @@ void *handle_thread(void *config) {
     
         //check if the thread should stop
         if (req->stop) {
-            free(req);
-            free(node_rx);
+            deallocate_node(node_rx);
             break;
         }
         
@@ -93,7 +92,7 @@ void *handle_thread(void *config) {
             }
             
             //if failed to enqueue, free data
-            enqueue_or_free(cfg->tx,node_rx);
+            enqueue_or_free(cfg->tx, node_rx);
             continue;
         }
         remove = false;
@@ -141,8 +140,7 @@ void *handle_thread(void *config) {
                 if (pack(send_req->to_send, &to_send, false)) {
                     fprintf(stderr, "[%s] Failed to pack NACk\n", ip_as_str);
                     //TODO : reuse buffer instead of free
-                    free(send_req);
-                    free(send_node);
+                    deallocate_node(send_node);
                 } else {
                     stream_enqueue(cfg->send_tx, send_node, true);
                 }
@@ -289,6 +287,8 @@ void *handle_thread(void *config) {
                              * retransmission timer do its thing
                              */
                             client->window->window_low--;
+                            enqueue_or_free(cfg->tx, node_rx);
+                            deallocate_node(send_node);
                             continue;
                         } 
                         if (remove) {
@@ -305,6 +305,8 @@ void *handle_thread(void *config) {
                         }
 
                         stream_enqueue(cfg->send_tx, send_node, true);
+                    } else {
+                        deallocate_node(send_node);
                     }
                 }
             }
@@ -323,8 +325,7 @@ void *handle_thread(void *config) {
 inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
     if (!stream_enqueue(stream, node, false)) {
         //TODO : replace with getter
-        free(node->content);
-        free(node);
+        deallocate_node(node);
     }
 }
 
