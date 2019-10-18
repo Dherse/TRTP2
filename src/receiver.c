@@ -1,111 +1,164 @@
-
+#define _GNU_SOURCE
 #include "../headers/receiver.h"
 #include "../headers/handler.h"
+
+#define RECV_LEN 31
+
+bool init = false;
+pthread_mutex_t receiver_mutex;
 
 /*
  * Refer to headers/receiver.h
  */
 void *receive_thread(void *receive_config) {
+    fprintf(stderr, "Hello\n");
     if(receive_config == NULL) {
         pthread_exit(NULL_ARGUMENT);
     }
+
+
+    if (!init) {
+        pthread_mutex_init(&receiver_mutex, NULL);
+        init = true;
+    }
+
     rx_cfg_t *rcv_cfg = (rx_cfg_t *) receive_config;
+
+    pthread_t thread = pthread_self();
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(6 + rcv_cfg->i, &cpuset);
+
+    int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+    if (aff == -1) {
+        fprintf(stderr, "[RX] Failed to set affinity\n");
+    }
 
     const size_t buf_size = sizeof(uint8_t) * 528;
 
-    struct sockaddr_in6 sockaddr;
-    socklen_t addr_len = sizeof(sockaddr);
+    socklen_t addr_len = sizeof(struct sockaddr_in6);
     s_node_t *node;
     hd_req_t *req;
 
-    bool already_popped = false;
     char ip_as_str[46]; //to print an IP if needed
 
-    uint16_t port;
-    uint8_t ip[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+    uint8_t buffers[RECV_LEN][528];
+    struct sockaddr_in6 addrs[RECV_LEN];
+    struct mmsghdr msgs[RECV_LEN];
+    struct iovec iovecs[RECV_LEN];
+
+    int i = 0, j;
+    for(i = 0; i < RECV_LEN; i++) {
+        iovecs[i].iov_base = buffers[i];
+        iovecs[i].iov_len = 528;
+
+        msgs[i].msg_hdr.msg_name = &addrs[i];
+        msgs[i].msg_hdr.msg_namelen = addr_len;
+        msgs[i].msg_hdr.msg_iov = &iovecs[i];
+        msgs[i].msg_hdr.msg_iovlen = 1;
+        msgs[i].msg_hdr.msg_flags = 0;
+        msgs[i].msg_hdr.msg_control = NULL;
+    }
+
+    bool already_popped = false;
     
+    int retval;
     while(!rcv_cfg->stop) {
-        if(!already_popped) {
-            node = stream_pop(rcv_cfg->rx, false);
-            if(node == NULL) {
-                node = malloc(sizeof(s_node_t));
-                if (initialize_node(node, allocate_handle_request)) {
-                    fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
-                    break;
-                }
-            }
 
-            req = (hd_req_t *) node->content;
-            if(req == NULL) {
-                fprintf(stderr, "[RX] `content` in a node was NULL\n");
-                node->content = (hd_req_t *) allocate_handle_request();
-                req = (hd_req_t *) node->content;
-            }
-        }
+        struct timespec tmo;
+        tmo.tv_sec = 0;
+        tmo.tv_nsec = 1000*1000;
 
-        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
-        if(req->length == -1) {
+        retval = recvmmsg(rcv_cfg->sockfd, msgs, RECV_LEN, 0, &tmo);
+        if (retval == -1) {
             switch(errno) {
                 case EAGAIN:
-                    already_popped = true;
                     break;
-
                 default :
-                    already_popped = true;
                     fprintf(stderr, "[RX] recvfrom failed. (errno = %d)\n", errno);
+                    perror("rcvmmsg");
+                    break;
             }
-        } else if (req->length >= 11) {
-            /** set the last handle_request parameters */
-            port = (uint16_t) sockaddr.sin6_port;
-            move_ip(ip, sockaddr.sin6_addr.__in6_u.__u6_addr8);
-
-            /** check if sockaddr is already known in the hash-table */
-            client_t *contained = ht_get(rcv_cfg->clients, port, ip);
-            
-            if (contained == NULL && rcv_cfg->clients->length >= rcv_cfg->max_clients) {
-                /** the client is new **but** the maximum number of clients is already reached */
-                ip_to_string(ip, ip_as_str);
-
-                fprintf(stderr, "[%s] New client but max sized reached, ignored\n", ip_as_str);
-
-                already_popped = true;
-            } else {
-                if(contained == NULL) {
-                    ip_to_string(ip, ip_as_str);
-
-                    /** add new client in `clients` */
-                    contained = (client_t *) calloc(1, sizeof(client_t));
-                    if(contained == NULL){
-                        fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
-                        break;
-                    } 
-                    if(initialize_client(contained, rcv_cfg->idx++, rcv_cfg->file_format) == -1) {
-                        fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
-                        free(contained);
-                        break;
+        } else if (retval >= 1) {
+            client_t *contained = NULL;
+            node = NULL;
+            for(i = 0; i < retval; i++) {
+                if (contained != NULL && ip_equals(
+                    addrs[i].sin6_addr.__in6_u.__u6_addr8, 
+                    contained->address->sin6_addr.__in6_u.__u6_addr8) && 
+                    contained->address->sin6_port == addrs[i].sin6_port
+                ) {
+                } else {
+                    if (node != NULL) {
+                        stream_enqueue(rcv_cfg->tx, node, true);
                     }
-                    *contained->address = sockaddr;
-                    *contained->addr_len = addr_len;
-                    
-                    ht_put(rcv_cfg->clients, port, ip, (void *) contained);
 
-                    fprintf(stderr, "[%s][%5u] New client\n", ip_as_str, port);
+                    contained = ht_get(rcv_cfg->clients, addrs[i].sin6_port, addrs[i].sin6_addr.__in6_u.__u6_addr8);
+                    if (!contained) {
+                        /** add new client in `clients` */
+                        contained = (client_t *) calloc(1, sizeof(client_t));
+                        if(contained == NULL) {
+                            char ip_as_str[46];
+                            ip_to_string(&addrs[i], ip_as_str);
+                            fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                            break;
+                        } 
+
+                        if(initialize_client(
+                            contained, 
+                            rcv_cfg->idx++, 
+                            rcv_cfg->file_format, 
+                            &addrs[i], 
+                            &addr_len
+                        )) {
+                            char ip_as_str[46];
+                            ip_to_string(&addrs[i], ip_as_str);
+                            fprintf(stderr, "[%s] Client initialization failed\n", ip_as_str);
+                            free(contained);
+                            continue;
+                        }
+                        
+                        ht_put(rcv_cfg->clients, addrs[i].sin6_port, addrs[i].sin6_addr.__in6_u.__u6_addr8, (void *) contained);
+
+                        //pl_add(&poll_list, contained);
+
+                        fprintf(stderr, "[%s][%5u] New client\n", contained->ip_as_string, ntohs(contained->address->sin6_port));
+                    }
+
+                    if (!already_popped) {
+                        node = stream_pop(rcv_cfg->rx, false);
+                        if(node == NULL) {
+                            node = malloc(sizeof(s_node_t));
+                            if (initialize_node(node, allocate_handle_request)) {
+                                fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
+                                break;
+                            }
+                        }
+
+                        req = (hd_req_t *) node->content;
+                        if(req == NULL) {
+                            fprintf(stderr, "[RX] `content` in a node was NULL\n");
+                            node->content = (hd_req_t *) allocate_handle_request();
+                            req = (hd_req_t *) node->content;
+                        }
+                    }
+
+                    already_popped = false;
+
+                    req->client = contained;
+                    req->num = 0;
                 }
 
-                req->client = contained;
-
-                /** send handle_request */
-                stream_enqueue(rcv_cfg->tx, node, true);
-                already_popped = false;
+                int idx = req->num++;
+                req->lengths[idx] = msgs[i].msg_len;
+                memcpy(req->buffer[idx], buffers[i], req->lengths[idx]);
             }
+
+
+            stream_enqueue(rcv_cfg->tx, node, true);
         }
     }
-
-    if(already_popped) {
-        free(req);
-        free(node);
-    }
-
     fprintf(stderr, "[RX] Stopped\n");
 
     pthread_exit(0);
@@ -147,4 +200,6 @@ void *allocate_send_request() {
     req->deallocate_address = false;
     req->address = NULL;
     memset(req->to_send, 0, 32);
+
+    return req;
 }

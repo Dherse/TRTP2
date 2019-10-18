@@ -28,6 +28,8 @@
 #endif
 
 typedef struct receive_thread_config {
+    int i;
+
     /** Thread reference */
     pthread_t *thread;
 

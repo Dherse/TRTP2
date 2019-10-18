@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #ifndef HD_H
 
 #include "global.h"
@@ -6,6 +7,7 @@
 #include "buffer.h"
 #include "lookup.h"
 #include "client.h"
+#include <sys/socket.h>
 
 #define HD_H
 
@@ -13,6 +15,8 @@
     num1 > num2 ? num2 : num1
 
 typedef struct handle_thread_config {
+    uint8_t id;
+
     /** Thread reference */
     pthread_t *thread;
 
@@ -43,11 +47,13 @@ typedef struct handle_request {
     /** the client port */
     client_t *client;
 
-    /** length of the data read from the network */
-    ssize_t length;
+    /** number of buffers read */
+    size_t num;
+
+    uint16_t lengths[31];
 
     /** data read from the network */
-    uint8_t buffer[528];
+    uint8_t buffer[31][528];
 } hd_req_t;
 
 /**
@@ -63,7 +69,7 @@ GETSET(hd_req_t, client_t, client);
 /**
  * Macro to create getters and setters
  */
-GETSET(hd_req_t, ssize_t, length);
+GETSET(hd_req_t, size_t, length);
 
 uint8_t *get_buffer(hd_req_t* self);
 

@@ -1,9 +1,22 @@
+#define _GNU_SOURCE
 #include "../headers/receiver.h"
 
 void *send_thread(void *sender_config){
     if(sender_config == NULL) {
         pthread_exit(NULL_ARGUMENT);
     }
+
+    pthread_t thread = pthread_self();
+
+    cpu_set_t cpuset;
+    CPU_ZERO(&cpuset);
+    CPU_SET(0, &cpuset);
+
+    int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+    if (aff == -1) {
+        fprintf(stderr, "[TX] Failed to set affinity\n");
+    }
+
     
     tx_cfg_t *snd_cfg = (tx_cfg_t *) sender_config;
 
@@ -12,6 +25,7 @@ void *send_thread(void *sender_config){
     tx_req_t *req;
 
     while (true) {
+        req = NULL;
         node = stream_pop(snd_cfg->send_rx, true);
         if (node == NULL) {
             continue;
@@ -53,6 +67,9 @@ void *send_thread(void *sender_config){
                         break;
                     case EWOULDBLOCK:
                         fprintf(stderr, "would block\n");
+                        break;
+                    default:
+                        fprintf(stderr, "other: %d\n", errno);
                         break;
                 }
             }

@@ -48,6 +48,8 @@ typedef struct client {
     buf_t *window;
 
     uint32_t id;
+
+    char ip_as_string[46];
 } client_t;
 
 GETSET(client_t, FILE *, out_file);
@@ -72,13 +74,22 @@ void set_active(client_t *self, bool active);
  * - `client` - a pointer to an already allocated client
  * - `id`     - the ID for the file name format
  * - `format` - the file name format
+ * - `target_list` - the poll list to add the client to
+ * - `address` - the client's address
+ * - `add_len` - address length
  *
  * ## Return value
  *
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error. 
  */
-int initialize_client(client_t *client, uint32_t id, char *format);
+int initialize_client(
+    client_t *client, 
+    uint32_t id, 
+    char *format, 
+    struct sockaddr_in6 *address,
+    socklen_t *addr_len
+);
 
 /**
  * ## Use

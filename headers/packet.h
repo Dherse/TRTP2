@@ -270,7 +270,7 @@ int packet_to_string(packet_t *packet, bool print_payload);
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int ip_to_string(uint8_t *ip, char *target);
+int ip_to_string(struct sockaddr_in6 *ip, char *target);
 
 /**
  * ## Use

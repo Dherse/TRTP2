@@ -38,7 +38,13 @@ void set_active(client_t *self, bool active) {
 /*
  * Refer to headers/client.h
  */
-int initialize_client(client_t *client, uint32_t id, char *format) {
+int initialize_client(
+    client_t *client, 
+    uint32_t id, 
+    char *format, 
+    struct sockaddr_in6 *address,
+    socklen_t *addr_len
+) {
     client->id = id;
 
     client->lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
@@ -76,6 +82,9 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
+    *client->address = *address;
+
     client->addr_len = (socklen_t *) malloc(sizeof(socklen_t));
     if(client->addr_len == NULL) {
         free(client->address);
@@ -85,6 +94,8 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
+    *client->addr_len = *addr_len;
 
     client->window = (buf_t *) malloc(sizeof(buf_t));
     if(client->window == NULL){
@@ -102,11 +113,14 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         free(client->address);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
-        free(client);
         free(client->window);
+        free(client);
+
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+
+    ip_to_string(address, client->ip_as_string);
 
     return 0;
 }

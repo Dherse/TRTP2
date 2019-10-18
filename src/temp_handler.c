@@ -1,6 +1,9 @@
+#define _GNU_SOURCE
 #include "../headers/receiver.h"
 #include "../headers/handler.h"
 #include "../headers/global.h"
+
+#ifdef YOLO
 
 /*
  * Refer to headers/handler.h
@@ -323,6 +326,8 @@ void *handle_thread_temp(void *config) {
     }
 }
 
+#endif
+
 /*
  * Refer to headers/handler.h
  */
@@ -343,11 +348,16 @@ void *allocate_handle_request() {
         errno = FAILED_TO_ALLOCATE;
         return NULL;
     }
+
+    int i = 0;
+    for (; i < 31; i++) {
+        memset(req->buffer[i], 0, 528);
+        req->lengths[i] = 0;
+    }
     
     req->stop = false;
     req->client = NULL;
-    req->length = 0;
-    memset(req->buffer, 0, 528);
+    req->num = 0;
 
     return req;
 }

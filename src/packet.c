@@ -352,19 +352,13 @@ int packet_to_string(packet_t* packet, bool print_payload) {
 /**
  * Refer to headers/packet.h
  */
-int ip_to_string(uint8_t *ip, char *target) {
+int ip_to_string(struct sockaddr_in6 *ip, char *target) {
     if (target == NULL) {
         errno = NULL_ARGUMENT;
         return -1;
     }
 
-    struct in6_addr addr;
-    if (addr.__in6_u.__u6_addr8 != memcpy(addr.__in6_u.__u6_addr8, ip, 16)) {
-        errno = FAILED_TO_COPY;
-        return -1;
-    }
-
-    if (target != inet_ntop(AF_INET6, &addr, target, 18)) {
+    if (target != inet_ntop(AF_INET6, &ip->sin6_addr, target, 18)) {
         errno = FAILED_TO_COPY;
         return -1;
     }
@@ -375,7 +369,7 @@ int ip_to_string(uint8_t *ip, char *target) {
 /**
  * Refer to headers/packet.h
  */
-bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
+inline bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
     if (ip1 == NULL) {
         return ip2 == NULL;
     } else if (ip2 == NULL) {

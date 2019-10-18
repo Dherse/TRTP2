@@ -1,3 +1,5 @@
+#define _GNU_SOURCE
+
 #include "../headers/main.h"
 
 #define MAX_STREAM_LEN 2048*2048
@@ -40,7 +42,7 @@ void deallocate_everything(
     stream_t *hd_to_tx,
     stream_t *tx_to_hd,
     ht_t *clients,
-    rx_cfg_t *rx_config,
+    rx_cfg_t **rx_configs,
     int hd_count,
     hd_cfg_t **hd_configs,
     tx_cfg_t *tx_config
@@ -51,15 +53,18 @@ void deallocate_everything(
     drain(tx_to_hd);
 
     fprintf(stderr, "[STOP] Deallocation called\n");
-    if (rx_config != NULL) {
-        if (rx_config->thread != NULL) {
-            rx_config->stop = true;
-            fprintf(stderr, "[STOP] Waiting for RX\n");
-            pthread_join(*rx_config->thread, NULL);
-            free(rx_config->thread);
-        }
+    int i ;
+    for (i = 0; i < 2; i++) {
+        if (rx_configs[i] != NULL) {
+            if (rx_configs[i]->thread != NULL) {
+                rx_configs[i]->stop = true;
+                fprintf(stderr, "[STOP] Waiting for RX\n");
+                pthread_join(*rx_configs[i]->thread, NULL);
+                free(rx_configs[i]->thread);
+            }
 
-        free(rx_config);
+            free(rx_configs[i]);
+        }
     }
 
     if (tx_config != NULL) {
@@ -83,7 +88,6 @@ void deallocate_everything(
         free(tx_config);
     }
 
-    int i;
     for(i = 0; i < hd_count; i++) {
         s_node_t *stop_node = malloc(sizeof(s_node_t));
 
@@ -208,7 +212,7 @@ int main(int argc, char *argv[]) {
 
     ht_t *clients;
 
-    rx_cfg_t *rx_config;
+    rx_cfg_t **rx_configs;
     hd_cfg_t **hd_configs;
     tx_cfg_t *tx_config;
 
@@ -286,7 +290,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -307,7 +311,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -328,7 +332,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -349,7 +353,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -370,7 +374,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -379,8 +383,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    rx_config = calloc(1, sizeof(rx_cfg_t));
-    if (rx_config == NULL) {
+    rx_configs = calloc(2, sizeof(rx_cfg_t *));
+    if (rx_configs == NULL) {
         fprintf(stderr, "[MAIN] Failed to initialize 'rx_config'\n");
         
         deallocate_everything(
@@ -391,13 +395,37 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
         );
         
         return -1;
+    }
+    
+    int i;
+    for (i = 0; i < 2; i++) {
+        rx_configs[i] = calloc(1, sizeof(rx_cfg_t));
+        if (rx_configs[i] == NULL) {
+            fprintf(stderr, "[MAIN] Failed to initialize 'rx_config'\n");
+            
+            deallocate_everything(
+                &config,
+                sockfd,
+                rx_to_hd, 
+                hd_to_rx, 
+                hd_to_tx, 
+                tx_to_hd, 
+                clients, 
+                rx_configs,
+                config.handle_num,
+                hd_configs, 
+                tx_config
+            );
+            
+            return -1;
+        }
     }
 
     hd_configs = (hd_cfg_t **) calloc(config.handle_num, sizeof(hd_cfg_t *));
@@ -412,7 +440,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -421,8 +449,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int i = 0;
-    for (; i < config.handle_num; i++) {
+    for (i = 0; i < config.handle_num; i++) {
         hd_configs[i] = calloc(1, sizeof(hd_cfg_t));
         if (hd_configs[i] == NULL) {
             fprintf(stderr, "[MAIN] Failed to initialize 'hd_configs[%d]'\n", i);
@@ -435,7 +462,7 @@ int main(int argc, char *argv[]) {
                 hd_to_tx, 
                 tx_to_hd, 
                 clients, 
-                rx_config,
+                rx_configs,
                 config.handle_num,
                 hd_configs, 
                 tx_config
@@ -457,7 +484,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -470,21 +497,25 @@ int main(int argc, char *argv[]) {
     // Thread configs initialization
     // -------------------------------------------------------------------------
 
-    rx_config->clients = clients;
-    rx_config->file_format = config.format;
-    rx_config->idx = 0;
-    rx_config->max_clients = config.max_connections;
-    rx_config->sockfd = sockfd;
-    rx_config->stop = false;
-    rx_config->rx = hd_to_rx;
-    rx_config->tx = rx_to_hd;
-    rx_config->addr_len = &config.addr_info->ai_addrlen;
+    for (i = 0; i < 2; i++) {
+        rx_configs[i]->i = i;
+        rx_configs[i]->clients = clients;
+        rx_configs[i]->file_format = config.format;
+        rx_configs[i]->idx = 0;
+        rx_configs[i]->max_clients = config.max_connections;
+        rx_configs[i]->sockfd = sockfd;
+        rx_configs[i]->stop = false;
+        rx_configs[i]->rx = hd_to_rx;
+        rx_configs[i]->tx = rx_to_hd;
+        rx_configs[i]->addr_len = &config.addr_info->ai_addrlen;
+    }
 
     tx_config->send_rx = hd_to_tx;
     tx_config->send_tx = tx_to_hd;
     tx_config->sockfd = sockfd;
 
     for (i = 0; i < config.handle_num; i++) {
+        hd_configs[i]->id = i;
         hd_configs[i]->sockfd = sockfd;
         hd_configs[i]->clients = clients;
         hd_configs[i]->rx = rx_to_hd;
@@ -498,45 +529,47 @@ int main(int argc, char *argv[]) {
     // Thread initialization
     // -------------------------------------------------------------------------
 
-    rx_config->thread = malloc(sizeof(pthread_t));
-    if (rx_config->thread == NULL) {
-        fprintf(stderr, "[MAIN] Failed to initialize 'rx_config->thread'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
-            clients, 
-            rx_config,
-            config.handle_num,
-            hd_configs, 
-            tx_config
-        );
-        
-        return -1;
-    }
+    for (i = 0; i < 2; i++) {
+        rx_configs[i]->thread = malloc(sizeof(pthread_t));
+        if (rx_configs[i]->thread == NULL) {
+            fprintf(stderr, "[MAIN] Failed to initialize 'rx_config->thread'\n");
+            
+            deallocate_everything(
+                &config,
+                sockfd,
+                rx_to_hd, 
+                hd_to_rx, 
+                hd_to_tx, 
+                tx_to_hd, 
+                clients, 
+                rx_configs,
+                config.handle_num,
+                hd_configs, 
+                tx_config
+            );
+            
+            return -1;
+        }
 
-    if (pthread_create(rx_config->thread, NULL, &receive_thread, (void *) rx_config)) {
-        fprintf(stderr, "[MAIN] Failed to start 'rx_config->thread'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
-            clients, 
-            rx_config,
-            config.handle_num,
-            hd_configs, 
-            tx_config
-        );
-        
-        return -1;
+        if (pthread_create(rx_configs[i]->thread, NULL, &receive_thread, (void *) rx_configs[i])) {
+            fprintf(stderr, "[MAIN] Failed to start 'tx_config->thread'\n");
+            
+            deallocate_everything(
+                &config,
+                sockfd,
+                rx_to_hd, 
+                hd_to_rx, 
+                hd_to_tx, 
+                tx_to_hd, 
+                clients, 
+                rx_configs,
+                config.handle_num,
+                hd_configs, 
+                tx_config
+            );
+            
+            return -1;
+        }
     }
 
     tx_config->thread = malloc(sizeof(pthread_t));
@@ -551,7 +584,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -571,7 +604,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -593,7 +626,7 @@ int main(int argc, char *argv[]) {
                 hd_to_tx, 
                 tx_to_hd, 
                 clients, 
-                rx_config,
+                rx_configs,
                 config.handle_num,
                 hd_configs, 
                 tx_config
@@ -613,7 +646,7 @@ int main(int argc, char *argv[]) {
                 hd_to_tx, 
                 tx_to_hd, 
                 clients, 
-                rx_config,
+                rx_configs,
                 config.handle_num,
                 hd_configs, 
                 tx_config
@@ -640,7 +673,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -660,7 +693,7 @@ int main(int argc, char *argv[]) {
             hd_to_tx, 
             tx_to_hd, 
             clients, 
-            rx_config,
+            rx_configs,
             config.handle_num,
             hd_configs, 
             tx_config
@@ -693,7 +726,7 @@ int main(int argc, char *argv[]) {
         hd_to_tx, 
         tx_to_hd, 
         clients, 
-        rx_config,
+        rx_configs,
         config.handle_num,
         hd_configs, 
         tx_config
