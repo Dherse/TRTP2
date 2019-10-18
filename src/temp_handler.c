@@ -2,8 +2,8 @@
 #include "../headers/handler.h"
 #include "../headers/global.h"
 
-/*
- * Refer to headers/handler.h
+/**
+ * Refer to headers/receiver.h
  */
 void *handle_thread(void *config) {
     if(config == NULL) {
@@ -88,6 +88,13 @@ void *handle_thread(void *config) {
 
         //we don't expect any ACK/NACK or IGNORE type
         if(decoded->type == DATA) {
+            s_node_t *send_node = pop_and_check_req(cfg->send_rx);
+            if(send_node == NULL) {
+                enqueue_or_free(cfg->tx, node_rx);
+                continue;
+            }
+            tx_req_t *send_req = (tx_req_t *) send_node->content;
+
 
             /** 
              * upon truncated DATA packet reception, send NACK
@@ -106,20 +113,6 @@ void *handle_thread(void *config) {
                     decoded->seqnum
                 );
                 
-                s_node_t *send_node = stream_pop(cfg->send_rx, false);
-
-                //if there is no buffer available, allocate a new one
-                if (send_node == NULL) {
-                    send_node = malloc(sizeof(s_node_t));
-                    if(send_node == NULL || initialize_node(send_node, allocate_send_request)) {
-                        free(send_node);
-                        enqueue_or_free(cfg->tx,node_rx);
-                        continue;
-                    }
-                }
-
-                tx_req_t *send_req = (tx_req_t *) send_node->content;
-                //TODO : check if send_req == NULL
 
                 send_req->stop = false;
                 send_req->address = client->address;
@@ -253,7 +246,6 @@ void *handle_thread(void *config) {
                          * in-sequence DATA packet with length = 0
                          * means the transfer should end
                          */
-                        fprintf(stderr,"%u\n", pak->length);
                         if (pak->length == 0) {
                             remove = true;
                         } else {
@@ -262,18 +254,6 @@ void *handle_thread(void *config) {
 
                         window->length -= cnt;
                         window->window_low += cnt;
-
-                        s_node_t *send_node = stream_pop(cfg->send_rx, false);
-                        if (send_node == NULL) {
-                            send_node = malloc(sizeof(s_node_t));
-                            if(initialize_node(send_node, allocate_send_request)) {
-                                free(send_node);
-                                enqueue_or_free(cfg->tx, node_rx);
-                                continue;
-                            }
-                        }
-
-                        tx_req_t *send_req = (tx_req_t *) send_node->content;
 
                         send_req->address = client->address;
 
@@ -335,7 +315,7 @@ inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
     }
 }
 
-/*
+/**
  * Refer to headers/receiver.h
  */
 void *allocate_handle_request() {
@@ -351,4 +331,20 @@ void *allocate_handle_request() {
     memset(req->buffer, 0, 528);
 
     return req;
+}
+
+/**
+ * Refer to headers/receiver.h
+ */
+inline s_node_t *pop_and_check_req(stream_t *stream) {
+    s_node_t *node = stream_pop(stream, false);
+
+    if (node == NULL) {
+        node = malloc(sizeof(s_node_t));
+        if(initialize_node(node, allocate_send_request)) {
+            free(node);
+            return NULL;
+        }
+    }
+    return node;
 }

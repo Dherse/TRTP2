@@ -162,4 +162,19 @@ void *allocate_handle_request();
  * - `node`   - the node to append
  */
 void enqueue_or_free(stream_t *stream, s_node_t *node);
+
+
+/**
+ * ## Use
+ *
+ * tries to pop a node from the stream without waiting
+ * if `stream_pop` fails, allocates and initializes a `s_node_t`
+ * and it's `send_request`. 
+ * 
+ * ## Arguments
+ * 
+ * - `stream` - the stream from which the node should
+ *              be popped
+ */
+s_node_t *pop_and_check_req(stream_t *stream);
 #endif
