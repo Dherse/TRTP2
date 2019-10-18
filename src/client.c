@@ -4,10 +4,11 @@ GETSET_IMPL(client_t, FILE *, out_file);
 
 GETSET_IMPL(client_t, struct sockaddr_in6 *, address);
 
-GETSET_IMPL(client_t, socklen_t *, addr_len);
+GETSET_IMPL(client_t, socklen_t, addr_len);
 
 GETSET_IMPL(client_t, uint32_t, id);
 
+#define SIZE_SOCKADDR_IN6 sizeof(struct sockaddr_in6)
 
 pthread_mutex_t *client_get_lock(client_t *self) {
     return self->lock;
@@ -77,19 +78,11 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         return -1;
     }
 
-    client->addr_len = (socklen_t *) malloc(sizeof(socklen_t));
-    if(client->addr_len == NULL) {
-        free(client->address);
-        pthread_mutex_destroy(client->lock);
-        free(client->lock);
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
+    //TODO
+    client->addr_len = SIZE_SOCKADDR_IN6;
 
     client->window = (buf_t *) malloc(sizeof(buf_t));
     if(client->window == NULL){
-        free(client->addr_len);
         free(client->address);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
@@ -99,7 +92,6 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
     }
     
     if(initialize_buffer(client->window, &allocate_packet) != 0) { 
-        free(client->addr_len);
         free(client->address);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
@@ -126,7 +118,6 @@ void deallocate_client(client_t *client, bool dealloc_addr, bool close_file) {
 
     if (dealloc_addr) {
         free(client->address);
-        free(client->addr_len);
     }
 
     if (close_file) {

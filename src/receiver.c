@@ -34,7 +34,7 @@ void *receive_thread(void *receive_config) {
             req = (hd_req_t *) node->content;
         }
 
-        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, rcv_cfg->addr_len);
+        req->length = recvfrom(rcv_cfg->sockfd, req->buffer, buf_size, 0, (struct sockaddr *) &sockaddr, &rcv_cfg->addr_len);
         if(req->length == -1) {
             switch(errno) {
                 case EAGAIN:
@@ -76,7 +76,6 @@ void *receive_thread(void *receive_config) {
                         break;
                     }
                     *contained->address = sockaddr;
-                    *contained->addr_len = addr_len;
                     
                     ht_put(rcv_cfg->clients, port, ip, (void *) contained);
 

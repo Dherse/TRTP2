@@ -23,6 +23,7 @@
 
 #endif
 
+
 typedef struct client {
     /**
      * Is the client actively exchanging data?
@@ -42,7 +43,7 @@ typedef struct client {
     struct sockaddr_in6 *address;
 
     /** Client address length */
-    socklen_t *addr_len;
+    socklen_t addr_len;
 
     /** Current client receive window */
     buf_t *window;
@@ -52,7 +53,7 @@ typedef struct client {
 
 GETSET(client_t, FILE *, out_file);
 GETSET(client_t, struct sockaddr_in6 *, address);
-GETSET(client_t, socklen_t *, addr_len);
+GETSET(client_t, socklen_t, addr_len);
 GETSET(client_t, buf_t *, window);
 GETSET(client_t, uint32_t, id);
 
