@@ -59,7 +59,7 @@ release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 8 -w 31 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 4 -N 2 -w 31 :: 5555
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -127,7 +127,7 @@ plot:
 
 debug: FLAGS += $(DEBUG_FLAGS)
 debug: build
-	gdb -ex run --args $(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d :: 5555
+	gdb -ex run --args $(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -s :: 5555
 
 tcpdump:
 	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap 

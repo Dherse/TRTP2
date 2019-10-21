@@ -299,16 +299,27 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
 
 int parse_affinity_file(config_rcv_t *config) {
     config->handle_affinities = calloc(config->handle_num, sizeof(afs_t));
+    if (config->handle_affinities == NULL) {
+        return -1;
+    }
+
     config->receive_affinities = calloc(config->receive_num, sizeof(afs_t));
+    if (config->receive_affinities == NULL) {
+        free(config->handle_affinities);
+        config->handle_affinities = NULL;
+        return -1;
+    }
 
     FILE *file;
     if ((file = fopen("./affinity.cfg", "r"))) {
-        char *line = NULL, *token;
+        char *line = alloca(sizeof(char) * 3), *token;
         size_t len = 0, i;
         size_t read;
 
         read = getline(&line, &len, file);
         if (read == -1 || line == NULL) {
+            fclose(file);
+            free(line);
             fprintf(stderr, "Failed to read RX affinity\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
@@ -318,8 +329,12 @@ int parse_affinity_file(config_rcv_t *config) {
         }
 
         i = 0;
+        char *line2 = line;
 	    while ((token = strsep(&line, ",")) != NULL) {
-            if (i > config->receive_num) {
+            if (i >= config->receive_num) {
+                fclose(file);
+                free(line);
+                free(line2);
                 fprintf(stderr, "Too many RX affinities\n");
                 free(config->handle_affinities);
                 free(config->receive_affinities);
@@ -330,6 +345,9 @@ int parse_affinity_file(config_rcv_t *config) {
 
             int cpu;
             if (str2int(&cpu, token, 10)) {
+                fclose(file);
+                free(line);
+                free(line2);
                 fprintf(stderr, "Failed to parse RX affinity: %s\n", token);
                 free(config->handle_affinities);
                 free(config->receive_affinities);
@@ -342,7 +360,11 @@ int parse_affinity_file(config_rcv_t *config) {
             i++;
         }
 
+        free(line2);
+
         if (i != config->receive_num) {
+            fclose(file);
+            free(line);
             fprintf(stderr, "Not enough RX affinities (%d)\n", i);
             free(config->handle_affinities);
             free(config->receive_affinities);
@@ -350,9 +372,11 @@ int parse_affinity_file(config_rcv_t *config) {
             config->receive_affinities = NULL;
             return -1;
         }
-
+        
         read = getline(&line, &len, file);
         if (read == -1) {
+            fclose(file);
+            free(line);
             fprintf(stderr, "Failed to read HD affinity\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
@@ -362,8 +386,12 @@ int parse_affinity_file(config_rcv_t *config) {
         }
 
         i = 0;
+        line2 = line;
 	    while ((token = strsep(&line, ",")) != NULL) {
-            if (i > config->handle_num) {
+            if (i >= config->handle_num) {
+                fclose(file);
+                free(line);
+                free(line2);
                 fprintf(stderr, "Too many HD affinities\n");
                 free(config->handle_affinities);
                 free(config->receive_affinities);
@@ -374,6 +402,9 @@ int parse_affinity_file(config_rcv_t *config) {
 
             int cpu;
             if (str2int(&cpu, token, 10)) {
+                fclose(file);
+                free(line);
+                free(line2);
                 fprintf(stderr, "Failed to parse HD affinity: %s\n", token);
                 free(config->handle_affinities);
                 free(config->receive_affinities);
@@ -386,7 +417,11 @@ int parse_affinity_file(config_rcv_t *config) {
             i++;
         }
 
+        free(line2);
+
         if (i != config->handle_num) {
+            fclose(file);
+            free(line);
             fprintf(stderr, "Not enough HD affinities\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
@@ -395,8 +430,14 @@ int parse_affinity_file(config_rcv_t *config) {
             return -1;
         }
 
+        free(line);
         fclose(file);
     } else {
+        fclose(file);
+        free(config->handle_affinities);
+        free(config->receive_affinities);
+        config->handle_affinities = NULL;
+        config->receive_affinities = NULL;
         fprintf(stderr, "No affinity file present\n");
     }
     return 0;
@@ -420,7 +461,7 @@ void print_config(config_rcv_t *config) {
 
             fprintf(stderr, "\n");
         }
-        
+
         fprintf(stderr, " - Number of handlers: %u (default 2)\n", config->handle_num);
         if (config->handle_num > 0 && config->handle_affinities != NULL) {
             fprintf(stderr, "  - Affinities (CPU): ");

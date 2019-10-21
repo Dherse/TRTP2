@@ -7,6 +7,7 @@
 #include "lookup.h"
 #include "client.h"
 #include "cli.h"
+#include "handler.h"
 
 #define RX_H
 
@@ -120,6 +121,16 @@ typedef struct receive_thread_config {
  * 
  */
 void *receive_thread(void *);
+
+void rx_run_once(
+    rx_cfg_t *rcv_cfg, 
+    uint8_t buffers[][528],
+    socklen_t addr_len,
+    bool *already_popped,
+    struct sockaddr_in6 *addrs, 
+    struct mmsghdr *msgs, 
+    struct iovec *iovecs
+);
 
 /**
  * ## Use :

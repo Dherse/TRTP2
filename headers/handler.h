@@ -26,11 +26,6 @@ typedef struct handle_thread_config {
     /** Handle to Receive stream */
     stream_t *tx;
 
-    /** Handle to Send stream */
-    stream_t *send_tx;
-    /** Send to Handle stream */
-    stream_t *send_rx;
-
     /** Hash table of client */
     ht_t *clients;
 
@@ -172,4 +167,16 @@ void *allocate_handle_request();
  * - `node`   - the node to append
  */
 void enqueue_or_free(stream_t *stream, s_node_t *node);
+
+void hd_run_once(
+    bool wait,
+    hd_cfg_t *cfg,
+    packet_t **decoded,
+    bool *exit,
+    uint8_t file_buffer[528],
+    uint8_t packets_to_send[][12],
+    struct mmsghdr *msg, 
+    struct iovec *iovecs
+);
+
 #endif

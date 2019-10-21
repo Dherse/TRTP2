@@ -40,7 +40,10 @@ void print_usage(char *exec) {
     fprintf(stderr, "Sequential:\n");
     fprintf(stderr, "  In sequential mode, only a single thread (the main thread) is used\n");
     fprintf(stderr, "  for the entire receiver. This means the parameters n & N will be\n");
-    fprintf(stderr, "  ignored. Affinities are also ignored.\n\n");
+    fprintf(stderr, "  ignored. Affinities are also ignored.\n");
+    fprintf(stderr, "  Sequential mode comes with a huge performance penalty as the different\n");
+    fprintf(stderr, "  components are ran sequentially while being designed for multithreaded use.\n\n");
+    fprintf(stderr, "  /!\\ You can expect about half the speed using sequential mode.\n\n");
     fprintf(stderr, "Affinities:\n");
     fprintf(stderr, "  Affinities are set using a affinity.cfg file in the\n");
     fprintf(stderr, "  working directory. This file should be formatted like this:\n");
@@ -144,6 +147,8 @@ int main(int argc, char *argv[]) {
     // Config parsing
     // -------------------------------------------------------------------------
     config_rcv_t config;
+    memset(&config, 0, sizeof(config_rcv_t));
+
     int parse = parse_receiver(argc, argv, &config);
     if (parse != 0) {
         switch(errno) {
@@ -197,13 +202,15 @@ int main(int argc, char *argv[]) {
 
     parse_affinity_file(&config);
 
+    if (config.sequential) {
+        config.handle_num = 1;
+        config.receive_num = 1;
+    }
+
     print_config(&config);
 
     stream_t *rx_to_hd;
     stream_t *hd_to_rx;
-
-    stream_t *hd_to_tx;
-    stream_t *tx_to_hd;
 
     ht_t *clients;
 
@@ -303,40 +310,6 @@ int main(int argc, char *argv[]) {
             hd_configs
         );
 
-        return -1;
-    }
-
-    hd_to_tx = calloc(1, sizeof(stream_t));
-    if (hd_to_tx == NULL || allocate_stream(hd_to_tx, MAX_STREAM_LEN)) {
-        fprintf(stderr, "[MAIN] Failed to initialize 'hd_to_tx'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx,
-            clients, 
-            rx_configs,
-            hd_configs
-        );
-
-        return -1;
-    }
-
-    tx_to_hd = calloc(1, sizeof(stream_t));
-    if (tx_to_hd == NULL || allocate_stream(tx_to_hd, MAX_STREAM_LEN)) {
-        fprintf(stderr, "[MAIN] Failed to initialize 'tx_to_hd'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx,
-            clients, 
-            rx_configs,
-            hd_configs
-        );
-        
         return -1;
     }
 
@@ -446,7 +419,7 @@ int main(int argc, char *argv[]) {
         rx_configs[i]->tx = rx_to_hd;
         rx_configs[i]->addr_len = &config.addr_info->ai_addrlen;
         rx_configs[i]->window_size = config.receive_window_size;
-        rx_configs[i]->affinity = &config.receive_affinities[i];
+        rx_configs[i]->affinity = config.receive_affinities == NULL ? NULL : &config.receive_affinities[i];
     }
 
     for (i = 0; i < config.handle_num; i++) {
@@ -455,83 +428,83 @@ int main(int argc, char *argv[]) {
         hd_configs[i]->clients = clients;
         hd_configs[i]->rx = rx_to_hd;
         hd_configs[i]->tx = hd_to_rx;
-        hd_configs[i]->send_tx = hd_to_tx;
-        hd_configs[i]->send_rx = tx_to_hd;
         hd_configs[i]->max_window_size = config.max_window;
-        hd_configs[i]->affinity = &config.handle_affinities[i];
+        hd_configs[i]->affinity = config.handle_affinities == NULL ? NULL : &config.handle_affinities[i];
     }
 
     // -------------------------------------------------------------------------
     // Thread initialization
     // -------------------------------------------------------------------------
 
-    for (i = 0; i < config.receive_num; i++) {
-        rx_configs[i]->thread = malloc(sizeof(pthread_t));
-        if (rx_configs[i]->thread == NULL) {
-            fprintf(stderr, "[MAIN] Failed to initialize 'rx_config[%d]->thread'\n", i);
-            
-            deallocate_everything(
-                &config,
-                sockfd,
-                rx_to_hd, 
-                hd_to_rx, 
-                clients, 
-                rx_configs,
-                hd_configs
-            );
-            
-            return -1;
+    if (!config.sequential) {
+        for (i = 0; i < config.receive_num; i++) {
+            rx_configs[i]->thread = malloc(sizeof(pthread_t));
+            if (rx_configs[i]->thread == NULL) {
+                fprintf(stderr, "[MAIN] Failed to initialize 'rx_config[%d]->thread'\n", i);
+                
+                deallocate_everything(
+                    &config,
+                    sockfd,
+                    rx_to_hd, 
+                    hd_to_rx, 
+                    clients, 
+                    rx_configs,
+                    hd_configs
+                );
+                
+                return -1;
+            }
+
+            if (pthread_create(rx_configs[i]->thread, NULL, &receive_thread, (void *) rx_configs[i])) {
+                fprintf(stderr, "[MAIN] Failed to start 'rx_configs[%d]->thread'\n", i);
+                
+                deallocate_everything(
+                    &config,
+                    sockfd,
+                    rx_to_hd, 
+                    hd_to_rx, 
+                    clients, 
+                    rx_configs,
+                    hd_configs
+                );
+                
+                return -1;
+            }
         }
 
-        if (pthread_create(rx_configs[i]->thread, NULL, &receive_thread, (void *) rx_configs[i])) {
-            fprintf(stderr, "[MAIN] Failed to start 'rx_configs[%d]->thread'\n", i);
+        for (i = 0; i < config.handle_num; i++) {
+            hd_configs[i]->thread = calloc(1, sizeof(hd_cfg_t));
+            if (hd_configs[i]->thread == NULL) {
+                fprintf(stderr, "[MAIN] Failed to initialize 'hd_configs[%d]->thread'\n", i);
             
-            deallocate_everything(
-                &config,
-                sockfd,
-                rx_to_hd, 
-                hd_to_rx, 
-                clients, 
-                rx_configs,
-                hd_configs
-            );
+                deallocate_everything(
+                    &config,
+                    sockfd,
+                    rx_to_hd, 
+                    hd_to_rx, 
+                    clients, 
+                    rx_configs,
+                    hd_configs
+                );
             
-            return -1;
-        }
-    }
+                return -1;
+            }
 
-    for (i = 0; i < config.handle_num; i++) {
-        hd_configs[i]->thread = calloc(1, sizeof(hd_cfg_t));
-        if (hd_configs[i]->thread == NULL) {
-            fprintf(stderr, "[MAIN] Failed to initialize 'hd_configs[%d]->thread'\n", i);
-        
-            deallocate_everything(
-                &config,
-                sockfd,
-                rx_to_hd, 
-                hd_to_rx, 
-                clients, 
-                rx_configs,
-                hd_configs
-            );
-        
-            return -1;
-        }
-
-        if (pthread_create(hd_configs[i]->thread, NULL, &handle_thread, (void *) hd_configs[i])) {
-            fprintf(stderr, "[MAIN] Failed to start 'hd_configs[%d]->thread'\n", i);
-            
-            deallocate_everything(
-                &config,
-                sockfd,
-                rx_to_hd, 
-                hd_to_rx, 
-                clients, 
-                rx_configs,
-                hd_configs
-            );
-            
-            return -1;
+            if (pthread_create(hd_configs[i]->thread, NULL, &handle_thread, (void *) hd_configs[i])) {
+                fprintf(stderr, "[MAIN] Failed to start 'hd_configs[%d]->thread'\n", i);
+                
+                deallocate_everything(
+                    &config,
+                    sockfd,
+                    rx_to_hd, 
+                    hd_to_rx, 
+                    clients, 
+                    rx_configs,
+                    hd_configs
+                );
+                
+                return -1;
+            }
         }
     }
 
@@ -573,15 +546,100 @@ int main(int argc, char *argv[]) {
 
     signal(SIGINT, handle_stop);
 
-    pthread_mutex_lock(&stop_mutex);
-    
-    while (!global_stop) {
-        pthread_cond_wait(&stop_cond, &stop_mutex);
+    if (config.sequential) {
+        socklen_t addr_len = sizeof(struct sockaddr_in6);
+        uint8_t buffers[config.receive_window_size][528];
+        bool already_popped = false;
+        struct sockaddr_in6 addrs[config.receive_window_size];
+        struct mmsghdr msgs[config.receive_window_size];
+        struct iovec iovecs[config.receive_window_size];
+
+        int i;
+        for(i = 0; i < config.receive_window_size; i++) {
+            memset(&addrs[i], 0, sizeof(struct sockaddr_in6));
+            memset(&iovecs[i], 0, sizeof(struct iovec));
+            memset(&msgs[i], 0, sizeof(struct mmsghdr));
+            
+            iovecs[i].iov_base = buffers[i];
+            iovecs[i].iov_len = 528;
+
+            msgs[i].msg_hdr.msg_name = &addrs[i];
+            msgs[i].msg_hdr.msg_namelen = addr_len;
+            msgs[i].msg_hdr.msg_iov = &iovecs[i];
+            msgs[i].msg_hdr.msg_iovlen = 1;
+            msgs[i].msg_hdr.msg_flags = 0;
+            msgs[i].msg_hdr.msg_control = NULL;
+        }
+
+        bool exit = false;
+        uint8_t file_buffer[528 * 31];
+        packet_t **decoded = malloc(sizeof(packet_t *));
+        if (decoded == NULL) {
+            fprintf(stderr, "[MAIN] Failed to start handle thread: alloc failed\n");
+            return -1;
+        }
+        *decoded = allocate_packet();
+        if (*decoded == NULL) {
+            fprintf(stderr, "[MAIN] Failed to start handle thread: alloc failed\n");
+            return -1;
+        }
+
+        uint8_t packets_to_send[31][12];
+        struct mmsghdr msg[31];
+        struct iovec hd_iovecs[31];
+
+        memset(hd_iovecs, 0, sizeof(iovecs));
+        for(i = 0; i < 31; i++) {
+            memset(&hd_iovecs[i], 0, sizeof(struct iovec));
+            hd_iovecs[i].iov_base = packets_to_send[i];
+            hd_iovecs[i].iov_len  = 11;
+
+            memset(&msg[i], 0, sizeof(struct mmsghdr));
+            msg[i].msg_hdr.msg_iov = &hd_iovecs[i];
+            msg[i].msg_hdr.msg_iovlen = 1;
+            msg[i].msg_hdr.msg_namelen = sizeof(struct sockaddr_in6);
+        }
+
+        while (true) {
+            pthread_mutex_lock(&stop_mutex);
+            if (global_stop) {
+                pthread_mutex_unlock(&stop_mutex);
+                break;
+            }
+            pthread_mutex_unlock(&stop_mutex);
+
+            rx_run_once(
+                rx_configs[0],
+                buffers,
+                addr_len,
+                &already_popped,
+                addrs,
+                msgs,
+                iovecs
+            );
+
+            while(hd_configs[0]->rx->length != 0) {
+                hd_run_once(
+                    false,
+                    hd_configs[0],
+                    decoded,
+                    &exit,
+                    file_buffer,
+                    packets_to_send,
+                    msg,
+                    hd_iovecs
+                );
+            }
+        }
+
+    } else {
+        pthread_mutex_lock(&stop_mutex);
+        while (!global_stop) {
+            pthread_cond_wait(&stop_cond, &stop_mutex);
+        }
+        pthread_mutex_unlock(&stop_mutex);
     }
-
-    pthread_mutex_unlock(&stop_mutex);
-
-
+    
     // -------------------------------------------------------------------------
     // Final deallocation
     // -------------------------------------------------------------------------
