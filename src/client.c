@@ -136,13 +136,11 @@ void deallocate_client(client_t *client, bool dealloc_addr, bool close_file) {
 
     pthread_mutex_lock(client->lock);
 
-    client->active = false;
-
     if (dealloc_addr) {
         free(client->address);
     }
 
-    if (close_file) {
+    if (close_file && client->active) {
         fclose(client->out_file);
     }
                                         

@@ -68,39 +68,6 @@ typedef struct receive_thread_config {
     int window_size;
 } rx_cfg_t;
 
-typedef struct send_thread_config {
-    /** Thread reference */
-    pthread_t *thread;
-
-    /** Handle to Send stream */
-    stream_t *send_rx;
-    /** Send to Handle stream */
-    stream_t *send_tx;
-
-    /** Socket file descriptor */
-    int sockfd;
-} tx_cfg_t;
-
-typedef struct send_request {
-    /** true = the loop should stop */
-    bool stop;
-
-    /** Ignores the window if set to true */
-    bool deallocate_address;
-
-    /** the IP to send to */
-    struct sockaddr_in6 *address;
-
-    /** the packet to send */
-    uint8_t to_send[32];
-} tx_req_t;
-
-GETSET(tx_req_t, bool, stop);
-
-GETSET(tx_req_t, bool, deallocate_address);
-
-GETSET(tx_req_t, struct sockaddr_in6 *, address);
-
 /**
  * /!\ This is a THREAD definition
  * 
@@ -155,39 +122,6 @@ GETSET(tx_req_t, struct sockaddr_in6 *, address);
 void *receive_thread(void *);
 
 /**
- * /!\ This is a THREAD definition
- * 
- * ## Parameter
- * 
- * Although threads take a `void *` the actual
- * data structure that should be sent to the thread
- * is `tx_cfg`.
- * 
- * ## Use
- * 
- * Reads from a stream of packets, packs them
- * and writes them to the socket. Finally it appends the
- * spent packet structure to the return stream.
- * 
- * ## Appending to a stream
- * 
- * For each stream, two sub-streams are used. One is used to
- * send the information onto the next stage. The other is
- * used to return the previously used data structures
- * in order to avoid needing on-the-go allocation.
- * 
- * In the event that no data structure can be received without
- * waiting, a new one is allocated. This should guarantee that
- * all allocation happen close to the startup of the application.
- * 
- * Once a node has been popped from a stream it has to be
- * enqueued onto the return stream. If it cannot be it should be
- * deallocated to avoid memory leaks.
- * 
- */
-void *send_thread(void *);
-
-/**
  * ## Use :
  * 
  * copies the ip address stored in src (4 * 32 bits)
@@ -204,18 +138,5 @@ void *send_thread(void *);
  * If it failed, errno is set to an appropriate error. 
  */
 void move_ip(uint8_t *dst, uint8_t *src);
-
-/**
- * ## Use :
- *
- * mallocs a tx_req_t and initializes all it's fields
- * 
- * ## Return value:
- *
- * a valid pointer if the process completed successfully. 
- * NULL otherwise. If it failed, errno is set to an 
- * appropriate error. 
- */
-void *allocate_send_request();
 
 #endif
