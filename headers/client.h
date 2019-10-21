@@ -2,6 +2,7 @@
 
 #include "global.h"
 #include "buffer.h"
+#include <time.h>
 
 #define CLIENT_H
 
@@ -42,19 +43,23 @@ typedef struct client {
     struct sockaddr_in6 *address;
 
     /** Client address length */
-    socklen_t *addr_len;
+    socklen_t addr_len;
 
     /** Current client receive window */
     buf_t *window;
 
     uint32_t id;
 
-    char ip_as_string[46];
+    char ip_as_string[INET6_ADDRSTRLEN];
+
+    time_t connection_time;
+
+    uint64_t transfered;
 } client_t;
 
 GETSET(client_t, FILE *, out_file);
 GETSET(client_t, struct sockaddr_in6 *, address);
-GETSET(client_t, socklen_t *, addr_len);
+GETSET(client_t, socklen_t, addr_len);
 GETSET(client_t, buf_t *, window);
 GETSET(client_t, uint32_t, id);
 

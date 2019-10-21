@@ -6,6 +6,7 @@
 #include "buffer.h"
 #include "lookup.h"
 #include "client.h"
+#include "cli.h"
 
 #define RX_H
 
@@ -28,13 +29,14 @@
 #endif
 
 typedef struct receive_thread_config {
-    int i;
+    /** Thread ID */
+    int id;
 
     /** Thread reference */
     pthread_t *thread;
 
     /** the number of clients that have connected */
-    uint32_t idx;
+    volatile uint32_t *idx;
 
     /** the file name format */
     char *file_format;
@@ -55,9 +57,15 @@ typedef struct receive_thread_config {
     int sockfd;
 
     socklen_t *addr_len;
+
+    /** Thread affinity */
+    afs_t *affinity;
     
     /** Maximum number of clients */
     int max_clients;
+
+    /** Maximum number of packets per syscall */
+    int window_size;
 } rx_cfg_t;
 
 typedef struct send_thread_config {

@@ -29,6 +29,9 @@
         "receiver.h": "c",
         "sched.h": "c",
         "netfwd": "c",
-        "handler.h": "c"
+        "handler.h": "c",
+        "initializer_list": "c",
+        "sstream": "c",
+        "string": "c"
     }
 }

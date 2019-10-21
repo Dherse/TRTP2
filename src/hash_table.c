@@ -49,7 +49,7 @@ int dealloc_items(size_t len, item_t *items) {
     int i = 0;
     for (; i < len; i++) {
         if (items[i].value != NULL) {
-            free(items[i].value);
+            deallocate_client(items[i].value, true, true);
         }
     }
 
@@ -88,7 +88,7 @@ bool ht_contains(ht_t* table, uint16_t port, uint8_t *ip) {
 /*
  * Refer to headers/hash_table.h
  */
-void *ht_get(ht_t *table, uint16_t port, uint8_t *ip) {
+client_t *ht_get(ht_t *table, uint16_t port, uint8_t *ip) {
     pthread_mutex_lock(table->lock);
     uint16_t index = ht_hash(table, port);
     while(table->items[index].used) {
@@ -106,7 +106,7 @@ void *ht_get(ht_t *table, uint16_t port, uint8_t *ip) {
     return NULL;
 }
 
-void *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool resize) {
+client_t *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool resize) {
     if (table->length > (table->size / 2) && resize) {
         if (ht_resize(table, table->size * 2) != 0) {
             errno = FAILED_TO_RESIZE;
@@ -146,7 +146,7 @@ void *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool re
 /*
  * Refer to headers/hash_table.h
  */
-void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
+client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
     pthread_mutex_lock(table->lock);
 
     if (table->length > (table->size / 2)) {
@@ -166,7 +166,7 @@ void *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
 /*
  * Refer to headers/hash_table.h
  */
-void *ht_remove(ht_t *table, uint16_t port, uint8_t *ip) {
+client_t *ht_remove(ht_t *table, uint16_t port, uint8_t *ip) {
     void *del = ht_put(table, port, ip, NULL);
     ht_resize(table, table->size);
     return del;

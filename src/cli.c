@@ -1,5 +1,4 @@
 #include "../headers/cli.h"
-#include "../headers/global.h"
 
 /**
  * ## Use :
@@ -41,7 +40,7 @@ int str2int(int *out, char *s, int base) {
         return -1;
     }
 
-    if (*end != '\0' && end != NULL) {
+    if (*end != '\0' && end != NULL && *end != '\n') {
         errno = STR2INT_NOT_END;
         return -1;
     }
@@ -84,20 +83,33 @@ void* get_socket_addr(const struct sockaddr *sa) {
 int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     int c;
 
+    /** Maximum number of active connections */
     char *m = "100";
+    /** Maximum number of packets received in a single syscall */
+    char *W = "31";
+    /** Maximum advertised window size */
     char *w = "31";
-    char *n = "4";
+    /** Number of handler thread */
+    char *n = "2";
+    /** Number of receiver thread */
+    char *N = "1";
+    /** Output file format */
     char *o = "%d";
+    /** Input IP mask */
     char *ip = NULL;
+    /** Input port */
     char *port = NULL;
 
-    /* format and concurrent connection parameters */
-
+    config->sequential = false;
     optind = 0;
-    while((c = getopt(argc, argv, ":m:o:n:w:")) != -1) {
+    while((c = getopt(argc, argv, ":m:o:n:w:sN:W:")) != -1) {
         switch(c) {
             case 'm':
                 m = optarg;
+                break;
+
+            case 'W':
+                W = optarg;
                 break;
 
             case 'o':
@@ -110,6 +122,14 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
 
             case 'n':
                 n = optarg;
+                break;
+
+            case 'N':
+                N = optarg;
+                break;
+
+            case 's':
+                config->sequential = true;
                 break;
 
             case ':':
@@ -217,6 +237,15 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
 
     config->handle_num = (uint16_t) handle_num;
 
+    /* Receiver count */
+    int receive_num;
+    if (str2int(&receive_num, N, 10) == -1 || receive_num < 0) {
+        errno = CLI_HANDLE_INVALID;
+        return -1;
+    }
+
+    config->receive_num = (uint16_t) receive_num;
+
     /* max window size */
 
     int max_window;
@@ -226,6 +255,16 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     }
 
     config->max_window = (uint16_t) max_window;
+
+    /* max receive size */
+
+    int receive_size;
+    if (str2int(&receive_size, W, 10) == -1 || receive_size < 0 || receive_size > 31) {
+        errno = CLI_WINDOW_INVALID;
+        return -1;
+    }
+
+    config->receive_window_size = (uint16_t) receive_size;
 
     /* IPv6 validation */
 
@@ -252,5 +291,157 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     
     config->addr_info = prev;
 
+    config->handle_affinities = NULL;
+    config->receive_affinities = NULL;
+
     return 0;
+}
+
+int parse_affinity_file(config_rcv_t *config) {
+    config->handle_affinities = calloc(config->handle_num, sizeof(afs_t));
+    config->receive_affinities = calloc(config->receive_num, sizeof(afs_t));
+
+    FILE *file;
+    if ((file = fopen("./affinity.cfg", "r"))) {
+        char *line = NULL, *token;
+        size_t len = 0, i;
+        size_t read;
+
+        read = getline(&line, &len, file);
+        if (read == -1 || line == NULL) {
+            fprintf(stderr, "Failed to read RX affinity\n");
+            free(config->handle_affinities);
+            free(config->receive_affinities);
+            config->handle_affinities = NULL;
+            config->receive_affinities = NULL;
+            return -1;
+        }
+
+        i = 0;
+	    while ((token = strsep(&line, ",")) != NULL) {
+            if (i > config->receive_num) {
+                fprintf(stderr, "Too many RX affinities\n");
+                free(config->handle_affinities);
+                free(config->receive_affinities);
+                config->handle_affinities = NULL;
+                config->receive_affinities = NULL;
+                return -1;
+            }
+
+            int cpu;
+            if (str2int(&cpu, token, 10)) {
+                fprintf(stderr, "Failed to parse RX affinity: %s\n", token);
+                free(config->handle_affinities);
+                free(config->receive_affinities);
+                config->handle_affinities = NULL;
+                config->receive_affinities = NULL;
+                return -1;
+            }
+
+            config->receive_affinities[i].cpu = cpu;
+            i++;
+        }
+
+        if (i != config->receive_num) {
+            fprintf(stderr, "Not enough RX affinities (%d)\n", i);
+            free(config->handle_affinities);
+            free(config->receive_affinities);
+            config->handle_affinities = NULL;
+            config->receive_affinities = NULL;
+            return -1;
+        }
+
+        read = getline(&line, &len, file);
+        if (read == -1) {
+            fprintf(stderr, "Failed to read HD affinity\n");
+            free(config->handle_affinities);
+            free(config->receive_affinities);
+            config->handle_affinities = NULL;
+            config->receive_affinities = NULL;
+            return -1;
+        }
+
+        i = 0;
+	    while ((token = strsep(&line, ",")) != NULL) {
+            if (i > config->handle_num) {
+                fprintf(stderr, "Too many HD affinities\n");
+                free(config->handle_affinities);
+                free(config->receive_affinities);
+                config->handle_affinities = NULL;
+                config->receive_affinities = NULL;
+                return -1;
+            }
+
+            int cpu;
+            if (str2int(&cpu, token, 10)) {
+                fprintf(stderr, "Failed to parse HD affinity: %s\n", token);
+                free(config->handle_affinities);
+                free(config->receive_affinities);
+                config->handle_affinities = NULL;
+                config->receive_affinities = NULL;
+                return -1;
+            }
+
+            config->handle_affinities[i].cpu = cpu;
+            i++;
+        }
+
+        if (i != config->handle_num) {
+            fprintf(stderr, "Not enough HD affinities\n");
+            free(config->handle_affinities);
+            free(config->receive_affinities);
+            config->handle_affinities = NULL;
+            config->receive_affinities = NULL;
+            return -1;
+        }
+
+        fclose(file);
+    } else {
+        fprintf(stderr, "No affinity file present\n");
+    }
+    return 0;
+}
+
+void print_config(config_rcv_t *config) {
+    fprintf(stderr, " - - - - - - - - CONFIG - - - - - - - - \n");
+    fprintf(stderr, "Maximum advertised window: %d (default 31)\n", config->max_window);
+    fprintf(stderr, "Maximum packets per syscall: %d (default 31)\n", config->receive_window_size);
+    fprintf(stderr, "Sequential? %s\n", config->sequential ? "yes" : "no");
+    if (!config->sequential) {
+
+        fprintf(stderr, " - Number of receivers: %u (default 1)\n", config->receive_num);
+        if (config->receive_num > 0 && config->receive_affinities != NULL) {
+            fprintf(stderr, "  - Affinities (CPU): ");
+
+            int i;
+            for (i = 0; i < config->receive_num; i++) {
+                fprintf(stderr, "%d ", config->receive_affinities[i].cpu);
+            }
+
+            fprintf(stderr, "\n");
+        }
+        
+        fprintf(stderr, " - Number of handlers: %u (default 2)\n", config->handle_num);
+        if (config->handle_num > 0 && config->handle_affinities != NULL) {
+            fprintf(stderr, "  - Affinities (CPU): ");
+
+            int i;
+            for (i = 0; i < config->handle_num; i++) {
+                fprintf(stderr, "%d ", config->handle_affinities[i].cpu);
+            }
+
+            fprintf(stderr, "\n");
+        }
+
+        fprintf(stderr, " - Receiver to handler ratio: %.2f (typical 0.5)\n", (float) config->receive_num / (float) config->handle_num);
+    }
+    fprintf(stderr, "\n");
+    fprintf(stderr, "Output file format: %s\n", config->format);
+    fprintf(stderr, "Maximum number of concurrent transfers: %d\n", config->max_connections);
+
+    char ip[46];
+    ip_to_string((struct sockaddr_in6 *) config->addr_info->ai_addr, ip);
+    fprintf(stderr, "Input IP mask: %s\n", ip);
+    fprintf(stderr, "Input port: %d\n", config->port);
+    fprintf(stderr, " - - - - - - - - - - - - - - - - - - - -\n");
 }

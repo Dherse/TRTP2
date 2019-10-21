@@ -31,21 +31,43 @@ void print_unpack_error(char *ip_as_str) {
     }
 }
 
+void bytes_to_unit(uint64_t total, char *size, double *multiplier) {
+    char *sizes[5] = {
+        "B", "KiB", "MiB", "GiB", "TiB"
+    };
+
+    int i;
+    *multiplier = 1.0;
+    for (i = 0; i < 5; i++) {
+        if (total > 1024 && i != 4) {
+            total /= 1024;
+            *multiplier *= 1024;
+        } else {
+            strcpy(size, sizes[i]);
+            break;
+        }
+    }
+}
+
 /*
  * Refer to headers/handler.h
  */
 void *handle_thread(void *config) {
     hd_cfg_t *cfg = (hd_cfg_t *) config;
 
-    pthread_t thread = pthread_self();
+    if (cfg->affinity != NULL) {
+        pthread_t thread = pthread_self();
 
-    cpu_set_t cpuset;
-    CPU_ZERO(&cpuset);
-    CPU_SET(cfg->id + 2, &cpuset);
+        cpu_set_t cpuset;
+        CPU_ZERO(&cpuset);
+        CPU_SET(cfg->affinity->cpu, &cpuset);
 
-    int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
-    if (aff == -1) {
-        fprintf(stderr, "[HD] Failed to set affinity\n");
+        int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
+        if (aff == -1) {
+            fprintf(stderr, "[HD] Failed to set affinity\n");
+        } else {
+            fprintf(stderr, "[HD] Handler #%d running on CPU #%d\n", cfg->id, cfg->affinity->cpu);
+        }
     }
 
     packet_t to_send;
@@ -73,7 +95,6 @@ void *handle_thread(void *config) {
     uint8_t file_buffer[512*31];
 
     packet_t *decoded = (packet_t *) allocate_packet();
-    char ip_as_str[46];
     if (decoded == NULL) {
         fprintf(stderr, "[HD] Failed to start handle thread: alloc failed\n");
         return NULL;
@@ -92,6 +113,7 @@ void *handle_thread(void *config) {
             hd_req_t *req = (hd_req_t *) node_rx->content;
             if (req != NULL) {
                 if (req->stop) {
+                    free(decoded);
                     deallocate_node(node_rx);
                     
                     exit = true;
@@ -101,7 +123,6 @@ void *handle_thread(void *config) {
                 client_t *client = req->client;
                 buf_t *window = client->window;
                 pthread_mutex_lock(buf_get_lock(window));
-                pthread_mutex_lock(client_get_lock(client));
 
                 int i = 0;
                 for (i = 0; i < req->num; i++) {
@@ -110,49 +131,49 @@ void *handle_thread(void *config) {
 
                     if (unpack(buffer, length, decoded)) {
                         print_unpack_error(client->ip_as_string);
-
+                        
                         continue;
                     }
 
-                    if (decoded->type == DATA) {
+                    if (!client->active) {
+                        to_send.type = ACK;
+                        to_send.truncated = false;
+                        to_send.seqnum = window->window_low - 1;
+                        to_send.long_length = false;
+                        to_send.length = 0;
+                        to_send.window = 1;
+                        to_send.timestamp = decoded->timestamp;
+
+                        msg[len_to_send].msg_hdr.msg_name = client->address;
+                        if (pack(packets_to_send[len_to_send++], &to_send, false)) {
+                            fprintf(stderr, "[%s][%5u] Failed to pack NACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                        }
+                    } else if (decoded->type == DATA) {
                         if (decoded->truncated) {
                             to_send.type = NACK;
                             to_send.truncated = false;
-                            to_send.window = 31 - client->window->length;
+                            to_send.window = 31 - window->window_low;
                             to_send.long_length = false;
                             to_send.length = 0;
-                            to_send.seqnum = min(cfg->max_window_size, 31 - window->window_low);
+                            to_send.seqnum = min(cfg->max_window_size, 31 - window->length);
                             to_send.timestamp = decoded->timestamp;
 
                             msg[len_to_send].msg_hdr.msg_name = client->address;
                             if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                                fprintf(stderr, "[%s][%5u] Failed to pack NACK\n", ip_as_str, ntohs(client->address->sin6_port));
+                                fprintf(stderr, "[%s][%5u] Failed to pack NACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
                             }
                         } else if (!sequences[window->window_low][decoded->seqnum]) {
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Received out of order: %d (low: %d)\n", 
-                                ip_as_str, ntohs(client->address->sin6_port),
+                                client->ip_as_string, ntohs(client->address->sin6_port),
                                 decoded->seqnum, window->window_low
                             );
-                    
-                            to_send.type = ACK;
-                            to_send.truncated = false;
-                            to_send.long_length = false;
-                            to_send.length = 0;
-                            to_send.seqnum = window->window_low;
-                            to_send.timestamp = decoded->timestamp;
-                            to_send.window = min(cfg->max_window_size, 31 - window->length);
-
-                            msg[len_to_send].msg_hdr.msg_name = client->address;
-                            if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                                fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", ip_as_str, ntohs(client->address->sin6_port));
-                            }
                         } else if(is_used_nolock(window, decoded->seqnum)) {
                             fprintf(
                                 stderr, 
                                 "[%s][%5u] Received duplicate: %d (low: %d)\n", 
-                                ip_as_str, ntohs(client->address->sin6_port),
+                                client->ip_as_string, ntohs(client->address->sin6_port),
                                 decoded->seqnum, window->window_low
                             );
                         } else {
@@ -196,9 +217,7 @@ void *handle_thread(void *config) {
                         i++;
                     }
                     unlock(node);
-                } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt < 31);
-
-                pthread_mutex_unlock(buf_get_lock(window));
+                } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= 31);
 
                 if (cnt > 0) {
                     int result = fwrite(
@@ -210,11 +229,12 @@ void *handle_thread(void *config) {
 
                     if (result != offset) {
                         fprintf(stderr, "[HD] Failed to write to file, won't be writing ACK to get retransmission timer\n");
-                        pthread_mutex_lock(client_get_lock(client));
                         continue;
                     }
 
-                    window->length = (window->length - cnt);
+                    client->transfered += offset;
+
+                    window->length -= cnt;
                     window->window_low += cnt;
                     
                     to_send.type = ACK;
@@ -227,9 +247,36 @@ void *handle_thread(void *config) {
 
                     msg[len_to_send].msg_hdr.msg_name = client->address;
                     if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                        fprintf(stderr, "[%s][%5u] Failed to pack NACK\n", ip_as_str, client->address->sin6_port);
+                        fprintf(stderr, "[%s][%5u] Failed to pack NACK\n", client->ip_as_string, client->address->sin6_port);
+                    }
+
+                    if (remove) {
+                        client->active = false;
+
+                        time_t end;
+                        char size[4], speed[4];
+                        double sizem = 0.0, speedm = 0.0;
+
+                        time(&end);
+
+                        bytes_to_unit(client->transfered, size, &sizem);
+
+                        double time = difftime(end, client->connection_time);
+                        bytes_to_unit(client->transfered / time, speed, &speedm);
+
+                        fprintf(
+                            stderr,
+                            "[%s][%u] Done, total transfered: %.1f %s, in %.2fs., avg. speed of %.1f %s/s\n",
+                            client->ip_as_string, htons(client->address->sin6_port),
+                            client->transfered / sizem, size,
+                            time,
+                            (client->transfered / time) / speedm, speed
+                            
+                        );
                     }
                 }
+
+                pthread_mutex_unlock(buf_get_lock(window));
 
                 int retval = sendmmsg(cfg->sockfd, msg, len_to_send, 0);
                 if (retval == -1) {
@@ -240,15 +287,10 @@ void *handle_thread(void *config) {
                 if (!stream_enqueue(cfg->tx, node_rx, false)) {
                     deallocate_node(node_rx);
                 }
-
-                if (!remove) {
-                    pthread_mutex_unlock(client_get_lock(client));
-                }
             }
         }
     }
     
-    free(decoded);
     fprintf(stderr, "[HD] Stopped\n");
     
     pthread_exit(0);

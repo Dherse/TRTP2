@@ -358,7 +358,8 @@ int ip_to_string(struct sockaddr_in6 *ip, char *target) {
         return -1;
     }
 
-    if (target != inet_ntop(AF_INET6, &ip->sin6_addr, target, 18)) {
+    if (target != inet_ntop(AF_INET6, &ip->sin6_addr, target, INET6_ADDRSTRLEN)) {
+        perror("inet_ntop");
         errno = FAILED_TO_COPY;
         return -1;
     }
@@ -369,29 +370,8 @@ int ip_to_string(struct sockaddr_in6 *ip, char *target) {
 /**
  * Refer to headers/packet.h
  */
-inline bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
-    if (ip1 == NULL) {
-        return ip2 == NULL;
-    } else if (ip2 == NULL) {
-        return false;
-    } else {
-        return ip1[0] == ip2[0] &&
-            ip1[1] == ip2[1] && 
-            ip1[2] == ip2[2] && 
-            ip1[3] == ip2[3] && 
-            ip1[4] == ip2[4] && 
-            ip1[5] == ip2[5] && 
-            ip1[6] == ip2[6] && 
-            ip1[7] == ip2[7] && 
-            ip1[8] == ip2[8] && 
-            ip1[9] == ip2[9] && 
-            ip1[10] == ip2[10] && 
-            ip1[11] == ip2[11] && 
-            ip1[12] == ip2[12] && 
-            ip1[13] == ip2[13] && 
-            ip1[14] == ip2[14] && 
-            ip1[15] == ip2[15]; 
-    }
+inline __attribute__((always_inline)) bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
+    return memcmp(ip1, ip2, 16) == 0;
 }
 
 /**

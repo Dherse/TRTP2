@@ -7,6 +7,7 @@
 #include "buffer.h"
 #include "lookup.h"
 #include "client.h"
+#include "cli.h"
 #include <sys/socket.h>
 
 #define HD_H
@@ -32,6 +33,9 @@ typedef struct handle_thread_config {
 
     /** Hash table of client */
     ht_t *clients;
+
+    /** Thread affinity */
+    afs_t *affinity;
 
     /** Maximum size of the window */
     int max_window_size;

@@ -4,7 +4,7 @@ GETSET_IMPL(client_t, FILE *, out_file);
 
 GETSET_IMPL(client_t, struct sockaddr_in6 *, address);
 
-GETSET_IMPL(client_t, socklen_t *, addr_len);
+GETSET_IMPL(client_t, socklen_t, addr_len);
 
 GETSET_IMPL(client_t, uint32_t, id);
 
@@ -46,6 +46,7 @@ int initialize_client(
     socklen_t *addr_len
 ) {
     client->id = id;
+    client->active = true;
 
     client->lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->lock == NULL) {
@@ -85,21 +86,10 @@ int initialize_client(
 
     *client->address = *address;
 
-    client->addr_len = (socklen_t *) malloc(sizeof(socklen_t));
-    if(client->addr_len == NULL) {
-        free(client->address);
-        pthread_mutex_destroy(client->lock);
-        free(client->lock);
-        free(client);
-        errno = FAILED_TO_ALLOCATE;
-        return -1;
-    }
-
-    *client->addr_len = *addr_len;
+    client->addr_len = *addr_len;
 
     client->window = (buf_t *) malloc(sizeof(buf_t));
     if(client->window == NULL){
-        free(client->addr_len);
         free(client->address);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
@@ -109,7 +99,6 @@ int initialize_client(
     }
     
     if(initialize_buffer(client->window, &allocate_packet) != 0) { 
-        free(client->addr_len);
         free(client->address);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
@@ -119,8 +108,20 @@ int initialize_client(
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+    
+    if(ip_to_string(address, client->ip_as_string)) { 
+        deallocate_buffer(client->window);
+        free(client->address);
+        pthread_mutex_destroy(client->lock);
+        free(client->lock);
+        free(client);
 
-    ip_to_string(address, client->ip_as_string);
+        errno = FAILED_TO_ALLOCATE;
+        return -1;
+    }
+
+    time(&client->connection_time);
+    client->transfered = 0;
 
     return 0;
 }
@@ -139,7 +140,6 @@ void deallocate_client(client_t *client, bool dealloc_addr, bool close_file) {
 
     if (dealloc_addr) {
         free(client->address);
-        free(client->addr_len);
     }
 
     if (close_file) {

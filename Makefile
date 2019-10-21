@@ -59,7 +59,7 @@ release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 4 -w 31 :: 5555
+	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 8 -w 31 :: 5555
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -108,7 +108,7 @@ memcheck: build
 	valgrind --tool=memcheck --track-origins=yes \
 		$(BIN_DIR)/$(OUT) -n 4 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/memcheck.txt
 
-callgrind: FLAGS += $(DEBUG_FLAGS)
+callgrind: FLAGS += -O3 -ggdb
 callgrind: build
 	@echo '----------------------------------------------------------'
 	@echo 'This function runs valgrind followed by gprof2dot.'

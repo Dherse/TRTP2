@@ -8,6 +8,8 @@ bool global_stop;
 pthread_mutex_t stop_mutex;
 pthread_cond_t stop_cond;
 
+volatile uint32_t idx = 0;
+
 void handle_stop(int signo) {
     fprintf(stderr, "[MAIN] Received SIGINT, stopping\n");
 
@@ -28,10 +30,27 @@ void print_usage(char *exec) {
     fprintf(stderr, "Usage:\n");
     fprintf(stderr, "  %s [options] <ip> <port>\n\n", exec);
     fprintf(stderr, "Options:\n");
-    fprintf(stderr, "  -m  Max. number of connection  [default: 100]\n");
-    fprintf(stderr, "  -o  Output file format         [default: %%d]\n");
-    fprintf(stderr, "  -n  Number of handler threads  [default: 4]\n");
-    fprintf(stderr, "  -w  Maximum window size        [default: 31]\n");
+    fprintf(stderr, "  -m  Max. number of connection   [default: 100]\n");
+    fprintf(stderr, "  -o  Output file format          [default: %%d]\n");
+    fprintf(stderr, "  -s  Enables sequential mode     [default: false]\n");
+    fprintf(stderr, "  -N  Number of receiver threads  [default: 1]\n");
+    fprintf(stderr, "  -n  Number of handler threads   [default: 2]\n");
+    fprintf(stderr, "  -W  Maximum receive buffer      [default: 31]\n");
+    fprintf(stderr, "  -w  Maximum window size         [default: 31]\n\n");
+    fprintf(stderr, "Sequential:\n");
+    fprintf(stderr, "  In sequential mode, only a single thread (the main thread) is used\n");
+    fprintf(stderr, "  for the entire receiver. This means the parameters n & N will be\n");
+    fprintf(stderr, "  ignored. Affinities are also ignored.\n\n");
+    fprintf(stderr, "Affinities:\n");
+    fprintf(stderr, "  Affinities are set using a affinity.cfg file in the\n");
+    fprintf(stderr, "  working directory. This file should be formatted like this:\n");
+    fprintf(stderr, "\tcomma separated affinity for each receiver. Count must match N\n");
+    fprintf(stderr, "\tcomma separated affinity for each handler. Count must match n\n");
+    fprintf(stderr, " Here is an example file: (remove the tabs)\n");
+    fprintf(stderr, "\t0,1\n\t2,3,4,5\n");
+    fprintf(stderr, "  It means the affinities of the receivers will be on CPU 0 & 1\n");
+    fprintf(stderr, "  And the affinities of the handlers will be on CPU 2, 3, 4 & 5\n");
+    fprintf(stderr, "  To learn more about affinity: https://en.wikipedia.org/wiki/Processor_affinity\n");
 }
 
 void deallocate_everything(
@@ -39,26 +58,20 @@ void deallocate_everything(
     int sockfd,
     stream_t *rx_to_hd,
     stream_t *hd_to_rx,
-    stream_t *hd_to_tx,
-    stream_t *tx_to_hd,
     ht_t *clients,
     rx_cfg_t **rx_configs,
-    int hd_count,
-    hd_cfg_t **hd_configs,
-    tx_cfg_t *tx_config
+    hd_cfg_t **hd_configs
 ) {
     drain(rx_to_hd);
     drain(hd_to_rx);
-    drain(hd_to_tx);
-    drain(tx_to_hd);
 
     fprintf(stderr, "[STOP] Deallocation called\n");
     int i ;
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < config->receive_num; i++) {
         if (rx_configs[i] != NULL) {
             if (rx_configs[i]->thread != NULL) {
                 rx_configs[i]->stop = true;
-                fprintf(stderr, "[STOP] Waiting for RX\n");
+                fprintf(stderr, "[STOP] Waiting for RX #%d\n", i);
                 pthread_join(*rx_configs[i]->thread, NULL);
                 free(rx_configs[i]->thread);
             }
@@ -66,29 +79,9 @@ void deallocate_everything(
             free(rx_configs[i]);
         }
     }
+    free(rx_configs);
 
-    if (tx_config != NULL) {
-        if (tx_config->thread != NULL) {
-            if (tx_config->send_rx != NULL) {
-                s_node_t *stop_node = malloc(sizeof(s_node_t));
-
-                if (stop_node != NULL && !initialize_node(stop_node, allocate_send_request)) {
-                    tx_req_t *stop_req = (tx_req_t *) stop_node->content;
-                    stop_req->stop = true;
-
-                    stream_enqueue(tx_config->send_rx, stop_node, true);
-                }
-            }
-            
-            fprintf(stderr, "[STOP] Waiting for TX\n");
-            pthread_join(*tx_config->thread, NULL);
-            free(tx_config->thread);
-        }
-
-        free(tx_config);
-    }
-
-    for(i = 0; i < hd_count; i++) {
+    for(i = 0; i < config->handle_num; i++) {
         s_node_t *stop_node = malloc(sizeof(s_node_t));
 
         if (stop_node != NULL && !initialize_node(stop_node, allocate_handle_request)) {
@@ -100,7 +93,7 @@ void deallocate_everything(
     }
 
     if (hd_configs != NULL) {
-        for(i = 0; i < hd_count; i++) {
+        for(i = 0; i < config->handle_num; i++) {
             if (hd_configs[i] != NULL) {
                 if (hd_configs[i]->thread != NULL) {
                     fprintf(stderr, "[STOP] Waiting for HD #%d\n", i);
@@ -117,6 +110,14 @@ void deallocate_everything(
         freeaddrinfo(config->addr_info);
     }
 
+    if (config->receive_affinities != NULL) {
+        free(config->receive_affinities);
+    }
+
+    if (config->handle_affinities != NULL) {
+        free(config->handle_affinities);
+    }
+
     if (sockfd != -1) {
         close(sockfd);
     }
@@ -129,16 +130,6 @@ void deallocate_everything(
     if (hd_to_rx != NULL) {
         dealloc_stream(hd_to_rx);
         free(hd_to_rx);
-    }
-
-    if (hd_to_tx != NULL) {
-        dealloc_stream(hd_to_tx);
-        free(hd_to_tx);
-    }
-
-    if (tx_to_hd != NULL) {
-        dealloc_stream(tx_to_hd);
-        free(tx_to_hd);
     }
 
     if (clients != NULL) {
@@ -204,6 +195,10 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
+    parse_affinity_file(&config);
+
+    print_config(&config);
+
     stream_t *rx_to_hd;
     stream_t *hd_to_rx;
 
@@ -214,7 +209,6 @@ int main(int argc, char *argv[]) {
 
     rx_cfg_t **rx_configs;
     hd_cfg_t **hd_configs;
-    tx_cfg_t *tx_config;
 
     int sockfd;
 
@@ -286,14 +280,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
 
         return -1;
@@ -307,14 +297,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
 
         return -1;
@@ -328,14 +314,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
 
         return -1;
@@ -349,14 +331,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
         
         return -1;
@@ -370,20 +348,16 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
         
         return -1;
     }
 
-    rx_configs = calloc(2, sizeof(rx_cfg_t *));
+    rx_configs = calloc(config.receive_num, sizeof(rx_cfg_t *));
     if (rx_configs == NULL) {
         fprintf(stderr, "[MAIN] Failed to initialize 'rx_config'\n");
         
@@ -391,21 +365,17 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
         
         return -1;
     }
     
     int i;
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < config.receive_num; i++) {
         rx_configs[i] = calloc(1, sizeof(rx_cfg_t));
         if (rx_configs[i] == NULL) {
             fprintf(stderr, "[MAIN] Failed to initialize 'rx_config'\n");
@@ -414,14 +384,10 @@ int main(int argc, char *argv[]) {
                 &config,
                 sockfd,
                 rx_to_hd, 
-                hd_to_rx, 
-                hd_to_tx, 
-                tx_to_hd, 
+                hd_to_rx,
                 clients, 
                 rx_configs,
-                config.handle_num,
-                hd_configs, 
-                tx_config
+                hd_configs
             );
             
             return -1;
@@ -436,14 +402,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
         
         return -1;
@@ -459,60 +421,33 @@ int main(int argc, char *argv[]) {
                 sockfd,
                 rx_to_hd, 
                 hd_to_rx, 
-                hd_to_tx, 
-                tx_to_hd, 
                 clients, 
                 rx_configs,
-                config.handle_num,
-                hd_configs, 
-                tx_config
+                hd_configs
             );
         
             return -1;
         }
     }
 
-    tx_config = calloc(1, sizeof(tx_cfg_t));
-    if (tx_config == NULL) {
-        fprintf(stderr, "[MAIN] Failed to initialize 'tx_config'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
-            clients, 
-            rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
-        );
-        
-        return -1;
-    }
-
     // -------------------------------------------------------------------------
     // Thread configs initialization
     // -------------------------------------------------------------------------
 
-    for (i = 0; i < 2; i++) {
-        rx_configs[i]->i = i;
+    for (i = 0; i < config.receive_num; i++) {
+        rx_configs[i]->id = i;
         rx_configs[i]->clients = clients;
         rx_configs[i]->file_format = config.format;
-        rx_configs[i]->idx = 0;
+        rx_configs[i]->idx = &idx;
         rx_configs[i]->max_clients = config.max_connections;
         rx_configs[i]->sockfd = sockfd;
         rx_configs[i]->stop = false;
         rx_configs[i]->rx = hd_to_rx;
         rx_configs[i]->tx = rx_to_hd;
         rx_configs[i]->addr_len = &config.addr_info->ai_addrlen;
+        rx_configs[i]->window_size = config.receive_window_size;
+        rx_configs[i]->affinity = &config.receive_affinities[i];
     }
-
-    tx_config->send_rx = hd_to_tx;
-    tx_config->send_tx = tx_to_hd;
-    tx_config->sockfd = sockfd;
 
     for (i = 0; i < config.handle_num; i++) {
         hd_configs[i]->id = i;
@@ -523,94 +458,46 @@ int main(int argc, char *argv[]) {
         hd_configs[i]->send_tx = hd_to_tx;
         hd_configs[i]->send_rx = tx_to_hd;
         hd_configs[i]->max_window_size = config.max_window;
+        hd_configs[i]->affinity = &config.handle_affinities[i];
     }
 
     // -------------------------------------------------------------------------
     // Thread initialization
     // -------------------------------------------------------------------------
 
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < config.receive_num; i++) {
         rx_configs[i]->thread = malloc(sizeof(pthread_t));
         if (rx_configs[i]->thread == NULL) {
-            fprintf(stderr, "[MAIN] Failed to initialize 'rx_config->thread'\n");
+            fprintf(stderr, "[MAIN] Failed to initialize 'rx_config[%d]->thread'\n", i);
             
             deallocate_everything(
                 &config,
                 sockfd,
                 rx_to_hd, 
                 hd_to_rx, 
-                hd_to_tx, 
-                tx_to_hd, 
                 clients, 
                 rx_configs,
-                config.handle_num,
-                hd_configs, 
-                tx_config
+                hd_configs
             );
             
             return -1;
         }
 
         if (pthread_create(rx_configs[i]->thread, NULL, &receive_thread, (void *) rx_configs[i])) {
-            fprintf(stderr, "[MAIN] Failed to start 'tx_config->thread'\n");
+            fprintf(stderr, "[MAIN] Failed to start 'rx_configs[%d]->thread'\n", i);
             
             deallocate_everything(
                 &config,
                 sockfd,
                 rx_to_hd, 
                 hd_to_rx, 
-                hd_to_tx, 
-                tx_to_hd, 
                 clients, 
                 rx_configs,
-                config.handle_num,
-                hd_configs, 
-                tx_config
+                hd_configs
             );
             
             return -1;
         }
-    }
-
-    tx_config->thread = malloc(sizeof(pthread_t));
-    if (tx_config->thread == NULL) {
-        fprintf(stderr, "[MAIN] Failed to initialize 'tx_config->thread'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
-            clients, 
-            rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
-        );
-        
-        return -1;
-    }
-
-    if (pthread_create(tx_config->thread, NULL, &send_thread, (void *) tx_config)) {
-        fprintf(stderr, "[MAIN] Failed to start 'tx_config->thread'\n");
-        
-        deallocate_everything(
-            &config,
-            sockfd,
-            rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
-            clients, 
-            rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
-        );
-        
-        return -1;
     }
 
     for (i = 0; i < config.handle_num; i++) {
@@ -623,13 +510,9 @@ int main(int argc, char *argv[]) {
                 sockfd,
                 rx_to_hd, 
                 hd_to_rx, 
-                hd_to_tx, 
-                tx_to_hd, 
                 clients, 
                 rx_configs,
-                config.handle_num,
-                hd_configs, 
-                tx_config
+                hd_configs
             );
         
             return -1;
@@ -643,13 +526,9 @@ int main(int argc, char *argv[]) {
                 sockfd,
                 rx_to_hd, 
                 hd_to_rx, 
-                hd_to_tx, 
-                tx_to_hd, 
                 clients, 
                 rx_configs,
-                config.handle_num,
-                hd_configs, 
-                tx_config
+                hd_configs
             );
             
             return -1;
@@ -669,14 +548,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
     }
 
@@ -689,14 +564,10 @@ int main(int argc, char *argv[]) {
             &config,
             sockfd,
             rx_to_hd, 
-            hd_to_rx, 
-            hd_to_tx, 
-            tx_to_hd, 
+            hd_to_rx,
             clients, 
             rx_configs,
-            config.handle_num,
-            hd_configs, 
-            tx_config
+            hd_configs
         );
     }
 
@@ -722,14 +593,10 @@ int main(int argc, char *argv[]) {
         &config,
         sockfd,
         rx_to_hd, 
-        hd_to_rx, 
-        hd_to_tx, 
-        tx_to_hd, 
+        hd_to_rx,
         clients, 
         rx_configs,
-        config.handle_num,
-        hd_configs, 
-        tx_config
+        hd_configs
     );
 
     return 0;
