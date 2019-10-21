@@ -23,6 +23,7 @@ typedef struct handle_thread_config {
 
     /** Receive to Handle stream */
     stream_t *rx;
+    
     /** Handle to Receive stream */
     stream_t *tx;
 
@@ -173,7 +174,7 @@ void hd_run_once(
     hd_cfg_t *cfg,
     packet_t **decoded,
     bool *exit,
-    uint8_t file_buffer[528],
+    uint8_t file_buffer[528 * 31],
     uint8_t packets_to_send[][12],
     struct mmsghdr *msg, 
     struct iovec *iovecs

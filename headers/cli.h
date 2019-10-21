@@ -44,6 +44,7 @@ typedef struct config_receiver {
 
     /** Output file name format length */
     size_t format_len;
+
     /** Output file name format */
     char *format;
 
@@ -52,6 +53,7 @@ typedef struct config_receiver {
 
     /** The input IP */
     struct addrinfo *addr_info;
+    
     /** The input port */
     uint16_t port;    
 } config_rcv_t;
