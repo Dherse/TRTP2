@@ -47,7 +47,7 @@ int initialize_client(
 ) {
     client->id = id;
     client->active = true;
-
+    
     client->lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->lock == NULL) {
         free(client);
@@ -134,21 +134,22 @@ void deallocate_client(client_t *client, bool dealloc_addr, bool close_file) {
         return;
     }
 
-    pthread_mutex_lock(client->lock);
+    if (client->lock != NULL) {
+        pthread_mutex_destroy(client->lock);
+        free(client->lock);
+    }
 
-    if (dealloc_addr) {
+    if (dealloc_addr && client->address != NULL) {
         free(client->address);
     }
 
-    if (close_file && client->active) {
+    if (close_file && client->active && client->out_file != NULL) {
         fclose(client->out_file);
     }
-                                        
-    deallocate_buffer(client->window);
 
-    pthread_mutex_unlock(client->lock);
-    pthread_mutex_destroy(client->lock);
-    free(client->lock);
+    if (client->window != NULL) {
+        deallocate_buffer(client->window);
+    }
 
     free(client);
 }

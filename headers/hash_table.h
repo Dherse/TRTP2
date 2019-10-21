@@ -229,7 +229,7 @@ client_t *ht_get(ht_t *table, uint16_t port, uint8_t *ip);
  * NULL & errono != 0 if there was an error.
  * 
  */
-client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item);
+client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, client_t *item);
 
 /**
  * ## Use :

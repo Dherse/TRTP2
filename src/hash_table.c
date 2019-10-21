@@ -106,7 +106,7 @@ client_t *ht_get(ht_t *table, uint16_t port, uint8_t *ip) {
     return NULL;
 }
 
-client_t *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, bool resize) {
+client_t *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, client_t *item, bool resize) {
     if (table->length > (table->size / 2) && resize) {
         if (ht_resize(table, table->size * 2) != 0) {
             errno = FAILED_TO_RESIZE;
@@ -116,7 +116,7 @@ client_t *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, boo
     }
 
     uint16_t index = ht_hash(table, port);
-    void *old = NULL;
+    client_t *old = NULL;
     while(table->items[index].used) {
         if (table->items[index].port == port) {
             if (ip_equals(table->items[index].ip, ip)) {
@@ -146,7 +146,7 @@ client_t *ht_put_nolock(ht_t *table, uint16_t port, uint8_t *ip, void *item, boo
 /*
  * Refer to headers/hash_table.h
  */
-client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
+client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, client_t *item) {
     pthread_mutex_lock(table->lock);
 
     if (table->length > (table->size / 2)) {
@@ -156,7 +156,7 @@ client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
         }
     }
     
-    void *old = ht_put_nolock(table, port, ip, item, false);
+    client_t *old = ht_put_nolock(table, port, ip, item, false);
 
     pthread_mutex_unlock(table->lock);
 
@@ -167,7 +167,7 @@ client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, void *item) {
  * Refer to headers/hash_table.h
  */
 client_t *ht_remove(ht_t *table, uint16_t port, uint8_t *ip) {
-    void *del = ht_put(table, port, ip, NULL);
+    client_t *del = ht_put(table, port, ip, NULL);
     ht_resize(table, table->size);
     return del;
 }

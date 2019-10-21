@@ -18,24 +18,20 @@ void test_fill_and_empty() {
 
         node_t *node;
         for (i = j; i < j + 32; i++) {
-            node = next(buf, i, true);
+            node = next(buf, i);
             CU_ASSERT(node != NULL);
             if (node != NULL) {
                 ((packet_t *) node->value)->seqnum = (uint8_t) i; 
             }
-
-            unlock(node);
         }
 
         for (i = j; i < j + 32; i++) {
-            node = get(buf, i, false, false);
+            node = get(buf, i, false);
             CU_ASSERT(node != NULL);
 
             if (node != NULL) {
                 CU_ASSERT(((packet_t *) node->value)->seqnum == (uint8_t) i); 
             }
-
-            unlock(node);
         }
     
         deallocate_buffer(buf);

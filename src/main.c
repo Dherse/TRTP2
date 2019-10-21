@@ -549,7 +549,6 @@ int main(int argc, char *argv[]) {
     if (config.sequential) {
         socklen_t addr_len = sizeof(struct sockaddr_in6);
         uint8_t buffers[config.receive_window_size][528];
-        bool already_popped = false;
         struct sockaddr_in6 addrs[config.receive_window_size];
         struct mmsghdr msgs[config.receive_window_size];
         struct iovec iovecs[config.receive_window_size];
@@ -612,7 +611,6 @@ int main(int argc, char *argv[]) {
                 rx_configs[0],
                 buffers,
                 addr_len,
-                &already_popped,
                 addrs,
                 msgs,
                 iovecs

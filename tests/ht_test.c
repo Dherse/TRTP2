@@ -9,19 +9,22 @@ void test_ht_put_and_get() {
         return;
     }
 
-    char *cfg = "Hello, world!";
-
     uint8_t ip[16] = {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
     };
     
     uint16_t i;
     for (i = 0; i < N; i++) {
-        char *str = malloc(sizeof(char) * (strlen(cfg) + 1));
-        strcpy(str, cfg);
+        client_t *client = malloc(sizeof(client_t));
+        client->lock = NULL;
+        client->out_file = NULL;
+        client->active = false;
+        client->id = i;
+        client->address = NULL;
+        client->window = NULL;
 
         errno = 0;
-        CU_ASSERT(ht_put(&table, i, ip, str) == NULL);
+        CU_ASSERT(ht_put(&table, i, ip, client) == NULL);
         CU_ASSERT(errno == 0);
     }
 

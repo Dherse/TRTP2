@@ -80,7 +80,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
         client_t *client = req->client;
         buf_t *window = client->window;
-        pthread_mutex_lock(buf_get_lock(window));
+        pthread_mutex_lock(client_get_lock(client));
 
         int i = 0;
         for (i = 0; i < req->num; i++) {
@@ -143,7 +143,7 @@ inline __attribute__((always_inline)) void hd_run_once(
                         client->ip_as_string, ntohs(client->address->sin6_port),
                         (*decoded)->seqnum, window->window_low
                     );
-                } else if(is_used_nolock(window, (*decoded)->seqnum)) {
+                } else if(is_used(window, (*decoded)->seqnum)) {
                     to_send.type = ACK;
                     to_send.truncated = false;
                     to_send.seqnum = window->window_low;
@@ -165,13 +165,14 @@ inline __attribute__((always_inline)) void hd_run_once(
                         (*decoded)->seqnum, window->window_low
                     );
                 } else {
-                    node_t *spot = next_nolock(window, (*decoded)->seqnum, true);
+                    node_t *spot = next(window, (*decoded)->seqnum);
+                    if (spot == NULL) {
+                        fprintf(stderr, "[HD] Internal error");
+                    }
 
                     packet_t *temp = (packet_t *) spot->value;
                     spot->value = *decoded;
                     *decoded = temp;
-
-                    unlock(spot);
                 }
             }
         }
@@ -185,7 +186,7 @@ inline __attribute__((always_inline)) void hd_run_once(
         i = window->window_low;
         bool remove;
         do {
-            node = get_nolock(window, i & 0xFF, false, false);
+            node = get(window, i & 0xFF, false);
             if (node != NULL) {
                 pak = (packet_t *) node->value;
 
@@ -203,7 +204,6 @@ inline __attribute__((always_inline)) void hd_run_once(
                 cnt++;
                 i++;
             }
-            unlock(node);
         } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= 31);
 
         if (cnt > 0) {
@@ -218,10 +218,11 @@ inline __attribute__((always_inline)) void hd_run_once(
                 fseek(client->out_file, -result, SEEK_SET);
 
                 fprintf(stderr, "[HD] Failed to write to file, won't be writing ACK to get retransmission timer\n");
-
                 if (!stream_enqueue(cfg->tx, node_rx, false)) {
                     deallocate_node(node_rx);
                 }
+
+                pthread_mutex_unlock(client_get_lock(client));
 
                 return;
             }
@@ -271,7 +272,7 @@ inline __attribute__((always_inline)) void hd_run_once(
             }
         }
 
-        pthread_mutex_unlock(buf_get_lock(window));
+        pthread_mutex_unlock(client_get_lock(client));
 
         int retval = sendmmsg(cfg->sockfd, msg, len_to_send, 0);
         if (retval == -1) {

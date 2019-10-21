@@ -36,26 +36,16 @@ typedef struct node {
     void *value;
 
     bool used;
-
-    pthread_mutex_t *lock;
-
-    pthread_cond_t *notifier;
 } node_t;
 
 GETSET(node_t, void *, value);
 
 GETSET(node_t, bool, used);
 
-pthread_mutex_t *node_get_lock(node_t *self);
-
-GETSET(node_t, pthread_cond_t *, notifier);
-
 typedef struct buf {
     uint8_t window_low;
 
     uint8_t length;
-
-    pthread_mutex_t *lock;
 
     node_t nodes[MAX_WINDOW_SIZE];
 } buf_t;
@@ -63,8 +53,6 @@ typedef struct buf {
 GETSET(buf_t, uint8_t, window_low);
 
 uint8_t buf_get_length(buf_t *self);
-
-pthread_mutex_t *buf_get_lock(buf_t *self);
 
 /**
  * ## Use
@@ -198,45 +186,13 @@ void deallocate_buffer(buf_t *buffer);
  * ## Arguments
  *
  * - `buffer` - a pointer to an already-allocated buffer
- * - `wait` - whether to wait for a readable writable to be available
  * - `seqnum` - the sequence number to insert
  *
  * ## Return value
  * 
- * - wait == true : NULL if it failed, an initialized node otherwise
- * - wait == false : NULL if it failed or empty, an initialized node otherwise
+ * NULL if it failed or empty, an initialized node otherwise
  */
-node_t *next(buf_t *buffer, uint8_t seqnum, bool wait);
-
-/**
- * Refer to buffer.h/next(buf_t *, uint8_t, bool)
- * 
- * Does the same thing but without locking, considers the
- * lock has already been grabbed before
- * 
- * ## No lock
- * 
- * This function considers that the lock has already been acquired!
- */
-node_t *next_nolock(buf_t *buffer, uint8_t seqnum, bool wait);
-
-/**
- * ## Use
- * 
- * Peeks the next readable element in the buffer
- * 
- * ## Arguments
- *
- * - `buffer` - a pointer to an already-allocated buffer
- * - `wait` - whether to wait for a readable value to be available
- * - `inc` - whether to increment last_read or not
- *
- * ## Return value
- * 
- * - wait == true : NULL if it failed, an initialized node otherwise
- * - wait == false : NULL if it failed or empty, an initialized node otherwise
- */
-node_t *peek(buf_t *buffer, bool wait, bool inc);
+node_t *next(buf_t *buffer, uint8_t seqnum);
 
 /**
  * ## Use
@@ -248,27 +204,13 @@ node_t *peek(buf_t *buffer, bool wait, bool inc);
  *
  * - `buffer` - a pointer to an already-allocated buffer
  * - `seqnum` - the sequence number to get
- * - `wait`   - whether to wait for a readable value to be available
  * - `inc`    - whether to increment last_read or not
  *
  * ## Return value
  * 
- * - wait == true : NULL if it failed, an initialized node otherwise
- * - wait == false : NULL if it failed or empty, an initialized node otherwise
+ * NULL if it failed or empty, an initialized node otherwise
  */
-node_t *get(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
-
-/**
- * Refer to buffer.h/get(buf_t *, uint8_t, bool, bool)
- * 
- * Does the same thing but without locking, considers the
- * lock has already been grabbed before
- * 
- * ## No lock
- * 
- * This function considers that the lock has already been acquired!
- */
-node_t *get_nolock(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
+node_t *get(buf_t *buffer, uint8_t seqnum, bool inc);
 
 /**
  * ## Use
@@ -286,28 +228,5 @@ node_t *get_nolock(buf_t *buffer, uint8_t seqnum, bool wait, bool inc);
  * - false otherwise
  */
 bool is_used(buf_t *buffer, uint8_t seqnum);
-
-/**
- * Refer to buffer.h/is_used(buf_t *, uint8_t)
- * 
- * Does the same thing but without locking, considers the
- * lock has already been grabbed before
- * 
- * ## No lock
- * 
- * This function considers that the lock has already been acquired!
- */
-bool is_used_nolock(buf_t *buffer, uint8_t seqnum);
-
-/**
- * ## Use
- * 
- * Unlocks the node for future read/write
- * 
- * ## Arguments
- *
- * - `node` - a node owned by a buffer
- */
-void unlock(node_t* node);
 
 #endif

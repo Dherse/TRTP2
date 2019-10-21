@@ -126,7 +126,6 @@ void rx_run_once(
     rx_cfg_t *rcv_cfg, 
     uint8_t buffers[][528],
     socklen_t addr_len,
-    bool *already_popped,
     struct sockaddr_in6 *addrs, 
     struct mmsghdr *msgs, 
     struct iovec *iovecs

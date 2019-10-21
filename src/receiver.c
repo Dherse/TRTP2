@@ -9,7 +9,6 @@ inline __attribute__((always_inline)) void rx_run_once(
     rx_cfg_t *rcv_cfg, 
     uint8_t buffers[][528],
     socklen_t addr_len,
-    bool *already_popped,
     struct sockaddr_in6 *addrs, 
     struct mmsghdr *msgs, 
     struct iovec *iovecs
@@ -78,25 +77,21 @@ inline __attribute__((always_inline)) void rx_run_once(
                     fprintf(stderr, "[%s][%5u] New client #%d\n", contained->ip_as_string, ntohs(contained->address->sin6_port), contained->id);
                 }
 
-                if (!*already_popped) {
-                    node = stream_pop(rcv_cfg->rx, false);
-                    if(node == NULL) {
-                        node = malloc(sizeof(s_node_t));
-                        if (initialize_node(node, allocate_handle_request)) {
-                            fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
-                            break;
-                        }
-                    }
-
-                    req = (hd_req_t *) node->content;
-                    if(req == NULL) {
-                        fprintf(stderr, "[RX] `content` in a node was NULL\n");
-                        node->content = (hd_req_t *) allocate_handle_request();
-                        req = (hd_req_t *) node->content;
+                node = stream_pop(rcv_cfg->rx, false);
+                if(node == NULL) {
+                    node = malloc(sizeof(s_node_t));
+                    if (initialize_node(node, allocate_handle_request)) {
+                        fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
+                        break;
                     }
                 }
 
-                *already_popped = false;
+                req = (hd_req_t *) node->content;
+                if(req == NULL) {
+                    fprintf(stderr, "[RX] `content` in a node was NULL\n");
+                    node->content = (hd_req_t *) allocate_handle_request();
+                    req = (hd_req_t *) node->content;
+                }
 
                 req->client = contained;
                 req->num = 0;
@@ -106,7 +101,6 @@ inline __attribute__((always_inline)) void rx_run_once(
             req->lengths[idx] = msgs[i].msg_len;
             memcpy(req->buffer[idx], buffers[i], req->lengths[idx]);
         }
-
 
         stream_enqueue(rcv_cfg->tx, node, true);
     }
@@ -165,8 +159,6 @@ void *receive_thread(void *receive_config) {
         msgs[i].msg_hdr.msg_flags = 0;
         msgs[i].msg_hdr.msg_control = NULL;
     }
-
-    bool already_popped = false;
     
     int retval;
     while(!rcv_cfg->stop) {
@@ -174,7 +166,6 @@ void *receive_thread(void *receive_config) {
             rcv_cfg,
             buffers,
             addr_len,
-            &already_popped,
             addrs,
             msgs,
             iovecs
