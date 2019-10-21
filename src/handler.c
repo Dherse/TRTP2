@@ -268,7 +268,6 @@ void *handle_thread(void *config) {
 
                         send_req->address = client->address;
 
-                        //remove or false ? -> pas le même dans handler.c
                         send_req->deallocate_address = remove;
 
                         to_send.type = ACK;

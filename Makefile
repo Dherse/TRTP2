@@ -10,7 +10,7 @@ RM = rm
 VERSION = gnu89
 
 # Binary names
-OUT = trtp_receiver
+OUT = ../receiver
 TEST = trtp_test
 
 SRC_DIR = ./src
@@ -44,7 +44,7 @@ DEBUG_FLAGS = -O0 -ggdb
 .PHONY: clean report stat install_tectonic
 
 # main
-all: clean build run
+all: clean build
 
 # build
 build: $(OBJECTS)
