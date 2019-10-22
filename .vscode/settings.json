@@ -35,6 +35,8 @@
         "string": "c",
         "time.h": "c",
         "pthread.h": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "lookup.h": "c",
+        "param.h": "c"
     }
 }

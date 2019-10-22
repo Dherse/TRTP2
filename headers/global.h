@@ -18,7 +18,8 @@
 #include <string.h>
 
 /** CRC32 */
-#include <zlib.h>
+#define IOLIB_CRC
+#include "crc32.h"
 
 /** Required for recvmmsg & sendmmsg */
 #include <sys/socket.h>
@@ -40,6 +41,12 @@
 
 /** Required for multithreading */
 #include <pthread.h>
+
+#include <sys/cdefs.h>
+
+#include <sys/param.h>
+
+#include <getopt.h>
 
 /** Custom error number definitions */
 #include "errors.h"

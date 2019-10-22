@@ -254,7 +254,7 @@ int parse_affinity_file(config_rcv_t *config) {
         if (read == -1 || line == NULL) {
             fclose(file);
             free(line);
-            fprintf(stderr, "Failed to read RX affinity\n");
+            fprintf(stderr, "[CLI] Failed to read RX affinity\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
             config->handle_affinities = NULL;
@@ -269,7 +269,7 @@ int parse_affinity_file(config_rcv_t *config) {
                 fclose(file);
                 free(line);
                 free(line2);
-                fprintf(stderr, "Too many RX affinities\n");
+                fprintf(stderr, "[CLI] Too many RX affinities\n");
                 free(config->handle_affinities);
                 free(config->receive_affinities);
                 config->handle_affinities = NULL;
@@ -282,7 +282,7 @@ int parse_affinity_file(config_rcv_t *config) {
                 fclose(file);
                 free(line);
                 free(line2);
-                fprintf(stderr, "Failed to parse RX affinity: %s\n", token);
+                fprintf(stderr, "[CLI] Failed to parse RX affinity: %s\n", token);
                 free(config->handle_affinities);
                 free(config->receive_affinities);
                 config->handle_affinities = NULL;
@@ -299,7 +299,7 @@ int parse_affinity_file(config_rcv_t *config) {
         if (i != config->receive_num) {
             fclose(file);
             free(line);
-            fprintf(stderr, "Not enough RX affinities\n");
+            fprintf(stderr, "[CLI] Not enough RX affinities\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
             config->handle_affinities = NULL;
@@ -311,7 +311,7 @@ int parse_affinity_file(config_rcv_t *config) {
         if (read == -1) {
             fclose(file);
             free(line);
-            fprintf(stderr, "Failed to read HD affinity\n");
+            fprintf(stderr, "[CLI] Failed to read HD affinity\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
             config->handle_affinities = NULL;
@@ -326,7 +326,7 @@ int parse_affinity_file(config_rcv_t *config) {
                 fclose(file);
                 free(line);
                 free(line2);
-                fprintf(stderr, "Too many HD affinities\n");
+                fprintf(stderr, "[CLI] Too many HD affinities\n");
                 free(config->handle_affinities);
                 free(config->receive_affinities);
                 config->handle_affinities = NULL;
@@ -339,7 +339,7 @@ int parse_affinity_file(config_rcv_t *config) {
                 fclose(file);
                 free(line);
                 free(line2);
-                fprintf(stderr, "Failed to parse HD affinity: %s\n", token);
+                fprintf(stderr, "[CLI] Failed to parse HD affinity: %s\n", token);
                 free(config->handle_affinities);
                 free(config->receive_affinities);
                 config->handle_affinities = NULL;
@@ -356,7 +356,7 @@ int parse_affinity_file(config_rcv_t *config) {
         if (i != config->handle_num) {
             fclose(file);
             free(line);
-            fprintf(stderr, "Not enough HD affinities\n");
+            fprintf(stderr, "[CLI] Not enough HD affinities\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
             config->handle_affinities = NULL;
@@ -372,8 +372,139 @@ int parse_affinity_file(config_rcv_t *config) {
         free(config->receive_affinities);
         config->handle_affinities = NULL;
         config->receive_affinities = NULL;
-        fprintf(stderr, "No affinity file present\n");
+        fprintf(stderr, "[CLI] No affinity file present\n");
     }
+    return 0;
+}
+
+/*
+ * Refer to headers/cli.h
+ */
+int parse_streams_file(config_rcv_t *config) {
+    /**
+     * We allocate the streams
+     */
+    config->receive_streams = calloc(config->receive_num, sizeof(sts_t));
+    if (config->receive_streams == NULL) {
+        return -1;
+    }
+
+    config->handle_streams = calloc(config->handle_num, sizeof(sts_t));
+    if (config->handle_streams == NULL) {
+        free(config->receive_streams);
+        config->receive_streams = NULL;
+        return -1;
+    }
+
+    /**
+     * We set every stream to -1 to detect errors later.
+     */
+    int i;
+    for (i = 0; i < config->receive_num; i++) {
+        config->receive_streams[i].stream = -1;
+    }
+
+    for (i = 0; i < config->handle_num; i++) {
+        config->handle_streams[i].stream = -1;
+    }
+
+    FILE *file = fopen("./streams.cfg", "r");
+    if (!file) {
+        fprintf(stderr, "[CLI] Failed to open streams config\n");
+        return -1;
+    }
+
+    char str[128];
+    i = 0;
+    while (fgets(str, 128, file) != NULL) {
+        if (i >= config->receive_num) {
+            fprintf(stderr, "[CLI] Too many streams defined\n");
+            return -1;
+        }
+
+        int idx = i++;
+
+        char *receivers;
+        char *handlers;
+        receivers = strtok(str, ":");
+        handlers = strtok(NULL, ":");
+
+        // Up to N receivers associated with this stream
+        int associated_receivers[config->receive_num];
+        memset(associated_receivers, 0, config->receive_num);
+
+        // Up to 
+        int associated_handlers[config->handle_num];
+        memset(associated_handlers, 0, config->handle_num);
+
+        int r = 0;
+        char *receiver_chunk = strtok(receivers, ",");
+        while (receiver_chunk != NULL) {
+            if (str2int(&associated_receivers[r++], receiver_chunk, 10)) {
+                fprintf(stderr, "[CLI] Failed to parse number: %d (in streams.cfg)\n", receiver_chunk);
+                return -1;
+            }
+
+            if (associated_receivers[r - 1] < 0 || associated_receivers[r - 1] >= config->receive_num) {
+                fprintf(stderr, "[CLI] Unknown receiver: %d (in streams.cfg)\n", associated_receivers[r - 1]);
+                return -1;
+            }
+
+            if (config->receive_streams[associated_receivers[r - 1]].stream != -1) {
+                fprintf(stderr, "[CLI] Receiver used twice: %d (in streams.cfg)\n", associated_receivers[r - 1]);
+                return -1;
+            }
+
+            config->receive_streams[associated_receivers[r - 1]].stream = idx;
+
+            receiver_chunk = strtok(NULL, ",");
+        }
+
+        int h = 0;
+        char *handler_chunk = strtok(handlers, ",");
+        while (handler_chunk != NULL) {
+            if (str2int(&associated_handlers[h++], handler_chunk, 10)) {
+                fprintf(stderr, "[CLI] Failed to parse number: %d (in streams.cfg)\n", handler_chunk);
+                return -1;
+            }
+
+            if (associated_handlers[h - 1] < 0 || associated_handlers[h - 1] >= config->handle_num) {
+                fprintf(stderr, "[CLI] Unknown handler: %d (in streams.cfg)\n", associated_handlers[h - 1]);
+                return -1;
+            }
+
+            if (config->handle_streams[associated_handlers[h - 1]].stream != -1) {
+                fprintf(stderr, "[CLI] Handler used twice: %d (in streams.cfg)\n", associated_handlers[h - 1]);
+                return -1;
+            }
+
+            config->handle_streams[associated_handlers[h - 1]].stream = idx;
+
+            handler_chunk = strtok(NULL, ",");
+        }
+    }
+
+    config->stream_count = i;
+
+    if (i <= 0) {
+        fprintf(stderr, "[CLI] At least one stream must be defined\n");
+        return -1;
+    }
+
+    for (i = 0; i < config->handle_num; i++) {
+        if (config->handle_streams[i].stream == -1) {
+            fprintf(stderr, "[CLI] Not all handlers have a stream associated, example: %d\n", i);
+            return -1;
+        }
+    }
+
+    for (i = 0; i < config->receive_num; i++) {
+        if (config->receive_streams[i].stream == -1) {
+            fprintf(stderr, "[CLI] Not all receivers have a stream associated, example: %d\n", i);
+            return -1;
+        }
+    }
+
     return 0;
 }
 
@@ -413,6 +544,19 @@ void print_config(config_rcv_t *config) {
 
         fprintf(stderr, " - Receiver to handler ratio: %.2f (typical 0.5)\n", (float) config->receive_num / (float) config->handle_num);
     }
+    fprintf(stderr, "Number of streams: %d\n", config->stream_count);
+    int i;
+
+    fprintf(stderr, "  Association for receivers (#Receiver -> #Stream): ");
+    for (i = 0; i < config->receive_num; i++) {
+        fprintf(stderr, "%d -> %d%s", i, config->receive_streams[i].stream, (i == config->receive_num - 1) ? "\n" : ", ");
+    }
+
+    fprintf(stderr, "  Association for handlers (#Handler -> #Stream): ");
+    for (i = 0; i < config->handle_num; i++) {
+        fprintf(stderr, "%d -> %d%s", i, config->handle_streams[i].stream, (i == config->handle_num - 1) ? "\n" : ", ");
+    }
+
     fprintf(stderr, "\n");
     fprintf(stderr, "Output file format: %s\n", config->format);
     fprintf(stderr, "Maximum number of concurrent transfers: %d\n", config->max_connections);

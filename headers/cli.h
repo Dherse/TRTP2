@@ -13,6 +13,10 @@ typedef struct affinity_setting {
     int cpu;
 } afs_t;
 
+typedef struct stream_setting {
+    int stream;
+} sts_t;
+
 /**
  * Contains a receiver configuration.
  */
@@ -20,17 +24,26 @@ typedef struct config_receiver {
     /** Is the application running with a single thread? */
     bool sequential;
 
+    /** Number of streams to use */
+    int stream_count;
+
     /** Number of handler thread, ignored if `sequential` equals true */
     int handle_num;
 
     /** CPU core affinities for the handler threads */
     afs_t *handle_affinities;
 
+    /** Which stream should each handler use */
+    sts_t *handle_streams;
+
     /** Number of receiver thread, ignored if `sequential` equals true */
     int receive_num;
 
     /** CPU core affinities for the receiver threads */
     afs_t *receive_affinities;
+
+    /** Which stream should each receiver use */
+    sts_t *receive_streams;
 
     /** Maximum window size to advertise, by default 31 */
     int max_window;
@@ -51,7 +64,9 @@ typedef struct config_receiver {
     struct addrinfo *addr_info;
     
     /** The input port */
-    uint16_t port;    
+    uint16_t port;
+
+
 } config_rcv_t;
 
 /**
@@ -89,6 +104,24 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config);
  * 
  */
 int parse_affinity_file(config_rcv_t *config);
+
+/**
+ * ## Use
+ * 
+ * Parses the streams file `streams.cfg` for stream mapping.
+ * If it fails it will output on stderr the error. The result
+ * of this function should be ignored.
+ * 
+ * ## Arguments
+ *
+ * - `config` - an allocated but not necessarily initialized config
+ *
+ * ## Return value
+ * 
+ * 0 if process completed successfully, -1 otherwise.
+ * 
+ */
+int parse_streams_file(config_rcv_t *config);
 
 /**
  * ## Use

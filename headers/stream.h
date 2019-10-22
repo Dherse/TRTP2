@@ -166,7 +166,7 @@ void deallocate_node(s_node_t *node);
  * 0 if the process completed successfully. -1 otherwise.
  * If it failed, errno is set to an appropriate error.
  */
-int allocate_stream(stream_t *stream);
+int initialize_stream(stream_t *stream);
 
 /**
  * ## Use

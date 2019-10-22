@@ -27,10 +27,10 @@ void test_global() {
     CU_ASSERT(sockfd > 0);
 
     stream_t rx_to_hd;
-    CU_ASSERT(allocate_stream(&rx_to_hd) == 0);
+    CU_ASSERT(initialize_stream(&rx_to_hd) == 0);
     
     stream_t hd_to_rx;
-    CU_ASSERT(allocate_stream(&hd_to_rx) == 0);
+    CU_ASSERT(initialize_stream(&hd_to_rx) == 0);
     bool wait = false;
 
     hd_cfg_t *cfg = (hd_cfg_t *) malloc(sizeof(hd_cfg_t));

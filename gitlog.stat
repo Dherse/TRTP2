@@ -1,3 +1,25 @@
+commit 5b0e47544e66e88f1709ed45d13e0be73f591242
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 17:07:38 2019 +0200
+
+    Removed double include
+
+ headers/global.h | 2 --
+ 1 file changed, 2 deletions(-)
+
+commit e7557ab671f19abf7964b8fd0a860bfad846cdc4
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 17:07:19 2019 +0200
+
+    Merge & cleanup
+
+ gitlog.stat                                   |  80 ++++++++++++++++++++++++++
+ projet1_d-Herbais-de-Thun_Heuschling.zip      | Bin 1286392 -> 1288705 bytes
+ tests/{Tout_test.c => handler_test.c}         |   3 +-
+ tests/headers/{Tout_test.h => handler_test.h} |   0
+ tests/tests.c                                 |   2 +-
+ 5 files changed, 82 insertions(+), 3 deletions(-)
+
 commit 99779d979ff042b3ca3917c75321f526696f07fa
 Merge: 34f16c1 2f034b9
 Author: Seb Dhe <sebastien.d.herbais@gmail.com>

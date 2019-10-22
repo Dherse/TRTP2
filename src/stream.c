@@ -45,7 +45,7 @@ void deallocate_node(s_node_t *node) {
 /**
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
-int allocate_stream(stream_t *stream) {
+int initialize_stream(stream_t *stream) {
     stream->in_queue = NULL;
     stream->out_queue = NULL;
     stream->length = 0;

@@ -68,14 +68,14 @@ void print_usage(char *exec) {
 void deallocate_everything(
     config_rcv_t *config,
     int sockfd,
-    stream_t *rx_to_hd,
-    stream_t *hd_to_rx,
+    stream_t **rx_to_hd,
+    stream_t **hd_to_rx,
     ht_t *clients,
     rx_cfg_t **rx_configs,
     hd_cfg_t **hd_configs
 ) {
     fprintf(stderr, "[STOP] Deallocation called\n");
-    int i ;
+    int i, j;
     for (i = 0; i < config->receive_num; i++) {
         if (rx_configs[i] != NULL) {
             if (rx_configs[i]->thread != NULL) {
@@ -91,13 +91,15 @@ void deallocate_everything(
     free(rx_configs);
 
     for(i = 0; i < config->handle_num; i++) {
-        s_node_t *stop_node = malloc(sizeof(s_node_t));
+        for (j = 0; j < config->stream_count; j++) {
+            s_node_t *stop_node = malloc(sizeof(s_node_t));
 
-        if (stop_node != NULL && !initialize_node(stop_node, allocate_handle_request)) {
-            hd_req_t *stop_req = (hd_req_t *) stop_node->content;
-            stop_req->stop = true;
-            
-            stream_enqueue(rx_to_hd, stop_node, true);
+            if (stop_node != NULL && !initialize_node(stop_node, allocate_handle_request)) {
+                hd_req_t *stop_req = (hd_req_t *) stop_node->content;
+                stop_req->stop = true;
+                
+                stream_enqueue(rx_to_hd[j], stop_node, true);
+            }
         }
     }
 
@@ -132,12 +134,18 @@ void deallocate_everything(
     }
 
     if (rx_to_hd != NULL) {
-        dealloc_stream(rx_to_hd);
+        for (j = 0; j < config->stream_count; j++) {
+            dealloc_stream(rx_to_hd[j]);
+            free(rx_to_hd[j]);
+        }
         free(rx_to_hd);
     }
 
     if (hd_to_rx != NULL) {
-        dealloc_stream(hd_to_rx);
+        for (j = 0; j < config->stream_count; j++) {
+            dealloc_stream(hd_to_rx[j]);
+            free(hd_to_rx[j]);
+        }
         free(hd_to_rx);
     }
 
@@ -211,6 +219,17 @@ int main(int argc, char *argv[]) {
 
     parse_affinity_file(&config);
 
+    if (parse_streams_file(&config)) {
+        config.stream_count = 1;
+        int i;
+        for (i = 0; i < config.handle_num; i++) {
+            config.handle_streams[i].stream = 0;
+        }
+        for (i = 0; i < config.receive_num; i++) {
+            config.receive_streams[i].stream = 0;
+        }
+    }
+
     if (config.sequential) {
         config.handle_num = 1;
         config.receive_num = 1;
@@ -218,8 +237,8 @@ int main(int argc, char *argv[]) {
 
     print_config(&config);
 
-    stream_t *rx_to_hd;
-    stream_t *hd_to_rx;
+    stream_t **rx_to_hd;
+    stream_t **hd_to_rx;
 
     ht_t *clients;
 
@@ -288,8 +307,8 @@ int main(int argc, char *argv[]) {
     // -------------------------------------------------------------------------
     // Data structure allocations
     // -------------------------------------------------------------------------
-    rx_to_hd = calloc(1, sizeof(stream_t));
-    if (rx_to_hd == NULL || allocate_stream(rx_to_hd)) {
+    rx_to_hd = calloc(config.stream_count, sizeof(stream_t *));
+    if (rx_to_hd == NULL) {
         fprintf(stderr, "[MAIN] Failed to initialize 'rx_to_hd'\n");
         
         deallocate_everything(
@@ -305,8 +324,28 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    hd_to_rx = calloc(1, sizeof(stream_t));
-    if (hd_to_rx == NULL || allocate_stream(hd_to_rx)) {
+    int i;
+    for(i = 0; i < config.stream_count; i++) {
+        rx_to_hd[i] = calloc(config.stream_count, sizeof(stream_t));
+        if (rx_to_hd[i] == NULL || initialize_stream(rx_to_hd[i])) {
+            fprintf(stderr, "[MAIN] Failed to initialize 'hd_to_rx'\n");
+            
+            deallocate_everything(
+                &config,
+                sockfd,
+                rx_to_hd, 
+                hd_to_rx,
+                clients, 
+                rx_configs,
+                hd_configs
+            );
+
+            return -1;
+        }
+    }
+
+    hd_to_rx = calloc(config.stream_count, sizeof(stream_t *));
+    if (hd_to_rx == NULL) {
         fprintf(stderr, "[MAIN] Failed to initialize 'hd_to_rx'\n");
         
         deallocate_everything(
@@ -320,6 +359,25 @@ int main(int argc, char *argv[]) {
         );
 
         return -1;
+    }
+
+    for(i = 0; i < config.stream_count; i++) {
+        hd_to_rx[i] = calloc(config.stream_count, sizeof(stream_t));
+        if (hd_to_rx[i] == NULL || initialize_stream(hd_to_rx[i])) {
+            fprintf(stderr, "[MAIN] Failed to initialize 'hd_to_rx'\n");
+            
+            deallocate_everything(
+                &config,
+                sockfd,
+                rx_to_hd, 
+                hd_to_rx,
+                clients, 
+                rx_configs,
+                hd_configs
+            );
+
+            return -1;
+        }
     }
 
     clients = calloc(1, sizeof(ht_t));
@@ -356,7 +414,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     
-    int i;
     for (i = 0; i < config.receive_num; i++) {
         rx_configs[i] = calloc(1, sizeof(rx_cfg_t));
         if (rx_configs[i] == NULL) {
@@ -424,8 +481,8 @@ int main(int argc, char *argv[]) {
         rx_configs[i]->max_clients = config.max_connections;
         rx_configs[i]->sockfd = sockfd;
         rx_configs[i]->stop = false;
-        rx_configs[i]->rx = hd_to_rx;
-        rx_configs[i]->tx = rx_to_hd;
+        rx_configs[i]->rx = hd_to_rx[config.receive_streams[i].stream];
+        rx_configs[i]->tx = rx_to_hd[config.receive_streams[i].stream];
         rx_configs[i]->addr_len = &config.addr_info->ai_addrlen;
         rx_configs[i]->window_size = config.receive_window_size;
         rx_configs[i]->affinity = config.receive_affinities == NULL ? NULL : &config.receive_affinities[i];
@@ -435,8 +492,8 @@ int main(int argc, char *argv[]) {
         hd_configs[i]->id = i;
         hd_configs[i]->sockfd = sockfd;
         hd_configs[i]->clients = clients;
-        hd_configs[i]->rx = rx_to_hd;
-        hd_configs[i]->tx = hd_to_rx;
+        hd_configs[i]->rx = rx_to_hd[config.handle_streams[i].stream];
+        hd_configs[i]->tx = hd_to_rx[config.handle_streams[i].stream];
         hd_configs[i]->max_window_size = config.max_window;
         hd_configs[i]->affinity = config.handle_affinities == NULL ? NULL : &config.handle_affinities[i];
     }
@@ -663,6 +720,8 @@ int main(int argc, char *argv[]) {
         rx_configs,
         hd_configs
     );
+
+    fprintf(stderr, "[STOP] Goodbye\n");
 
     return 0;
 }
