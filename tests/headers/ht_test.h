@@ -2,6 +2,7 @@
 #include <CUnit/CUnit.h>
 
 #include "../../headers/hash_table.h"
+#include "../../headers/client.h"
 
 #define N 1024
 

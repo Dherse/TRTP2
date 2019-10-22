@@ -8,16 +8,23 @@ GETSET_IMPL(client_t, socklen_t, addr_len);
 
 GETSET_IMPL(client_t, uint32_t, id);
 
-#define SIZE_SOCKADDR_IN6 sizeof(struct sockaddr_in6)
-
+/*
+ * Refer to headers/client.h
+ */
 pthread_mutex_t *client_get_lock(client_t *self) {
     return self->lock;
 }
 
+/*
+ * Refer to headers/client.h
+ */
 buf_t *get_client_window(client_t *self) {
     return self->window;
 }
 
+/*
+ * Refer to headers/client.h
+ */
 void set_client_window(client_t *self, buf_t *window) {
     self->window = window;
 }
@@ -39,9 +46,16 @@ void set_active(client_t *self, bool active) {
 /*
  * Refer to headers/client.h
  */
-int initialize_client(client_t *client, uint32_t id, char *format) {
+int initialize_client(
+    client_t *client, 
+    uint32_t id, 
+    char *format, 
+    struct sockaddr_in6 *address,
+    socklen_t *addr_len
+) {
     client->id = id;
-
+    client->active = true;
+    
     client->lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->lock == NULL) {
         free(client);
@@ -78,8 +92,9 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         return -1;
     }
 
-    //TODO
-    client->addr_len = SIZE_SOCKADDR_IN6;
+    *client->address = *address;
+
+    client->addr_len = *addr_len;
 
     client->window = (buf_t *) malloc(sizeof(buf_t));
     if(client->window == NULL){
@@ -95,11 +110,26 @@ int initialize_client(client_t *client, uint32_t id, char *format) {
         free(client->address);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
-        free(client);
         free(client->window);
+        free(client);
+
         errno = FAILED_TO_ALLOCATE;
         return -1;
     }
+    
+    if(ip_to_string(address, client->ip_as_string)) { 
+        deallocate_buffer(client->window);
+        free(client->address);
+        pthread_mutex_destroy(client->lock);
+        free(client->lock);
+        free(client);
+
+        errno = FAILED_TO_ALLOCATE;
+        return -1;
+    }
+
+    time(&client->connection_time);
+    client->transferred = 0;
 
     return 0;
 }
@@ -112,23 +142,22 @@ void deallocate_client(client_t *client, bool dealloc_addr, bool close_file) {
         return;
     }
 
-    pthread_mutex_lock(client->lock);
+    if (client->lock != NULL) {
+        pthread_mutex_destroy(client->lock);
+        free(client->lock);
+    }
 
-    client->active = false;
-
-    if (dealloc_addr) {
+    if (dealloc_addr && client->address != NULL) {
         free(client->address);
     }
 
-    if (close_file) {
+    if (close_file && client->active && client->out_file != NULL) {
         fclose(client->out_file);
     }
-                                        
-    deallocate_buffer(client->window);
 
-    pthread_mutex_unlock(client->lock);
-    pthread_mutex_destroy(client->lock);
-    free(client->lock);
+    if (client->window != NULL) {
+        deallocate_buffer(client->window);
+    }
 
     free(client);
 }

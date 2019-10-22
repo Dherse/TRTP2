@@ -6,6 +6,8 @@
 #include "buffer.h"
 #include "lookup.h"
 #include "client.h"
+#include "cli.h"
+#include "handler.h"
 
 #define RX_H
 
@@ -28,11 +30,14 @@
 #endif
 
 typedef struct receive_thread_config {
+    /** Thread ID */
+    int id;
+
     /** Thread reference */
     pthread_t *thread;
 
     /** the number of clients that have connected */
-    uint32_t idx;
+    volatile uint32_t *idx;
 
     /** the file name format */
     char *file_format;
@@ -52,44 +57,17 @@ typedef struct receive_thread_config {
     /** Socket file descriptor */
     int sockfd;
 
-    socklen_t addr_len;
+    socklen_t *addr_len;
+
+    /** Thread affinity */
+    afs_t *affinity;
     
     /** Maximum number of clients */
     int max_clients;
+
+    /** Maximum number of packets per syscall */
+    int window_size;
 } rx_cfg_t;
-
-typedef struct send_thread_config {
-    /** Thread reference */
-    pthread_t *thread;
-
-    /** Handle to Send stream */
-    stream_t *send_rx;
-    /** Send to Handle stream */
-    stream_t *send_tx;
-
-    /** Socket file descriptor */
-    int sockfd;
-} tx_cfg_t;
-
-typedef struct send_request {
-    /** true = the loop should stop */
-    bool stop;
-
-    /** Ignores the window if set to true */
-    bool deallocate_address;
-
-    /** the IP to send to */
-    struct sockaddr_in6 *address;
-
-    /** the packet to send */
-    uint8_t to_send[32];
-} tx_req_t;
-
-GETSET(tx_req_t, bool, stop);
-
-GETSET(tx_req_t, bool, deallocate_address);
-
-GETSET(tx_req_t, struct sockaddr_in6 *, address);
 
 /**
  * /!\ This is a THREAD definition
@@ -145,37 +123,30 @@ GETSET(tx_req_t, struct sockaddr_in6 *, address);
 void *receive_thread(void *);
 
 /**
- * /!\ This is a THREAD definition
+ * ## Use :
  * 
- * ## Parameter
+ * Essentially runs one loop of the receive thread. You'll have to
+ * read the detailed description of receiver.h/handle_thread for all
+ * the details.
  * 
- * Although threads take a `void *` the actual
- * data structure that should be sent to the thread
- * is `tx_cfg`.
- * 
- * ## Use
- * 
- * Reads from a stream of packets, packs them
- * and writes them to the socket. Finally it appends the
- * spent packet structure to the return stream.
- * 
- * ## Appending to a stream
- * 
- * For each stream, two sub-streams are used. One is used to
- * send the information onto the next stage. The other is
- * used to return the previously used data structures
- * in order to avoid needing on-the-go allocation.
- * 
- * In the event that no data structure can be received without
- * waiting, a new one is allocated. This should guarantee that
- * all allocation happen close to the startup of the application.
- * 
- * Once a node has been popped from a stream it has to be
- * enqueued onto the return stream. If it cannot be it should be
- * deallocated to avoid memory leaks.
+ * ## Arguments :
+ *
+ * - `cfg`      - receiver configuration
+ * - `buffers`  - receive buffers (on the stack)
+ * - `addr_len` - length of an IPv6 address
+ * - `addrs`    - addresses for recvmmsg (on the stack)
+ * - `msgs`     - messages for recvmmsg (on the stack)
+ * - `iovecs`   - io vectors for recvmmsg (on the stack)
  * 
  */
-void *send_thread(void *);
+void rx_run_once(
+    rx_cfg_t *cfg, 
+    uint8_t buffers[][MAX_PACKET_SIZE],
+    socklen_t addr_len,
+    struct sockaddr_in6 *addrs, 
+    struct mmsghdr *msgs, 
+    struct iovec *iovecs
+);
 
 /**
  * ## Use :
@@ -194,18 +165,5 @@ void *send_thread(void *);
  * If it failed, errno is set to an appropriate error. 
  */
 void move_ip(uint8_t *dst, uint8_t *src);
-
-/**
- * ## Use :
- *
- * mallocs a tx_req_t and initializes all it's fields
- * 
- * ## Return value:
- *
- * a valid pointer if the process completed successfully. 
- * NULL otherwise. If it failed, errno is set to an 
- * appropriate error. 
- */
-void *allocate_send_request();
 
 #endif

@@ -1,5 +1,8 @@
 #include "../headers/lookup.h"
 
+/*
+ * Refer to headers/lookup.h
+ */
 const uint8_t sequences[256][256] = {
 	{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
 	 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
@@ -4099,6 +4102,9 @@ const uint8_t sequences[256][256] = {
 	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
 };
 
+/*
+ * Refer to headers/lookup.h
+ */
 const char *ascii[256] = {
 	// Regular ASCII
 	"NUL",

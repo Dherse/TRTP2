@@ -32,7 +32,7 @@ bool is_long(packet_t *self) {
  * Refer to headers/packet.h
  */
 void set_length(packet_t *self, uint16_t length) {
-    if (length > 512) {
+    if (length > MAX_PAYLOAD_SIZE) {
         return;
     }
 
@@ -54,14 +54,14 @@ uint8_t *get_payload(packet_t *self) {
  * Refer to headers/packet.h
  */
 void set_payload(packet_t *self, uint8_t *payload, uint16_t len) {
-    if (len > 512) {
+    if (len > MAX_PAYLOAD_SIZE) {
         return;
     }
 
     set_length(self, len);
 
     memcpy(self->payload, payload, len);
-    memset(self->payload + len, 0, 512 - len);
+    memset(self->payload + len, 0, MAX_PAYLOAD_SIZE - len);
 }
 
 /**
@@ -77,7 +77,7 @@ int init_packet(packet_t* packet) {
     packet->crc2 = 0;
     packet->length = 0;
     packet->long_length = false;
-    memset(packet->payload, 0, 512);
+    memset(packet->payload, 0, MAX_PAYLOAD_SIZE);
     packet->seqnum = 0;
     packet->timestamp = 0;
     packet->truncated = false;
@@ -207,7 +207,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         return -1;
     }
 
-    if (out->length > 512) {
+    if (out->length > MAX_PAYLOAD_SIZE) {
         errno = PAYLOAD_TOO_LONG;
         return -1;
     } else if (out->payload != NULL && out->length > 0 && !out->truncated) {
@@ -352,19 +352,14 @@ int packet_to_string(packet_t* packet, bool print_payload) {
 /**
  * Refer to headers/packet.h
  */
-int ip_to_string(uint8_t *ip, char *target) {
+int ip_to_string(struct sockaddr_in6 *ip, char *target) {
     if (target == NULL) {
         errno = NULL_ARGUMENT;
         return -1;
     }
 
-    struct in6_addr addr;
-    if (addr.__in6_u.__u6_addr8 != memcpy(addr.__in6_u.__u6_addr8, ip, 16)) {
-        errno = FAILED_TO_COPY;
-        return -1;
-    }
-
-    if (target != inet_ntop(AF_INET6, &addr, target, 18)) {
+    if (target != inet_ntop(AF_INET6, &ip->sin6_addr, target, INET6_ADDRSTRLEN)) {
+        perror("inet_ntop");
         errno = FAILED_TO_COPY;
         return -1;
     }
@@ -375,29 +370,8 @@ int ip_to_string(uint8_t *ip, char *target) {
 /**
  * Refer to headers/packet.h
  */
-bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
-    if (ip1 == NULL) {
-        return ip2 == NULL;
-    } else if (ip2 == NULL) {
-        return false;
-    } else {
-        return ip1[0] == ip2[0] &&
-            ip1[1] == ip2[1] && 
-            ip1[2] == ip2[2] && 
-            ip1[3] == ip2[3] && 
-            ip1[4] == ip2[4] && 
-            ip1[5] == ip2[5] && 
-            ip1[6] == ip2[6] && 
-            ip1[7] == ip2[7] && 
-            ip1[8] == ip2[8] && 
-            ip1[9] == ip2[9] && 
-            ip1[10] == ip2[10] && 
-            ip1[11] == ip2[11] && 
-            ip1[12] == ip2[12] && 
-            ip1[13] == ip2[13] && 
-            ip1[14] == ip2[14] && 
-            ip1[15] == ip2[15]; 
-    }
+inline __attribute__((always_inline)) bool ip_equals(uint8_t *ip1, uint8_t *ip2) {
+    return memcmp(ip1, ip2, 16) == 0;
 }
 
 /**

@@ -1,11 +1,11 @@
 #ifndef HD_H
 
 #include "global.h"
-#include "hash_table.h"
 #include "stream.h"
 #include "buffer.h"
-#include "lookup.h"
 #include "client.h"
+#include "cli.h"
+#include "hash_table.h"
 
 #define HD_H
 
@@ -13,21 +13,22 @@
     num1 > num2 ? num2 : num1
 
 typedef struct handle_thread_config {
+    uint8_t id;
+
     /** Thread reference */
     pthread_t *thread;
 
     /** Receive to Handle stream */
     stream_t *rx;
+    
     /** Handle to Receive stream */
     stream_t *tx;
 
-    /** Handle to Send stream */
-    stream_t *send_tx;
-    /** Send to Handle stream */
-    stream_t *send_rx;
-
     /** Hash table of client */
     ht_t *clients;
+
+    /** Thread affinity */
+    afs_t *affinity;
 
     /** Maximum size of the window */
     int max_window_size;
@@ -43,11 +44,13 @@ typedef struct handle_request {
     /** the client port */
     client_t *client;
 
-    /** length of the data read from the network */
-    ssize_t length;
+    /** number of buffers read */
+    size_t num;
+
+    uint16_t lengths[MAX_WINDOW_SIZE];
 
     /** data read from the network */
-    uint8_t buffer[528];
+    uint8_t buffer[MAX_WINDOW_SIZE][MAX_PACKET_SIZE];
 } hd_req_t;
 
 /**
@@ -60,9 +63,10 @@ GETSET(hd_req_t, bool, stop);
  */
 GETSET(hd_req_t, client_t *, client);
 
-void hd_set_length(hd_req_t *req, ssize_t length);
-
-uint8_t hd_get_length(hd_req_t *req);
+/**
+ * Macro to create getters and setters
+ */
+GETSET(hd_req_t, size_t, length);
 
 uint8_t *get_buffer(hd_req_t* self);
 
@@ -162,18 +166,32 @@ void *allocate_handle_request();
  */
 void enqueue_or_free(stream_t *stream, s_node_t *node);
 
-
 /**
  * ## Use
  *
- * tries to pop a node from the stream without waiting
- * if `stream_pop` fails, allocates and initializes a `s_node_t`
- * and it's `send_request`. 
+ * Runs one loop of the `handler_thread`. For more information
+ * read the detailed description of that function.
  * 
  * ## Arguments
  * 
- * - `stream` - the stream from which the node should
- *              be popped
+ * - `wait`            - should wait while popping?
+ * - `cfg`             - receiver configuration
+ * - `decoded`         - decoded packet (for buffer reuse)
+ * - `exit`            - should exit? (output)
+ * - `file_buffer`     - temporary file buffer (on the stack)
+ * - `packets_to_send` - buffers for the (N)ACK to send (on the stack)
+ * - `msg`             - messages for sendmmsg (on the stack)
+ * - `iovecs`          - io vectors for sendmmsg (on the stack)
  */
-s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)());
+void hd_run_once(
+    bool wait,
+    hd_cfg_t *cfg,
+    packet_t **decoded,
+    bool *exit,
+    uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE],
+    uint8_t packets_to_send[][12],
+    struct mmsghdr *msg, 
+    struct iovec *iovecs
+);
+
 #endif

@@ -3,6 +3,7 @@
 #define HT_H
 
 #include "global.h"
+#include "client.h"
 #include "packet.h"
 #include "client.h"
 
@@ -10,11 +11,16 @@
 #define IP_LEN 16
 
 typedef struct item {
+    /** Is the item used */
     bool used;
 
+    /** Client contained in the value or NULL */
     client_t *value;
 
+    /** Client's port */
     uint16_t port;
+
+    /** Client's IP */
     uint8_t ip[16];
 } item_t;
 
@@ -35,7 +41,7 @@ typedef struct item {
  * can be simply accomplish with the simplest 
  * hashing method: the modulo.
  * 
- * This method simply consists as doing the modulo of the
+ * This method simply consists as taking the modulo of the
  * port by the maximum size of the hash table. It will
  * then give a number in the range 0 to `size - 1` which
  * is the same range as the indices in an array of length
@@ -43,7 +49,7 @@ typedef struct item {
  * 
  * A problem still persists that unlike in buffer.h we
  * have no way to ensure that numbers are contained
- * within a smaller range. This means that the module
+ * within a smaller range. This means that the modulo
  * of two different ports could collide e.g be the same.
  * This is an undesirable situation as we could overwrite
  * existing values if we're not careful.
@@ -71,9 +77,9 @@ typedef struct item {
  * And for reading, we repeat this process: we compute the
  * hash of the key we're trying to get, and we iterate in the
  * array starting at the hash until we either find an item
- * with the same key as the desired one or we find an empty
- * item which indicates that the key is not present in the
- * hash table.
+ * with the same key (port & ip) as the desired one or we 
+ * find an empty item which indicates that the key is not 
+ * present in the hash table.
  * 
  * ## Performance
  * 
@@ -88,13 +94,13 @@ typedef struct item {
  * of our implementation.
  * 
  * The spatial complexity of this method is O(N) which is
- * also good.
+ * also reasonable.
  * 
  * ## Implementation problem
  * 
  * Hashing both the IP and the port makes the code a lot
  * slower and more complicated to understand. For this reason,
- * we dediced to only hash the port using a simple modulo
+ * we decided to only hash the port using a simple modulo
  * and then to simply compare the IPs until we find the right
  * values. This means the chances of collision for the keys
  * is higher but in the vast majority of situations, the performance
@@ -115,6 +121,7 @@ typedef struct item {
  * 
  */
 typedef struct hash_table {
+    /** The hash table lock for multithreaded access */
     pthread_mutex_t *lock;
 
     /** Items contained within the hash table */

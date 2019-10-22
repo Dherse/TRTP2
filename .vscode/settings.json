@@ -25,6 +25,16 @@
         "functional": "c",
         "ratio": "c",
         "variant": "c",
-        "stream.h": "c"
+        "stream.h": "c",
+        "receiver.h": "c",
+        "sched.h": "c",
+        "netfwd": "c",
+        "handler.h": "c",
+        "initializer_list": "c",
+        "sstream": "c",
+        "string": "c",
+        "time.h": "c",
+        "pthread.h": "c",
+        "stdlib.h": "c"
     }
 }

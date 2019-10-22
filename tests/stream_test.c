@@ -8,7 +8,7 @@ void *empty_allocator() {
 
 void test_single() {
     stream_t stream;
-    allocate_stream(&stream, 1);
+    allocate_stream(&stream);
 
     s_node_t *node = calloc(1, sizeof(s_node_t));
     CU_ASSERT(initialize_node(node, empty_allocator) == 0);
@@ -26,10 +26,10 @@ void test_single() {
 
 void test_many() {
     stream_t stream;
-    allocate_stream(&stream, 2048);
+    allocate_stream(&stream);
 
     int i;
-    for (i = 0; i < 1024*1024; i++) {
+    for (i = 0; i < 1024; i++) {
         int *cnt = calloc(1, sizeof(int));
         *cnt = i;
         
@@ -42,7 +42,7 @@ void test_many() {
         //CU_ASSERT(stream.length == i + 1);
     }
 
-    for (i = 0; i < 1024*1024; i++) {
+    for (i = 0; i < 1024; i++) {
         s_node_t *node = stream_pop(&stream, false);
         CU_ASSERT(node != NULL);
         if (node != NULL) {
