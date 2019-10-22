@@ -299,7 +299,7 @@ int parse_affinity_file(config_rcv_t *config) {
         if (i != config->receive_num) {
             fclose(file);
             free(line);
-            fprintf(stderr, "Not enough RX affinities (%d)\n", i);
+            fprintf(stderr, "Not enough RX affinities\n");
             free(config->handle_affinities);
             free(config->receive_affinities);
             config->handle_affinities = NULL;
