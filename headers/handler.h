@@ -61,7 +61,7 @@ GETSET(hd_req_t, bool, stop);
 /**
  * Macro to create getters and setters
  */
-GETSET(hd_req_t, client_t, client);
+GETSET(hd_req_t, client_t *, client);
 
 /**
  * Macro to create getters and setters

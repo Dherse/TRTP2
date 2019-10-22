@@ -23,6 +23,7 @@
 
 #endif
 
+
 typedef struct client {
     /**
      * Is the client actively exchanging data?
