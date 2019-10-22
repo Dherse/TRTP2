@@ -5,6 +5,7 @@
 #include "buffer.h"
 #include "client.h"
 #include "cli.h"
+#include "hash_table.h"
 
 #define HD_H
 
