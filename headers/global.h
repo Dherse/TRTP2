@@ -44,6 +44,8 @@
 /** Useful generated lookup tables (LUT) */
 #include "lookup.h"
 
+#include <sys/socket.h>
+
 /**
  * Defines boolean semantic for ease of use
  */
