@@ -10,6 +10,9 @@ pthread_cond_t stop_cond;
 
 volatile uint32_t idx = 0;
 
+/**
+ * Handles the SIGINT signal
+ */
 void handle_stop(int signo) {
     fprintf(stderr, "[MAIN] Received SIGINT, stopping\n");
 
@@ -25,6 +28,9 @@ void handle_stop(int signo) {
     pthread_mutex_unlock(&stop_mutex);
 }
 
+/**
+ * Just read the name
+ */
 void print_usage(char *exec) {
     fprintf(stderr, "Multithreaded TRTP receiver.\n\n");
     fprintf(stderr, "Usage:\n");
@@ -35,8 +41,8 @@ void print_usage(char *exec) {
     fprintf(stderr, "  -s  Enables sequential mode     [default: false]\n");
     fprintf(stderr, "  -N  Number of receiver threads  [default: 1]\n");
     fprintf(stderr, "  -n  Number of handler threads   [default: 2]\n");
-    fprintf(stderr, "  -W  Maximum receive buffer      [default: 31]\n");
-    fprintf(stderr, "  -w  Maximum window size         [default: 31]\n\n");
+    fprintf(stderr, "  -W  Maximum receive buffer      [default: %d]\n", MAX_WINDOW_SIZE);
+    fprintf(stderr, "  -w  Maximum window size         [default: %d]\n\n", MAX_WINDOW_SIZE);
     fprintf(stderr, "Sequential:\n");
     fprintf(stderr, "  In sequential mode, only a single thread (the main thread) is used\n");
     fprintf(stderr, "  for the entire receiver. This means the parameters n & N will be\n");
@@ -56,6 +62,9 @@ void print_usage(char *exec) {
     fprintf(stderr, "  To learn more about affinity: https://en.wikipedia.org/wiki/Processor_affinity\n");
 }
 
+/**
+ * Just read the name
+ */
 void deallocate_everything(
     config_rcv_t *config,
     int sockfd,
@@ -65,9 +74,6 @@ void deallocate_everything(
     rx_cfg_t **rx_configs,
     hd_cfg_t **hd_configs
 ) {
-    drain(rx_to_hd);
-    drain(hd_to_rx);
-
     fprintf(stderr, "[STOP] Deallocation called\n");
     int i ;
     for (i = 0; i < config->receive_num; i++) {
@@ -142,6 +148,9 @@ void deallocate_everything(
 
 }
 
+/*
+ * Refer to headers/main.h
+ */
 int main(int argc, char *argv[]) {
     // -------------------------------------------------------------------------
     // Config parsing
@@ -280,7 +289,7 @@ int main(int argc, char *argv[]) {
     // Data structure allocations
     // -------------------------------------------------------------------------
     rx_to_hd = calloc(1, sizeof(stream_t));
-    if (rx_to_hd == NULL || allocate_stream(rx_to_hd, MAX_STREAM_LEN)) {
+    if (rx_to_hd == NULL || allocate_stream(rx_to_hd)) {
         fprintf(stderr, "[MAIN] Failed to initialize 'rx_to_hd'\n");
         
         deallocate_everything(
@@ -297,7 +306,7 @@ int main(int argc, char *argv[]) {
     }
 
     hd_to_rx = calloc(1, sizeof(stream_t));
-    if (hd_to_rx == NULL || allocate_stream(hd_to_rx, MAX_STREAM_LEN)) {
+    if (hd_to_rx == NULL || allocate_stream(hd_to_rx)) {
         fprintf(stderr, "[MAIN] Failed to initialize 'hd_to_rx'\n");
         
         deallocate_everything(
@@ -548,7 +557,7 @@ int main(int argc, char *argv[]) {
 
     if (config.sequential) {
         socklen_t addr_len = sizeof(struct sockaddr_in6);
-        uint8_t buffers[config.receive_window_size][528];
+        uint8_t buffers[config.receive_window_size][MAX_PACKET_SIZE];
         struct sockaddr_in6 addrs[config.receive_window_size];
         struct mmsghdr msgs[config.receive_window_size];
         struct iovec iovecs[config.receive_window_size];
@@ -560,7 +569,7 @@ int main(int argc, char *argv[]) {
             memset(&msgs[i], 0, sizeof(struct mmsghdr));
             
             iovecs[i].iov_base = buffers[i];
-            iovecs[i].iov_len = 528;
+            iovecs[i].iov_len = MAX_PACKET_SIZE;
 
             msgs[i].msg_hdr.msg_name = &addrs[i];
             msgs[i].msg_hdr.msg_namelen = addr_len;
@@ -571,7 +580,7 @@ int main(int argc, char *argv[]) {
         }
 
         bool exit = false;
-        uint8_t file_buffer[528 * 31];
+        uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE];
         packet_t **decoded = malloc(sizeof(packet_t *));
         if (decoded == NULL) {
             fprintf(stderr, "[MAIN] Failed to start handle thread: alloc failed\n");
@@ -583,12 +592,12 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        uint8_t packets_to_send[31][12];
-        struct mmsghdr msg[31];
-        struct iovec hd_iovecs[31];
+        uint8_t packets_to_send[MAX_WINDOW_SIZE][12];
+        struct mmsghdr msg[MAX_WINDOW_SIZE];
+        struct iovec hd_iovecs[MAX_WINDOW_SIZE];
 
         memset(hd_iovecs, 0, sizeof(iovecs));
-        for(i = 0; i < 31; i++) {
+        for(i = 0; i < MAX_WINDOW_SIZE; i++) {
             memset(&hd_iovecs[i], 0, sizeof(struct iovec));
             hd_iovecs[i].iov_base = packets_to_send[i];
             hd_iovecs[i].iov_len  = 11;

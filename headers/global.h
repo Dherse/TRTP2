@@ -2,12 +2,81 @@
 
 #define GLOBAL_H
 
+/** Standard library */
+#include <stdlib.h>
+
+/** For the numeric types such as uint8_t, etc. */
+#include <stdint.h>
+
+/** Required for IO operations */
+#include <stdio.h>
+
+/** Integer limits (for cli.h/str2int()) */
+#include <limits.h>
+
+/** String operations */
+#include <string.h>
+
+/** CRC32 */
+#include <zlib.h>
+
+/** Required for IP to String conversion */
+#include <arpa/inet.h>
+
+/** Required for struct addrinfo */
+#include <netdb.h>
+
+/** Required for output file validation */
+#include <regex.h>
+
+/** Required for measuring time (average speed and autoremove) */
+#include <time.h>
+
+/** Signal for SIGINT in main.c */
+#include <signal.h>
+
+/** Required for multithreading */
+#include <pthread.h>
+
+/** Custom error number definitions */
+#include "errors.h"
+
+/** Useful generated lookup tables (LUT) */
+#include "lookup.h"
+
+/**
+ * Defines boolean semantic for ease of use
+ */
 #define true 1
 #define false 0
 typedef int bool;
 
-#define MAX_PACKET_SIZE 528;
-#define MAX_PAYLOAD_SIZE 512;
+/** Maximum size of a packet (in bytes) */
+#define MAX_PACKET_SIZE  528
+
+/** Maximum size of the payload (in bytes) */
+#define MAX_PAYLOAD_SIZE 512
+
+/** Maximum size of a receive window */
+#define MAX_WINDOW_SIZE  31
+
+/** Maximum size of a receive window as a string */
+#define MAX_WINDOW_SIZE_STR "31"
+
+/** Maximum size of a buffer */
+#define MAX_BUFFER_SIZE     32
+
+/** Default concurrent capacity as string */
+#define DEFAULT_MAX_CAPACITY_STR "100"
+
+/** Default number of receiver thread as string */
+#define DEFAULT_RECEIVER_NUM_STR "1"
+
+/** Default number of handler thread as string */
+#define DEFAULT_HANDLER_NUM_STR  "2"
+
+/** Default output file name format as string */
+#define DEFAULT_OUT_FORMAT       "%d"
 
 #ifndef GETSET
 
@@ -27,25 +96,4 @@ typedef int bool;
 
 #endif
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <unistd.h>
-
-#include <stdint.h>
-#include <errno.h>
-#include <limits.h>
-#include <string.h>
-
-#include <zlib.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <regex.h>
-
-#include <pthread.h>
-
-#include "errors.h"
 #endif

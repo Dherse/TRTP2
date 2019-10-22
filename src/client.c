@@ -8,15 +8,23 @@ GETSET_IMPL(client_t, socklen_t, addr_len);
 
 GETSET_IMPL(client_t, uint32_t, id);
 
-
+/*
+ * Refer to headers/client.h
+ */
 pthread_mutex_t *client_get_lock(client_t *self) {
     return self->lock;
 }
 
+/*
+ * Refer to headers/client.h
+ */
 buf_t *get_client_window(client_t *self) {
     return self->window;
 }
 
+/*
+ * Refer to headers/client.h
+ */
 void set_client_window(client_t *self, buf_t *window) {
     self->window = window;
 }
@@ -121,7 +129,7 @@ int initialize_client(
     }
 
     time(&client->connection_time);
-    client->transfered = 0;
+    client->transferred = 0;
 
     return 0;
 }

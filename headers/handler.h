@@ -1,14 +1,10 @@
-#define _GNU_SOURCE
 #ifndef HD_H
 
 #include "global.h"
-#include "hash_table.h"
 #include "stream.h"
 #include "buffer.h"
-#include "lookup.h"
 #include "client.h"
 #include "cli.h"
-#include <sys/socket.h>
 
 #define HD_H
 
@@ -50,10 +46,10 @@ typedef struct handle_request {
     /** number of buffers read */
     size_t num;
 
-    uint16_t lengths[31];
+    uint16_t lengths[MAX_WINDOW_SIZE];
 
     /** data read from the network */
-    uint8_t buffer[31][528];
+    uint8_t buffer[MAX_WINDOW_SIZE][MAX_PACKET_SIZE];
 } hd_req_t;
 
 /**
@@ -169,12 +165,29 @@ void *allocate_handle_request();
  */
 void enqueue_or_free(stream_t *stream, s_node_t *node);
 
+/**
+ * ## Use
+ *
+ * Runs one loop of the `handler_thread`. For more information
+ * read the detailed description of that function.
+ * 
+ * ## Arguments
+ * 
+ * - `wait`            - should wait while popping?
+ * - `cfg`             - receiver configuration
+ * - `decoded`         - decoded packet (for buffer reuse)
+ * - `exit`            - should exit? (output)
+ * - `file_buffer`     - temporary file buffer (on the stack)
+ * - `packets_to_send` - buffers for the (N)ACK to send (on the stack)
+ * - `msg`             - messages for sendmmsg (on the stack)
+ * - `iovecs`          - io vectors for sendmmsg (on the stack)
+ */
 void hd_run_once(
     bool wait,
     hd_cfg_t *cfg,
     packet_t **decoded,
     bool *exit,
-    uint8_t file_buffer[528 * 31],
+    uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE],
     uint8_t packets_to_send[][12],
     struct mmsghdr *msg, 
     struct iovec *iovecs

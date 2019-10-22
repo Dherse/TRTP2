@@ -2,17 +2,8 @@
 
 #define BUFFER_H
 
-#include "../headers/packet.h"
-#include "../headers/errors.h"
-
-#include <pthread.h>
-#include <errno.h>
-#include <stdio.h>
-#include <pthread.h>
-#include <stdlib.h>
-#include <stdint.h>
-
-#define MAX_WINDOW_SIZE 32
+#include "global.h"
+#include "packet.h"
 
 #ifndef GETSET
 
@@ -33,8 +24,10 @@
 #endif
 
 typedef struct node {
+    /** Pointer to the contained value */
     void *value;
 
+    /** Is the value in use? */
     bool used;
 } node_t;
 
@@ -43,11 +36,14 @@ GETSET(node_t, void *, value);
 GETSET(node_t, bool, used);
 
 typedef struct buf {
+    /** Low index in the buffer */
     uint8_t window_low;
 
+    /** Number of elements in the buffer */
     uint8_t length;
 
-    node_t nodes[MAX_WINDOW_SIZE];
+    /** Array of nodes contained in the buffer */
+    node_t nodes[MAX_BUFFER_SIZE];
 } buf_t;
 
 GETSET(buf_t, uint8_t, window_low);
@@ -62,6 +58,8 @@ uint8_t buf_get_length(buf_t *self);
  * 
  * Returns the 5 least significant bits of `seqnum`
  * 
+ * ## Explanation
+ * 
  * It is interesting as we know the window has a maximum of 32 elements.
  * This means that this function will never collide for elements within
  * the same window as all 5 LSBs will be within the 0-31 range.
@@ -75,9 +73,10 @@ uint8_t buf_get_length(buf_t *self);
  * as recommended for inlining or always inlined. This means that the
  * compiler will try to replace any call to this method with its actual
  * body. The point of this technique is to gain in performance
- * by avoiding unecessary instruction cache misses.
+ * by avoiding unecessary instruction cache misses amongst other things.
  * 
- * Mind you, it can increase the binary size of the final executable.
+ * 
+ * Keep in mind that it can increase the binary size of the final executable.
  * 
  * ## Proof
  * 
@@ -111,7 +110,7 @@ uint8_t buf_get_length(buf_t *self);
  * 
  * While its true that seqnum only goes to 31 it's actually a
  * non-issue with this technique as we can simple return
- * as the window of any packet `min(31 - occupied_spaces, 0)`.
+ * as the window of any packet `max(31 - occupied_spaces, 0)`.
  * 
  * And on receive check that the number does not exceed the maximum
  * seqnum allowed by the window. (i.e buf.last_read + 31).
@@ -132,7 +131,7 @@ uint8_t buf_get_length(buf_t *self);
  * 
  * ## ""I still don't believe you!""
  * 
- * Well, just look at test/buffer_test.c where we programmed a test
+ * Well, just look at tests/buffer_test.c where we programmed a test
  * testing all of the possible windows (by increments of 16) and you'll
  * see that it works flawlessly.
  * 
@@ -154,8 +153,8 @@ uint8_t hash(uint8_t seqnum);
  * 
  * ## Arguments
  *
- * - `buffer`  - a pointer to a buffer
- * - `element` - the size of each element given by sizeof
+ * - `buffer`    - a pointer to a buffer
+ * - `allocator` - an allocate to be called for each node
  *
  * ## Return value
  * 
@@ -181,7 +180,7 @@ void deallocate_buffer(buf_t *buffer);
  * ## Use
  * 
  * Gets the next writable node in the buffer.
- * Waits for one to become available.
+ * You should check whether it is available using `is_used()`
  * 
  * ## Arguments
  *

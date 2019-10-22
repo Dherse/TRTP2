@@ -5,9 +5,12 @@
 bool init = false;
 pthread_mutex_t receiver_mutex;
 
+/*
+ * Refer to headers/receiver.h
+ */
 inline __attribute__((always_inline)) void rx_run_once(
     rx_cfg_t *rcv_cfg, 
-    uint8_t buffers[][528],
+    uint8_t buffers[][MAX_PACKET_SIZE],
     socklen_t addr_len,
     struct sockaddr_in6 *addrs, 
     struct mmsghdr *msgs, 
@@ -139,7 +142,7 @@ void *receive_thread(void *receive_config) {
 
     socklen_t addr_len = sizeof(struct sockaddr_in6);
 
-    uint8_t buffers[window_size][528];
+    uint8_t buffers[window_size][MAX_PACKET_SIZE];
     struct sockaddr_in6 addrs[window_size];
     struct mmsghdr msgs[window_size];
     struct iovec iovecs[window_size];
@@ -150,7 +153,7 @@ void *receive_thread(void *receive_config) {
         memset(&msgs[i], 0, sizeof(struct mmsghdr));
         
         iovecs[i].iov_base = buffers[i];
-        iovecs[i].iov_len = 528;
+        iovecs[i].iov_len = MAX_PACKET_SIZE;
 
         msgs[i].msg_hdr.msg_name = &addrs[i];
         msgs[i].msg_hdr.msg_namelen = addr_len;

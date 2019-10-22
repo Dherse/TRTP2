@@ -6,11 +6,6 @@
  */
 
 #include "../headers/buffer.h"
-#include "../headers/packet.h"
-#include "../headers/errors.h"
-#include <pthread.h>
-#include <errno.h>
-#include <stdio.h>
 /**
  * REALLY IMPORTANT, REFER TO headers/buffer.h
  */
@@ -43,7 +38,7 @@ uint8_t buf_get_length(buf_t *self) {
 /*
  * Refer to headers/buffer.h
  */
-bool is_used_nolock(buf_t *buffer, uint8_t seqnum) {
+bool is_used(buf_t *buffer, uint8_t seqnum) {
     if (buffer == NULL) {
         errno = NULL_ARGUMENT;
         return false;
@@ -59,20 +54,6 @@ bool is_used_nolock(buf_t *buffer, uint8_t seqnum) {
     }
 
     return node->used;
-}
-
-/*
- * Refer to headers/buffer.h
- */
-bool is_used(buf_t *buffer, uint8_t seqnum) {
-    if (buffer == NULL) {
-        errno = NULL_ARGUMENT;
-        return false;
-    }
-    
-    bool used = is_used_nolock(buffer, seqnum);
-
-    return used;
 }
 
 /*
@@ -143,7 +124,7 @@ int initialize_buffer(buf_t *buffer, void *(*allocator)()) {
     buffer->window_low = 0;
 
     int i;
-    for(i = 0; i < MAX_WINDOW_SIZE; i++) {
+    for(i = 0; i < MAX_BUFFER_SIZE; i++) {
         buffer->nodes[i].used = false;
 
         buffer->nodes[i].value = allocator();
@@ -168,7 +149,7 @@ void deallocate_buffer(buf_t *buffer) {
     }
 
     int i = 0;
-    for (; i < MAX_WINDOW_SIZE; i++) {
+    for (; i < MAX_BUFFER_SIZE; i++) {
 
         if (buffer->nodes[i].value != NULL) {
             free(buffer->nodes[i].value);
