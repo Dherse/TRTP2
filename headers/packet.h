@@ -5,18 +5,10 @@
 #ifndef true
     #define true 1
     #define false 0
+    typedef int bool;
 #endif
-typedef int bool;
 
-#include <stdint.h>
-#include <arpa/inet.h>
-#include <stdio.h>   
-#include <stdlib.h> 
-#include <errno.h>
-#include <string.h>
-#include <netinet/in.h>
-#include <zlib.h>
-#include <time.h>
+#include "global.h"
 #include "errors.h"
 #include "lookup.h"
 
@@ -50,27 +42,35 @@ typedef enum PType {
  * has already been processed.
  */
 typedef struct Packet {
-    bool used;
-
+    /** Packet type */
     ptype_t type;
 
+    /** Is it truncated ? */
     bool truncated;
     
+    /** What is the sender/receiver window size */
     uint8_t window;
 
+    /** Is the length encoded on two bits or one? */
     bool long_length;
 
+    /** The payload length */
     uint16_t length;
 
+    /** The sequence number */
     uint8_t seqnum;
 
+    /** The timestamp */
     uint32_t timestamp;
 
+    /** The CRC for the header */
     uint32_t crc1;
 
+    /** The CRC for the payload */
     uint32_t crc2;
 
-    uint8_t payload[512];
+    /** The payload */
+    uint8_t payload[MAX_PAYLOAD_SIZE];
 } packet_t;
 
 GETSET(packet_t, ptype_t, type);
@@ -222,7 +222,7 @@ int unpack(uint8_t *packet, int length, packet_t *out);
  * ## Arguments
  *
  * - `packet` - a pointer to a packet buffer
- * - `in` - a ponter to a packet
+ * - `in` - a pointer to a packet
  * - `recompute_crc2` - true to recompute the payload CRC, 
  *      false to use the existing one
  *

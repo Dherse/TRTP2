@@ -123,9 +123,26 @@ typedef struct receive_thread_config {
  */
 void *receive_thread(void *);
 
+/**
+ * ## Use :
+ * 
+ * Essentially runs one loop of the receive thread. You'll have to
+ * read the detailed description of receiver.h/handle_thread for all
+ * the details.
+ * 
+ * ## Arguments :
+ *
+ * - `cfg`      - receiver configuration
+ * - `buffers`  - receive buffers (on the stack)
+ * - `addr_len` - length of an IPv6 address
+ * - `addrs`    - addresses for recvmmsg (on the stack)
+ * - `msgs`     - messages for recvmmsg (on the stack)
+ * - `iovecs`   - io vectors for recvmmsg (on the stack)
+ * 
+ */
 void rx_run_once(
-    rx_cfg_t *rcv_cfg, 
-    uint8_t buffers[][528],
+    rx_cfg_t *cfg, 
+    uint8_t buffers[][MAX_PACKET_SIZE],
     socklen_t addr_len,
     struct sockaddr_in6 *addrs, 
     struct mmsghdr *msgs, 

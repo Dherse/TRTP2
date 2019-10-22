@@ -1,102 +1,33 @@
 #include "../headers/cli.h"
 
-/**
- * ## Use :
- *
- * Parses an integer from a string
- * 
- * ## Arguments
- *
- * - `out` - a pointer to an output int
- * - `s` - the string to parse
- * - `base` - the base (e.g base 10)
- *
- * ## Return value
- * 
- * 0 if the process completed successfully. -1 otherwise.
- * If it failed, errno is set to an appropriate error.
- * 
- * ## Source
- * 
- * Obtained from (modified) :
- * https://github.com/cirosantilli/cpp-cheat/blob/c6087065b6b499b949360830aa2edeb4ec2ab276/c/string_to_int.c
- *
+
+/*
+ * Refer to headers/cli.h
  */
-int str2int(int *out, char *s, int base) {
-    char *end;
-    if (s[0] == '\0' || isspace(s[0])) {
-        errno = STR2INT_INCONVERTIBLE;
-        return -1;
-    }
-    errno = 0;
-    long l = strtol(s, &end, base);
-    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
-    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX)) {
-        errno = STR2INT_OVERFLOW;
-        return -1;
-    }
-    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN)) {
-        errno = STR2INT_UNDERFLOW;
-        return -1;
-    }
-
-    if (*end != '\0' && end != NULL && *end != '\n') {
-        errno = STR2INT_NOT_END;
-        return -1;
-    }
-
-    *out = l;
-
-    return 0;
-}
-
-/**
- * ## Use :
- *
- * Turns a sockaddr into either an IPv4 addr or IPv6 addr.
- * 
- * ## Arguments
- *
- * - `sa` - a socket_addr
- *
- * ## Return value
- * 
- * a pointer to either an IPv4 addr or IPv6
- * 
- * ## Source
- * 
- * We found it last year (2018-2019) and can't find the source
- * so credits to the original author whoever that may be.
- * Sorry :)
- *
- */
-void* get_socket_addr(const struct sockaddr *sa) {
-    // Cast socketaddr to sockaddr_in to get address and port values from data
-
-    if (sa->sa_family == PF_INET) {
-        return &(((struct sockaddr_in *)sa)->sin_addr);
-    }
-
-    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
-}
-
 int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     int c;
 
     /** Maximum number of active connections */
-    char *m = "100";
+    char *m = DEFAULT_MAX_CAPACITY_STR;
+
     /** Maximum number of packets received in a single syscall */
-    char *W = "31";
+    char *W = MAX_WINDOW_SIZE_STR;
+
     /** Maximum advertised window size */
-    char *w = "31";
+    char *w = MAX_WINDOW_SIZE_STR;
+
     /** Number of handler thread */
-    char *n = "2";
+    char *n = DEFAULT_HANDLER_NUM_STR;
+
     /** Number of receiver thread */
-    char *N = "1";
+    char *N = DEFAULT_RECEIVER_NUM_STR;
+
     /** Output file format */
-    char *o = "%d";
+    char *o = DEFAULT_OUT_FORMAT;
+
     /** Input IP mask */
     char *ip = NULL;
+
     /** Input port */
     char *port = NULL;
 
@@ -249,7 +180,7 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     /* max window size */
 
     int max_window;
-    if (str2int(&max_window, w, 10) == -1 || max_window < 0 || max_window > 31) {
+    if (str2int(&max_window, w, 10) == -1 || max_window < 0 || max_window > MAX_WINDOW_SIZE) {
         errno = CLI_WINDOW_INVALID;
         return -1;
     }
@@ -259,7 +190,7 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     /* max receive size */
 
     int receive_size;
-    if (str2int(&receive_size, W, 10) == -1 || receive_size < 0 || receive_size > 31) {
+    if (str2int(&receive_size, W, 10) == -1 || receive_size < 0) {
         errno = CLI_WINDOW_INVALID;
         return -1;
     }
@@ -297,6 +228,9 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     return 0;
 }
 
+/*
+ * Refer to headers/cli.h
+ */
 int parse_affinity_file(config_rcv_t *config) {
     config->handle_affinities = calloc(config->handle_num, sizeof(afs_t));
     if (config->handle_affinities == NULL) {
@@ -443,10 +377,13 @@ int parse_affinity_file(config_rcv_t *config) {
     return 0;
 }
 
+/*
+ * Refer to headers/cli.h
+ */
 void print_config(config_rcv_t *config) {
     fprintf(stderr, " - - - - - - - - CONFIG - - - - - - - - \n");
-    fprintf(stderr, "Maximum advertised window: %d (default 31)\n", config->max_window);
-    fprintf(stderr, "Maximum packets per syscall: %d (default 31)\n", config->receive_window_size);
+    fprintf(stderr, "Maximum advertised window: %d (default %d)\n", config->max_window, MAX_WINDOW_SIZE);
+    fprintf(stderr, "Maximum packets per syscall: %d (default %d)\n", config->receive_window_size, MAX_WINDOW_SIZE);
     fprintf(stderr, "Sequential? %s\n", config->sequential ? "yes" : "no");
     if (!config->sequential) {
 
@@ -485,4 +422,48 @@ void print_config(config_rcv_t *config) {
     fprintf(stderr, "Input IP mask: %s\n", ip);
     fprintf(stderr, "Input port: %d\n", config->port);
     fprintf(stderr, " - - - - - - - - - - - - - - - - - - - -\n");
+}
+
+/*
+ * Refer to headers/cli.h
+ */
+int str2int(int *out, char *s, int base) {
+    char *end;
+    if (s[0] == '\0' || isspace(s[0])) {
+        errno = STR2INT_INCONVERTIBLE;
+        return -1;
+    }
+    errno = 0;
+    long l = strtol(s, &end, base);
+    /* Both checks are needed because INT_MAX == LONG_MAX is possible. */
+    if (l > INT_MAX || (errno == ERANGE && l == LONG_MAX)) {
+        errno = STR2INT_OVERFLOW;
+        return -1;
+    }
+    if (l < INT_MIN || (errno == ERANGE && l == LONG_MIN)) {
+        errno = STR2INT_UNDERFLOW;
+        return -1;
+    }
+
+    if (*end != '\0' && end != NULL && *end != '\n') {
+        errno = STR2INT_NOT_END;
+        return -1;
+    }
+
+    *out = l;
+
+    return 0;
+}
+
+/*
+ * Refer to headers/cli.h
+ */
+void* get_socket_addr(const struct sockaddr *sa) {
+    // Cast socketaddr to sockaddr_in to get address and port values from data
+
+    if (sa->sa_family == PF_INET) {
+        return &(((struct sockaddr_in *)sa)->sin_addr);
+    }
+
+    return &(((struct sockaddr_in6 *)sa)->sin6_addr);
 }

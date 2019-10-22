@@ -50,12 +50,15 @@ void bytes_to_unit(uint64_t total, char *size, double *multiplier) {
     }
 }
 
+/*
+ * Refer to headers/buffer.h
+ */
 inline __attribute__((always_inline)) void hd_run_once(
     bool wait,
     hd_cfg_t *cfg,
     packet_t **decoded,
     bool *exit,
-    uint8_t file_buffer[528*31],
+    uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE],
     uint8_t packets_to_send[][12],
     struct mmsghdr *msg, 
     struct iovec *iovecs
@@ -111,10 +114,10 @@ inline __attribute__((always_inline)) void hd_run_once(
                 if ((*decoded)->truncated) {
                     to_send.type = NACK;
                     to_send.truncated = false;
-                    to_send.window = 31 - window->window_low;
+                    to_send.window = MAX_WINDOW_SIZE - window->window_low;
                     to_send.long_length = false;
                     to_send.length = 0;
-                    to_send.seqnum = min(cfg->max_window_size, 31 - window->length);
+                    to_send.seqnum = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->length);
                     to_send.timestamp = (*decoded)->timestamp;
 
                     msg[len_to_send].msg_hdr.msg_name = client->address;
@@ -204,7 +207,7 @@ inline __attribute__((always_inline)) void hd_run_once(
                 cnt++;
                 i++;
             }
-        } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= 31);
+        } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= MAX_WINDOW_SIZE);
 
         if (cnt > 0) {
             int result = fwrite(
@@ -218,16 +221,14 @@ inline __attribute__((always_inline)) void hd_run_once(
                 fseek(client->out_file, -result, SEEK_SET);
 
                 fprintf(stderr, "[HD] Failed to write to file, won't be writing ACK to get retransmission timer\n");
-                if (!stream_enqueue(cfg->tx, node_rx, false)) {
-                    deallocate_node(node_rx);
-                }
+                enqueue_or_free(cfg->tx, node_rx);
 
                 pthread_mutex_unlock(client_get_lock(client));
 
                 return;
             }
 
-            client->transfered += offset;
+            client->transferred += offset;
 
             window->length -= cnt;
             window->window_low += cnt;
@@ -238,7 +239,7 @@ inline __attribute__((always_inline)) void hd_run_once(
             to_send.length = 0;
             to_send.seqnum = window->window_low;
             to_send.timestamp = last_timestamp;
-            to_send.window = min(cfg->max_window_size, 31 - window->length);
+            to_send.window = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->length);
 
             msg[len_to_send].msg_hdr.msg_name = client->address;
             if (pack(packets_to_send[len_to_send++], &to_send, false)) {
@@ -256,18 +257,18 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                 time(&end);
 
-                bytes_to_unit(client->transfered, size, &sizem);
+                bytes_to_unit(client->transferred, size, &sizem);
 
                 double time = difftime(end, client->connection_time);
-                bytes_to_unit(client->transfered / time, speed, &speedm);
+                bytes_to_unit(client->transferred / time, speed, &speedm);
 
                 fprintf(
                     stderr,
-                    "[%s][%u] Done, total transfered: %.1f %s, in %.2fs., avg. speed of %.1f %s/s\n",
+                    "[%s][%u] Done, total transferred: %.1f %s, in %.2fs., avg. speed of %.1f %s/s\n",
                     client->ip_as_string, htons(client->address->sin6_port),
-                    client->transfered / sizem, size,
+                    client->transferred / sizem, size,
                     time,
-                    (client->transfered / time) / speedm, speed
+                    (client->transferred / time) / speedm, speed
                 );
             }
         }
@@ -280,9 +281,7 @@ inline __attribute__((always_inline)) void hd_run_once(
             perror("sendmmsg()");
         }
 
-        if (!stream_enqueue(cfg->tx, node_rx, false)) {
-            deallocate_node(node_rx);
-        }
+        enqueue_or_free(cfg->tx, node_rx);
     }
 }
 
@@ -310,13 +309,13 @@ void *handle_thread(void *config) {
     packet_t to_send;
 
     uint8_t len_to_send;
-    uint8_t packets_to_send[31][12];
-    struct mmsghdr msg[31];
-    struct iovec iovecs[31];
+    uint8_t packets_to_send[MAX_WINDOW_SIZE][12];
+    struct mmsghdr msg[MAX_WINDOW_SIZE];
+    struct iovec iovecs[MAX_WINDOW_SIZE];
 
     memset(iovecs, 0, sizeof(iovecs));
     int i = 0;
-    for(; i < 31; i++) {
+    for(; i < MAX_WINDOW_SIZE; i++) {
         memset(&iovecs[i], 0, sizeof(struct iovec));
         iovecs[i].iov_base = packets_to_send[i];
         iovecs[i].iov_len  = 11;
@@ -328,7 +327,7 @@ void *handle_thread(void *config) {
     }
 
     uint16_t offset;
-    uint8_t file_buffer[512*31];
+    uint8_t file_buffer[MAX_PAYLOAD_SIZE * MAX_WINDOW_SIZE];
 
     packet_t *decoded = (packet_t *) allocate_packet();
     if (decoded == NULL) {
@@ -357,3 +356,36 @@ void *handle_thread(void *config) {
     return NULL;
 }
 
+/*
+ * Refer to headers/handler.h
+ */
+inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
+    if (!stream_enqueue(stream, node, false)) {
+        //TODO : replace with getter
+        free(node->content);
+        free(node);
+    }
+}
+
+/*
+ * Refer to headers/receiver.h
+ */
+void *allocate_handle_request() {
+    hd_req_t *req = (hd_req_t *) malloc(sizeof(hd_req_t));
+    if(req == NULL) {
+        errno = FAILED_TO_ALLOCATE;
+        return NULL;
+    }
+
+    int i = 0;
+    for (; i < MAX_WINDOW_SIZE; i++) {
+        memset(req->buffer[i], 0, MAX_PACKET_SIZE);
+        req->lengths[i] = 0;
+    }
+    
+    req->stop = false;
+    req->client = NULL;
+    req->num = 0;
+
+    return req;
+}

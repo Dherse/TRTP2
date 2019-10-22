@@ -1,9 +1,10 @@
-#include "stdint.h"
-#include "global.h"
-
 #ifndef SEQ_H
 
 #define SEQ_H
+
+#include "global.h"
+
+#include <stdint.h>
 
 /**
  * A window lookup table used to check if a seqnum
@@ -37,23 +38,5 @@ extern const uint8_t sequences[256][256];
  * Generated using Excel
  */
 extern const char *ascii[256];
-
-/**
- * ## Use :
- * 
- * Checks if a seqnum is in a window
- * 
- * ## Arguments
- *
- * - `window_low` - the low end of the window
- * - `seqnum`     - the seqnum to check
- * 
- * ## Return value
- * 
- * - true if the value is in the window
- * - false otherwise
- *
- */
-bool is_in_window(uint8_t window_low, uint8_t seqnum);
 
 #endif

@@ -32,7 +32,7 @@ bool is_long(packet_t *self) {
  * Refer to headers/packet.h
  */
 void set_length(packet_t *self, uint16_t length) {
-    if (length > 512) {
+    if (length > MAX_PAYLOAD_SIZE) {
         return;
     }
 
@@ -54,14 +54,14 @@ uint8_t *get_payload(packet_t *self) {
  * Refer to headers/packet.h
  */
 void set_payload(packet_t *self, uint8_t *payload, uint16_t len) {
-    if (len > 512) {
+    if (len > MAX_PAYLOAD_SIZE) {
         return;
     }
 
     set_length(self, len);
 
     memcpy(self->payload, payload, len);
-    memset(self->payload + len, 0, 512 - len);
+    memset(self->payload + len, 0, MAX_PAYLOAD_SIZE - len);
 }
 
 /**
@@ -77,7 +77,7 @@ int init_packet(packet_t* packet) {
     packet->crc2 = 0;
     packet->length = 0;
     packet->long_length = false;
-    memset(packet->payload, 0, 512);
+    memset(packet->payload, 0, MAX_PAYLOAD_SIZE);
     packet->seqnum = 0;
     packet->timestamp = 0;
     packet->truncated = false;
@@ -207,7 +207,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         return -1;
     }
 
-    if (out->length > 512) {
+    if (out->length > MAX_PAYLOAD_SIZE) {
         errno = PAYLOAD_TOO_LONG;
         return -1;
     } else if (out->payload != NULL && out->length > 0 && !out->truncated) {

@@ -32,6 +32,9 @@
         "handler.h": "c",
         "initializer_list": "c",
         "sstream": "c",
-        "string": "c"
+        "string": "c",
+        "time.h": "c",
+        "pthread.h": "c",
+        "stdlib.h": "c"
     }
 }
