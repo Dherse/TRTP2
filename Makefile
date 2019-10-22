@@ -10,8 +10,10 @@ RM = rm
 VERSION = gnu89
 
 # Binary names
-OUT = trtp_receiver
+OUT = ./receiver
 TEST = trtp_test
+
+ARCHIVE = projet1_d-Herbais-de-Thun_Heuschling.zip
 
 SRC_DIR = ./src
 TEST_DIR = ./tests
@@ -44,11 +46,11 @@ DEBUG_FLAGS = -O0 -ggdb
 .PHONY: clean report stat install_tectonic
 
 # main
-all: clean build run
+all: clean build
 
 # build
 build: $(OBJECTS)
-	$(GCC) $(FLAGS) $(OBJECTS) -o $(BIN_DIR)/$(OUT) $(LDFLAGS)
+	$(GCC) $(FLAGS) $(OBJECTS) -o $(OUT) $(LDFLAGS)
 
 test_build: FLAGS += $(DEBUG_FLAGS)
 test_build: build
@@ -59,7 +61,7 @@ release: build
 
 # run
 run:
-	$(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -n 2 -N 1 -w 31 :: 5555
+	$(OUT) -o $(BIN_DIR)/%d -n 2 -N 1 -w 31 :: 5555
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -79,6 +81,7 @@ $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
 # Cleaning stuff
 clean: 
 	$(RM) -f $(BIN)
+	$(RM) -f $(OUT)
 
 # Generated gitlog.stat
 stat:
@@ -96,17 +99,17 @@ report:
 valgrind: FLAGS += $(DEBUG_FLAGS)
 valgrind: build
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose \
-		$(BIN_DIR)/$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/valgrind.txt
+		$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/valgrind.txt
 
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
 	valgrind --tool=helgrind \
-		$(BIN_DIR)/$(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
+		$(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
 
 memcheck: FLAGS += $(DEBUG_FLAGS)
 memcheck: build
 	valgrind --tool=memcheck --track-origins=yes \
-		$(BIN_DIR)/$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/memcheck.txt
+		$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/memcheck.txt
 
 callgrind: FLAGS += -O3 -ggdb
 callgrind: build
@@ -118,7 +121,7 @@ callgrind: build
 	@echo '----------------------------------------------------------'
 
 	valgrind --tool=callgrind --callgrind-out-file=$(BIN_DIR)/callgrind.txt \
-		$(BIN_DIR)/$(OUT) -n 1 -N 1 -w 31 -o $(BIN_DIR)/%d :: 5555
+		$(OUT) -n 1 -N 1 -w 31 -o $(BIN_DIR)/%d :: 5555
 		
 	@echo '----------------------------------------------------------'
 
@@ -127,7 +130,11 @@ plot:
 
 debug: FLAGS += $(DEBUG_FLAGS)
 debug: build
-	gdb -ex run --args $(BIN_DIR)/$(OUT) -o $(BIN_DIR)/%d -s :: 5555
+	gdb -ex run --args $(OUT) -o $(BIN_DIR)/%d -s :: 5555
 
 tcpdump:
-	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap 
+	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap
+
+archive:
+	$(RM) -f $(ARCHIVE)
+	zip -r $(ARCHIVE) ./*

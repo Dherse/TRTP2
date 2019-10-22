@@ -5,6 +5,7 @@
 #include "global.h"
 #include "client.h"
 #include "packet.h"
+#include "client.h"
 
 #define INITIAL_SIZE 16
 #define IP_LEN 16

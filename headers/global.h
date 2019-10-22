@@ -20,6 +20,9 @@
 /** CRC32 */
 #include <zlib.h>
 
+/** Required for recvmmsg & sendmmsg */
+#include <sys/socket.h>
+
 /** Required for IP to String conversion */
 #include <arpa/inet.h>
 

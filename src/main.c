@@ -55,7 +55,7 @@ void print_usage(char *exec) {
     fprintf(stderr, "  working directory. This file should be formatted like this:\n");
     fprintf(stderr, "\tcomma separated affinity for each receiver. Count must match N\n");
     fprintf(stderr, "\tcomma separated affinity for each handler. Count must match n\n");
-    fprintf(stderr, " Here is an example file: (remove the tabs)\n");
+    fprintf(stderr, "  Here is an example file: (remove the tabs)\n");
     fprintf(stderr, "\t0,1\n\t2,3,4,5\n");
     fprintf(stderr, "  It means the affinities of the receivers will be on CPU 0 & 1\n");
     fprintf(stderr, "  And the affinities of the handlers will be on CPU 2, 3, 4 & 5\n");

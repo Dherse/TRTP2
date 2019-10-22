@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "../headers/receiver.h"
 #include "../headers/handler.h"
+#include "../headers/global.h"
 
 
 void print_unpack_error(char *ip_as_str) {
@@ -352,8 +353,22 @@ void *handle_thread(void *config) {
     fprintf(stderr, "[HD] Stopped\n");
     
     pthread_exit(0);
+}
 
-    return NULL;
+/**
+ * Refer to headers/receiver.h
+ */
+s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)()) {
+    s_node_t *node = stream_pop(stream, false);
+
+    if (node == NULL) {
+        node = malloc(sizeof(s_node_t));
+        if(initialize_node(node, allocator)) {
+            free(node);
+            return NULL;
+        }
+    }
+    return node;
 }
 
 /*

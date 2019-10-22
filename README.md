@@ -2,13 +2,16 @@
 
 ## Authors
 
-- Sébastien d'Herbais de Thun - 2875-16-00
-- Thomas Heuschling - 2887-16-00
+| Name                                 | NOMA           |
+|--------------------------------------|----------------|
+| <h3>Sébastien d'Herbais de Thun</h3> | **2875-16-00** |
+| <h3>Thomas Heuschling</h3>           | **2887-16-00** |
 
 ## Project structure
 
-The project is structure as follows :
+The project structure is as follows :
 
+- `base/` - the base implementation, instructions, etc. for the project
 - `bin/` - the binary output files, normally empty, cleaned using `make clean`
 - `headers/` - header definitions for the project
 - `report/` - contains the LateX source code and resources for the report
@@ -16,20 +19,67 @@ The project is structure as follows :
 - `tests/` - contains test definitions, best ran using `make clean && make test`
 - `gitlog.stat` - required `git log --stat` output, generated using `make stat`
 - `Makefile` - the make file
-- `Readme.md` - informations about the project for the code review
-- `statement.pdf` - the statement of the project
-- `report.pdf` - the required report in PDF format, generated using `make report`
+- `README.md` - informations about the project for the code review
+- `rapport.pdf` - the required report in PDF format, generated using `make report`
 
 ## Makefile
 
-- `all`: builds the release version of the code
+- `all`: cleans and builds the code
 - `clean`: deletes all build artifacts
-- `run`: run the release version
-- `debug`: builds a version with debug symbols
+- `release`: builds are release version (max optimization, no debug symbol)
+- `build`: builds the code
+- `run`: run the release version (**does not build**)
+- `debug`: builds a version with debug symbols and no optimization
 - `test`: builds & tests the code
 - `stat`: generates gitlog.stat
-- `install_mdbook`: installs the report builder, requires [cargo/rust](https://rust-lang.org)
-- `report`: uses mdbook & mdbook-latex to build a PDF version (can take a **loooong** time)
+- `install_tectonic`: installs the report builder, requires [cargo/rust](https://rust-lang.org)
+- `report`: uses tectonic to build a PDF version (can take a **loooong** time the first time)
+- `valgrind`: runs valgrind. Please read the valgrind section for details
+- `helgrind`: runs helgrind. Please read the helgrind section for details
+- `memcheck`: runs memcheck
+- `callgrind`: runs callgrind in order to generate ca callgraph.
+- `plot`: plots the callgraph into `callgraph.png`
+
+## Command line arguments
+
+Here is the printed usage for the application :
+
+```
+Multithreaded TRTP receiver.
+
+Usage:
+  ./receiver [options] <ip> <port>
+
+Options:
+  -m  Max. number of connection   [default: 100]
+  -o  Output file format          [default: %d]
+  -s  Enables sequential mode     [default: false]
+  -N  Number of receiver threads  [default: 1]
+  -n  Number of handler threads   [default: 2]
+  -W  Maximum receive buffer      [default: 31]
+  -w  Maximum window size         [default: 31]
+
+Sequential:
+  In sequential mode, only a single thread (the main thread) is used
+  for the entire receiver. This means the parameters n & N will be
+  ignored. Affinities are also ignored.
+  Sequential mode comes with a huge performance penalty as the different
+  components are ran sequentially while being designed for multithreaded use.
+
+  /!\ You can expect about half the speed using sequential mode.
+
+Affinities:
+  Affinities are set using a affinity.cfg file in the
+  working directory. This file should be formatted like this:
+        comma separated affinity for each receiver. Count must match N
+        comma separated affinity for each handler. Count must match n
+  Here is an example file: (remove the tabs)
+        0,1
+        2,3,4,5
+  It means the affinities of the receivers will be on CPU 0 & 1
+  And the affinities of the handlers will be on CPU 2, 3, 4 & 5
+  To learn more about affinity: https://en.wikipedia.org/wiki/Processor_affinity
+```
 
 ## Objectives
 
@@ -46,8 +96,8 @@ ways explained below.
 
 We designed our architecture to have as high a performance as we can have while using
 techniques available in the course and with limited dependencies. For this reason,
-we implemented a near allocation free code that uses multithreading and SIMD to
-dramatically improve the performance. Every buffer allocated is reused. We also try and
+we implemented a near allocation free code that uses multithreading to improve 
+the performance. Every buffer allocated is reused. We also try and
 use limited mutexes and locks as those have a high latency associated with them.
 
 We also used more advanced data structures such as hash tables to improve performance
@@ -64,15 +114,24 @@ debugging and working as a group easier. In addition, we have commented the enti
 codebase with in-depth comments explaining he inner workings, inputs and outputs
 of every function we defined.
 
+### recvmmsg
+
+The syscall [`recvmmsg`](http://man7.org/linux/man-pages/man2/recvmmsg.2.html) allows receiving
+more than one message at a time from the network. This enables us to send a single ACK
+for more than one packet more often relying not on out-of-order packets to achieve this
+but by including this in the design of our application. In our testing, this method reduces
+the ACK rate by 33% lowering the upload bandwidth consumed by acknowledges.
+
 ## Architecture
 
 TODO
 
-## SuperFastHashing
+## Callgraph
 
-This piece of code is designed to make the hashing of the IP and port combo easier and simpler.
-We still wanted a high performance implementation and looked on the internet for a fast
-hashing algorithm suitable for hashing IPv6 addresses and ports. Fortunately we found a
-so-called SuperFastHashing algorithm that is much faster than CRC32 and is according to
-users on StackOverflow suitable for IP address hashing. All credits for this implementation
-go to the [original author](http://www.azillionmonkeys.com/qed/hash.html).
+Here is the callgraph of the application showing the limitations caused by CRC 32
+![Callgraph](callgraph.png)
+
+## Packet flow
+
+Here is the transfer graph for a small transfer of a few KiB showing the use of `recvmmsg`.
+![Network](udp_flow.png)
