@@ -1,3 +1,39 @@
+commit 7e9478b655520f1718fe62510b00c4b7b78f9b4f
+Merge: 66ba08c a35073f
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 16:41:54 2019 +0200
+
+    Merge maybe?
+
+commit 66ba08c98330b32bbee1b168b2b7a92085b3772d
+Merge: 018bff7 f3aa6f2
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 16:39:55 2019 +0200
+
+    Merged fully
+
+commit f3aa6f299228d78b8f2dd54623834b373b80f5ff
+Merge: ad69763 018bff7
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 16:38:07 2019 +0200
+
+    Merge with master
+
+commit ad697635afc15eb6f989f11066768234ba6515f3
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 16:27:54 2019 +0200
+
+    First submission. Going to merge with main branch now
+
+ .gitignore                               |   1 +
+ Makefile                                 |  10 ++++++++--
+ README.md                                |  12 ++++++++++--
+ gitlog.stat                              |  29 +++++++++++++++++++++++++++++
+ projet1_d-Herbais-de-Thun_Heuschling.zip | Bin 0 -> 1277559 bytes
+ receiver                                 | Bin 132072 -> 0 bytes
+ udp_flow.png                             | Bin 132180 -> 126806 bytes
+ 7 files changed, 48 insertions(+), 4 deletions(-)
+
 commit fc54c043fdcf741a0d056531d7d7b1c5d0700e99
 Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
 Date:   Tue Oct 22 16:07:24 2019 +0200
@@ -81,6 +117,23 @@ Date:   Tue Oct 22 01:43:29 2019 +0200
  report/src/SUMMARY.md            |   3 --
  report/src/chapter_1.md          |   1 -
  16 files changed, 126 insertions(+), 28 deletions(-)
+
+commit a35073f762a6489339920ba6b284ea36f1d02dc8
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Mon Oct 21 23:24:29 2019 +0200
+
+    cleaned up folder
+
+ Makefile                  |    4 +-
+ gitlog.stat               | 1079 +++++++++++++++
+ hello_world.txt           |    1 -
+ report.pdf => rapport.pdf |  Bin
+ receiver                  |  Bin 40416 -> 127584 bytes
+ src/handler.c             |    1 -
+ tests/receiver_test.c     |   24 +
+ valgrind-out.txt          |  171 ---
+ valgrindout.txt           | 3374 ---------------------------------------------
+ 9 files changed, 1105 insertions(+), 3549 deletions(-)
 
 commit 894c7acb9672dce904c9422f9ce4b65ad13c8997
 Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
@@ -177,6 +230,110 @@ Date:   Sat Oct 19 00:22:00 2019 +0200
  src/sender.c          |  17 ++
  src/temp_handler.c    |  14 +-
  15 files changed, 503 insertions(+), 413 deletions(-)
+
+commit 018bff7df159b1f5faa9f01e3394dcea3656044a
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 23:47:15 2019 +0200
+
+    Ver 1.0 low perf
+
+ src/handler.c      | 584 +++++++++++++++++++++++++++++------------------------
+ src/temp_handler.c | 377 ----------------------------------
+ 2 files changed, 323 insertions(+), 638 deletions(-)
+
+commit 5f0a334a9a83143fa4cf32cdb48a551e1962388f
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 23:43:07 2019 +0200
+
+    NO LEAKS, WORKS. changed socklen_t * to socklen_t
+
+ headers/client.h   |  5 +++--
+ headers/receiver.h |  2 +-
+ src/client.c       | 17 ++++-------------
+ src/main.c         |  2 +-
+ src/receiver.c     |  3 +--
+ 5 files changed, 10 insertions(+), 19 deletions(-)
+
+commit 7b443bf8b620746934670380a1677d0e8bb992aa
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 23:33:45 2019 +0200
+
+    ONLY 4 BYTES LEAKING
+
+ headers/hash_table.h |  9 +++++----
+ src/buffer.c         |  1 -
+ src/client.c         |  1 +
+ src/hash_table.c     | 16 ++++++++--------
+ src/temp_handler.c   |  4 ++--
+ 5 files changed, 16 insertions(+), 15 deletions(-)
+
+commit 53ab4e0569d8b07389be162c7bd5e6581544b27e
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 21:00:54 2019 +0200
+
+    fixed biggest remaining leak
+
+ src/sender.c | 8 +++-----
+ 1 file changed, 3 insertions(+), 5 deletions(-)
+
+commit 90870b7ad4463cc36e24ba1ec3a45d0e306aaadc
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 21:00:41 2019 +0200
+
+    reused existing function to clean up code
+
+ headers/handler.h  |  2 +-
+ src/receiver.c     | 16 ++++------------
+ src/temp_handler.c |  7 +++----
+ 3 files changed, 8 insertions(+), 17 deletions(-)
+
+commit 6d8b5387c4f0f7a8e16fe7a234d70354e8d21d10
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 19:53:56 2019 +0200
+
+    inline may be undesirable so i removed it
+
+ src/temp_handler.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+commit ea19f59adf1848756bdb628eb24ec2139b1a4515
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 19:27:15 2019 +0200
+
+    leak fixing
+
+ src/temp_handler.c | 15 ++++++++-------
+ 1 file changed, 8 insertions(+), 7 deletions(-)
+
+commit 1e0238ab5a63f9ca6796fe921441abea547920c8
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 17:48:08 2019 +0200
+
+    added getters/setters
+
+ headers/handler.h  |  9 ++++-----
+ src/temp_handler.c | 37 ++++++++++++++++++++++++++++++++-----
+ 2 files changed, 36 insertions(+), 10 deletions(-)
+
+commit 928676e831d8f0d3343248487af16015350471d8
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 17:06:43 2019 +0200
+
+    added pop_and_check_req to clean up code
+
+ headers/handler.h  | 15 +++++++++++++++
+ src/temp_handler.c | 56 +++++++++++++++++++++++++-----------------------------
+ 2 files changed, 41 insertions(+), 30 deletions(-)
+
+commit dd9bb49bca380573508173352c3ec4a2bf6bafb4
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Fri Oct 18 16:40:41 2019 +0200
+
+    temp_handler works in"perfect cases, leaks to fix
+
+ src/handler.c      |  6 +++---
+ src/temp_handler.c | 25 +++++++++++++------------
+ 2 files changed, 16 insertions(+), 15 deletions(-)
 
 commit 4ca94513dd5b91f37d5572a5a7d65c7e1579ba52
 Merge: 77b06c8 c839be0
