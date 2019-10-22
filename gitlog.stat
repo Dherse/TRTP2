@@ -1,3 +1,32 @@
+commit fc54c043fdcf741a0d056531d7d7b1c5d0700e99
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 16:07:24 2019 +0200
+
+    Further cleanup, work on README.md
+
+ Makefile                                           |   17 +-
+ README.md                                          |   87 +-
+ affinity.cfg                                       |    2 +-
+ .../dissector-LINGI1341.lua                        |    0
+ base/receiver                                      |  Bin 0 -> 40416 bytes
+ sender => base/sender                              |  Bin
+ statement.pdf => base/statement.pdf                |  Bin
+ callgraph.png                                      |  Bin 305561 -> 254129 bytes
+ gitlog.stat                                        | 1126 +++++++
+ headers/global.h                                   |    3 +
+ headers/handler.h                                  |    1 +
+ hello_world.txt                                    |    1 -
+ many_sender.sh                                     |    2 -
+ receiver                                           |  Bin 40416 -> 132072 bytes
+ report.pdf                                         |  Bin 21611 -> 0 bytes
+ src/main.c                                         |    2 +-
+ tests/stream_test.c                                |    4 +-
+ udp_flow.png                                       |  Bin 0 -> 132180 bytes
+ udpdump.pcap                                       |  Bin 45597 -> 3551 bytes
+ valgrind-out.txt                                   |  171 -
+ valgrindout.txt                                    | 3374 --------------------
+ 21 files changed, 1212 insertions(+), 3578 deletions(-)
+
 commit 2da349514508b59e18057c8ee61a24203a194f9a
 Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
 Date:   Tue Oct 22 15:15:26 2019 +0200

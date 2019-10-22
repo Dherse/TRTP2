@@ -96,8 +96,8 @@ ways explained below.
 
 We designed our architecture to have as high a performance as we can have while using
 techniques available in the course and with limited dependencies. For this reason,
-we implemented a near allocation free code that uses multithreading and SIMD to
-dramatically improve the performance. Every buffer allocated is reused. We also try and
+we implemented a near allocation free code that uses multithreading to improve 
+the performance. Every buffer allocated is reused. We also try and
 use limited mutexes and locks as those have a high latency associated with them.
 
 We also used more advanced data structures such as hash tables to improve performance
@@ -113,6 +113,14 @@ the definition of a hash-table, packet related functions, etc. This makes readin
 debugging and working as a group easier. In addition, we have commented the entire
 codebase with in-depth comments explaining he inner workings, inputs and outputs
 of every function we defined.
+
+### recvmmsg
+
+The syscall [`recvmmsg`](http://man7.org/linux/man-pages/man2/recvmmsg.2.html) allows receiving
+more than one message at a time from the network. This enables us to send a single ACK
+for more than one packet more often relying not on out-of-order packets to achieve this
+but by including this in the design of our application. In our testing, this method reduces
+the ACK rate by 33% lowering the upload bandwidth consumed by acknowledges.
 
 ## Architecture
 

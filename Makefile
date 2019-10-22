@@ -13,6 +13,8 @@ VERSION = gnu89
 OUT = ./receiver
 TEST = trtp_test
 
+ARCHIVE = projet1_d-Herbais-de-Thun_Heuschling.zip
+
 SRC_DIR = ./src
 TEST_DIR = ./tests
 BIN_DIR = ./bin
@@ -44,7 +46,7 @@ DEBUG_FLAGS = -O0 -ggdb
 .PHONY: clean report stat install_tectonic
 
 # main
-all: clean build run
+all: clean build
 
 # build
 build: $(OBJECTS)
@@ -131,4 +133,8 @@ debug: build
 	gdb -ex run --args $(OUT) -o $(BIN_DIR)/%d -s :: 5555
 
 tcpdump:
-	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap 
+	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap
+
+archive:
+	$(RM) -f $(ARCHIVE)
+	zip -r $(ARCHIVE) ./*
