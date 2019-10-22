@@ -1,6 +1,6 @@
 #define _GNU_SOURCE
 
-#include "./headers/Tout_test.h"
+#include "./headers/handler_test.h"
 #include "../headers/global.h"
 #include "../headers/handler.h"
 
@@ -262,7 +262,6 @@ void test_global() {
     
     pthread_mutex_destroy(client.lock);
     free(client.lock);
-    fclose(client.out_file);
     free(client.address);
     deallocate_buffer(client.window);
 

@@ -1,3 +1,54 @@
+commit 99779d979ff042b3ca3917c75321f526696f07fa
+Merge: 34f16c1 2f034b9
+Author: Seb Dhe <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 17:04:25 2019 +0200
+
+    Merge pull request #2 from Dherse/recvmmsg
+    
+    Recvmmsg
+
+commit 34f16c1193b7409c192c6d26c00a6ac3e761d6a2
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 17:03:07 2019 +0200
+
+    Fixed tests
+
+ projet1_d-Herbais-de-Thun_Heuschling.zip | Bin 1156619 -> 1286392 bytes
+ rapport.pdf                              | Bin 0 -> 247946 bytes
+ report/main.pdf                          | Bin 247951 -> 247946 bytes
+ tests/receiver_test.c                    |  24 ------------------------
+ 4 files changed, 24 deletions(-)
+
+commit 2f034b97d66c48a5825b49bf122af3336d850646
+Merge: b9ab26f f3aa6f2
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Tue Oct 22 17:02:35 2019 +0200
+
+    Merge branch 'recvmmsg' of https://github.com/Dherse/TRTP2 into recvmmsg
+
+commit b9ab26faa4dd4023cef693980141af074ddb442b
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Tue Oct 22 17:02:24 2019 +0200
+
+    bug correction and test global finished
+
+ headers/global.h          |   2 +
+ headers/handler.h         |   1 +
+ tests/Tout_test.c         | 124 ++++++++++++++++++++++++++--------------------
+ tests/headers/Tout_test.h |   3 --
+ tests/stream_test.c       |   4 +-
+ 5 files changed, 74 insertions(+), 60 deletions(-)
+
+commit 95619668fc3c0125288893529c430cfa469932ec
+Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
+Date:   Tue Oct 22 16:43:59 2019 +0200
+
+    Update stat & archive
+
+ gitlog.stat                              | 157 +++++++++++++++++++++++++++++++
+ projet1_d-Herbais-de-Thun_Heuschling.zip | Bin 1277559 -> 1156619 bytes
+ 2 files changed, 157 insertions(+)
+
 commit 7e9478b655520f1718fe62510b00c4b7b78f9b4f
 Merge: 66ba08c a35073f
 Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>
@@ -62,6 +113,35 @@ Date:   Tue Oct 22 16:07:24 2019 +0200
  valgrind-out.txt                                   |  171 -
  valgrindout.txt                                    | 3374 --------------------
  21 files changed, 1212 insertions(+), 3578 deletions(-)
+
+commit 0f9e92b695de4c17df74e6a04905ac3784fcc376
+Merge: f4d41fc 2da3495
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Tue Oct 22 15:41:33 2019 +0200
+
+    merged conflicts
+
+commit f4d41fc8807c006920bfe15dfe7cc6f87c24ac70
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Tue Oct 22 15:40:53 2019 +0200
+
+    test started (not compiling)
+
+ tests/Tout_test.c         | 276 ++++++++++++++++++++++++++++++++++++++++++++++
+ tests/headers/Tout_test.h |   8 ++
+ 2 files changed, 284 insertions(+)
+
+commit e9a12acb527a27c81f720c2e16a16d6afdfa07b9
+Author: skjdbg <thomas.heuschling@skynet.be>
+Date:   Tue Oct 22 15:40:20 2019 +0200
+
+    small code cleanup
+
+ Makefile           | 2 +-
+ headers/receiver.h | 1 +
+ src/cli.c          | 2 +-
+ tests/tests.c      | 4 +++-
+ 4 files changed, 6 insertions(+), 3 deletions(-)
 
 commit 2da349514508b59e18057c8ee61a24203a194f9a
 Author: Sébastien d'Herbais de Thun <sebastien.d.herbais@gmail.com>

@@ -5,7 +5,7 @@
 #include "./headers/buffer_test.h"
 #include "./headers/ht_test.h"
 #include "./headers/stream_test.h"
-#include "./headers/Tout_test.h"
+#include "./headers/handler_test.h"
 
 /*#include "handler_test.c"
 #include "receiver_test.c"*/
