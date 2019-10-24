@@ -437,16 +437,19 @@ int parse_streams_file(config_rcv_t *config) {
         char *receiver_chunk = strtok(receivers, ",");
         while (receiver_chunk != NULL) {
             if (str2int(&associated_receivers[r++], receiver_chunk, 10)) {
+                fclose(file);
                 fprintf(stderr, "[CLI] Failed to parse number: %d (in streams.cfg)\n", receiver_chunk);
                 return -1;
             }
 
             if (associated_receivers[r - 1] < 0 || associated_receivers[r - 1] >= config->receive_num) {
+                fclose(file);
                 fprintf(stderr, "[CLI] Unknown receiver: %d (in streams.cfg)\n", associated_receivers[r - 1]);
                 return -1;
             }
 
             if (config->receive_streams[associated_receivers[r - 1]].stream != -1) {
+                fclose(file);
                 fprintf(stderr, "[CLI] Receiver used twice: %d (in streams.cfg)\n", associated_receivers[r - 1]);
                 return -1;
             }
@@ -460,16 +463,19 @@ int parse_streams_file(config_rcv_t *config) {
         char *handler_chunk = strtok(handlers, ",");
         while (handler_chunk != NULL) {
             if (str2int(&associated_handlers[h++], handler_chunk, 10)) {
+                fclose(file);
                 fprintf(stderr, "[CLI] Failed to parse number: %d (in streams.cfg)\n", handler_chunk);
                 return -1;
             }
 
             if (associated_handlers[h - 1] < 0 || associated_handlers[h - 1] >= config->handle_num) {
+                fclose(file);
                 fprintf(stderr, "[CLI] Unknown handler: %d (in streams.cfg)\n", associated_handlers[h - 1]);
                 return -1;
             }
 
             if (config->handle_streams[associated_handlers[h - 1]].stream != -1) {
+                fclose(file);
                 fprintf(stderr, "[CLI] Handler used twice: %d (in streams.cfg)\n", associated_handlers[h - 1]);
                 return -1;
             }
@@ -483,12 +489,14 @@ int parse_streams_file(config_rcv_t *config) {
     config->stream_count = i;
 
     if (i <= 0) {
+            fclose(file);
         fprintf(stderr, "[CLI] At least one stream must be defined\n");
         return -1;
     }
 
     for (i = 0; i < config->handle_num; i++) {
         if (config->handle_streams[i].stream == -1) {
+            fclose(file);
             fprintf(stderr, "[CLI] Not all handlers have a stream associated, example: %d\n", i);
             return -1;
         }
@@ -496,6 +504,7 @@ int parse_streams_file(config_rcv_t *config) {
 
     for (i = 0; i < config->receive_num; i++) {
         if (config->receive_streams[i].stream == -1) {
+            fclose(file);
             fprintf(stderr, "[CLI] Not all receivers have a stream associated, example: %d\n", i);
             return -1;
         }

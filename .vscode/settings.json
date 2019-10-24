@@ -37,6 +37,9 @@
         "pthread.h": "c",
         "stdlib.h": "c",
         "lookup.h": "c",
-        "param.h": "c"
+        "param.h": "c",
+        "crc32.h": "c",
+        "client.h": "c",
+        "limits.h": "c"
     }
 }

@@ -67,7 +67,7 @@ void print_usage(char *exec) {
  */
 void deallocate_everything(
     config_rcv_t *config,
-    int sockfd,
+    int *sockfds,
     stream_t **rx_to_hd,
     stream_t **hd_to_rx,
     ht_t *clients,
@@ -129,8 +129,18 @@ void deallocate_everything(
         free(config->handle_affinities);
     }
 
-    if (sockfd != -1) {
-        close(sockfd);
+    if (config->handle_streams != NULL) {
+        free(config->handle_streams);
+    }
+
+    if (config->receive_streams != NULL) {
+        free(config->receive_streams);
+    }
+
+    for (i = 0; i < config->stream_count; i++) {
+        if (sockfds[i] != -1) {
+            close(sockfds[i]);
+        }
     }
 
     if (rx_to_hd != NULL) {
@@ -245,63 +255,93 @@ int main(int argc, char *argv[]) {
     rx_cfg_t **rx_configs;
     hd_cfg_t **hd_configs;
 
-    int sockfd;
+    int sockfds[config.stream_count];
+    memset(sockfds, -1, config.stream_count);
 
     // -------------------------------------------------------------------------
     // Socket initialization
     // -------------------------------------------------------------------------
 
-    sockfd = socket(
-        config.addr_info->ai_family, 
-        config.addr_info->ai_socktype, 
-        config.addr_info->ai_protocol
-    );
+    int i;
+    for (i = 0; i < config.stream_count; i++) {
+        int sockfd = socket(
+            config.addr_info->ai_family, 
+            config.addr_info->ai_socktype, 
+            config.addr_info->ai_protocol
+        );
 
-    if (sockfd == -1) {
-        fprintf(stderr, "[MAIN] Failed to create socket\n");
+        sockfds[i] = sockfd;
 
-        return -1;
-    }
+        if (sockfd == -1) {
+            fprintf(stderr, "[MAIN] Failed to create socket\n");
+            perror("socket");
 
-    fprintf(stderr, "[MAIN] Socket opened (fd: %d)\n", sockfd);
+            return -1;
+        }
 
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;
+        fprintf(stderr, "[MAIN] Socket opened (fd: %d)\n", sockfd);
 
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) {
-        fprintf(stderr, "[MAIN] Failed to set receive timeout");
+        int one = 1;
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one))) {
+            fprintf(stderr, "[MAIN] Failed to set reuse address");
+            perror("setsockopt");
 
-        close(sockfd);
+            close(sockfd);
 
-        return -1;
-    }
+            return -1;
+        }
 
-    int size = 4000000;
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one))) {
+            fprintf(stderr, "[MAIN] Failed to set reuse port");
+            perror("setsockopt");
 
-    if (setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size))) {
-        fprintf(stderr, "[MAIN] Failed to set send buffer size");
+            close(sockfd);
 
-        close(sockfd);
+            return -1;
+        }
 
-        return -1;
-    }
+        struct timeval tv;
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000;
 
-    if (setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size))) {
-        fprintf(stderr, "[MAIN] Failed to set receive buffer size");
+        if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) {
+            fprintf(stderr, "[MAIN] Failed to set receive timeout");
+            perror("setsockopt");
 
-        close(sockfd);
+            close(sockfd);
 
-        return -1;
-    }
+            return -1;
+        }
 
-    int status = bind(sockfd, config.addr_info->ai_addr, config.addr_info->ai_addrlen);
-    if (status) {
-        fprintf(stderr, "[MAIN] Failed to bind socket");
+        int size = 4000000;
 
-        close(sockfd);
+        if (setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size))) {
+            fprintf(stderr, "[MAIN] Failed to set send buffer size");
+            perror("setsockopt");
 
-        return -1;
+            close(sockfd);
+
+            return -1;
+        }
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size))) {
+            fprintf(stderr, "[MAIN] Failed to set receive buffer size");
+            perror("setsockopt");
+
+            close(sockfd);
+
+            return -1;
+        }
+
+        int status = bind(sockfd, config.addr_info->ai_addr, config.addr_info->ai_addrlen);
+        if (status) {
+            fprintf(stderr, "[MAIN] Failed to bind socket");
+            perror("bind");
+
+            close(sockfd);
+
+            return -1;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -313,7 +353,7 @@ int main(int argc, char *argv[]) {
         
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -324,7 +364,6 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    int i;
     for(i = 0; i < config.stream_count; i++) {
         rx_to_hd[i] = calloc(config.stream_count, sizeof(stream_t));
         if (rx_to_hd[i] == NULL || initialize_stream(rx_to_hd[i])) {
@@ -332,7 +371,7 @@ int main(int argc, char *argv[]) {
             
             deallocate_everything(
                 &config,
-                sockfd,
+                sockfds,
                 rx_to_hd, 
                 hd_to_rx,
                 clients, 
@@ -350,7 +389,7 @@ int main(int argc, char *argv[]) {
         
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -368,7 +407,7 @@ int main(int argc, char *argv[]) {
             
             deallocate_everything(
                 &config,
-                sockfd,
+                sockfds,
                 rx_to_hd, 
                 hd_to_rx,
                 clients, 
@@ -386,7 +425,7 @@ int main(int argc, char *argv[]) {
         
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -403,7 +442,7 @@ int main(int argc, char *argv[]) {
         
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -421,7 +460,7 @@ int main(int argc, char *argv[]) {
             
             deallocate_everything(
                 &config,
-                sockfd,
+                sockfds,
                 rx_to_hd, 
                 hd_to_rx,
                 clients, 
@@ -439,7 +478,7 @@ int main(int argc, char *argv[]) {
         
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -457,7 +496,7 @@ int main(int argc, char *argv[]) {
         
             deallocate_everything(
                 &config,
-                sockfd,
+                sockfds,
                 rx_to_hd, 
                 hd_to_rx, 
                 clients, 
@@ -479,7 +518,7 @@ int main(int argc, char *argv[]) {
         rx_configs[i]->file_format = config.format;
         rx_configs[i]->idx = &idx;
         rx_configs[i]->max_clients = config.max_connections;
-        rx_configs[i]->sockfd = sockfd;
+        rx_configs[i]->sockfd = sockfds[config.receive_streams[i].stream];
         rx_configs[i]->stop = false;
         rx_configs[i]->rx = hd_to_rx[config.receive_streams[i].stream];
         rx_configs[i]->tx = rx_to_hd[config.receive_streams[i].stream];
@@ -490,7 +529,7 @@ int main(int argc, char *argv[]) {
 
     for (i = 0; i < config.handle_num; i++) {
         hd_configs[i]->id = i;
-        hd_configs[i]->sockfd = sockfd;
+        hd_configs[i]->sockfd = sockfds[config.handle_streams[i].stream];
         hd_configs[i]->clients = clients;
         hd_configs[i]->rx = rx_to_hd[config.handle_streams[i].stream];
         hd_configs[i]->tx = hd_to_rx[config.handle_streams[i].stream];
@@ -510,7 +549,7 @@ int main(int argc, char *argv[]) {
                 
                 deallocate_everything(
                     &config,
-                    sockfd,
+                    sockfds,
                     rx_to_hd, 
                     hd_to_rx, 
                     clients, 
@@ -526,7 +565,7 @@ int main(int argc, char *argv[]) {
                 
                 deallocate_everything(
                     &config,
-                    sockfd,
+                    sockfds,
                     rx_to_hd, 
                     hd_to_rx, 
                     clients, 
@@ -545,7 +584,7 @@ int main(int argc, char *argv[]) {
             
                 deallocate_everything(
                     &config,
-                    sockfd,
+                    sockfds,
                     rx_to_hd, 
                     hd_to_rx, 
                     clients, 
@@ -561,7 +600,7 @@ int main(int argc, char *argv[]) {
                 
                 deallocate_everything(
                     &config,
-                    sockfd,
+                    sockfds,
                     rx_to_hd, 
                     hd_to_rx, 
                     clients, 
@@ -585,7 +624,7 @@ int main(int argc, char *argv[]) {
 
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -601,7 +640,7 @@ int main(int argc, char *argv[]) {
 
         deallocate_everything(
             &config,
-            sockfd,
+            sockfds,
             rx_to_hd, 
             hd_to_rx,
             clients, 
@@ -713,7 +752,7 @@ int main(int argc, char *argv[]) {
     
     deallocate_everything(
         &config,
-        sockfd,
+        sockfds,
         rx_to_hd, 
         hd_to_rx,
         clients, 
