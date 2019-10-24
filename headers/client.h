@@ -55,10 +55,10 @@ typedef struct client {
     char ip_as_string[INET6_ADDRSTRLEN];
 
     /** The time the client connected */
-    time_t connection_time;
+    struct timespec connection_time;
 
     /** The time the client was set as inactive */
-    time_t end_time;
+    struct timespec end_time;
 
     /** Total bytes transferred */
     uint64_t transferred;

@@ -18,8 +18,8 @@
 #include <string.h>
 
 /** CRC32 */
-#define IOLIB_CRC
-#include "crc32.h"
+/*#define IOLIB_CRC
+#include "crc32.h"*/
 
 /** Required for recvmmsg & sendmmsg */
 #include <sys/socket.h>

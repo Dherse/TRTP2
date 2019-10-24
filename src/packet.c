@@ -1,5 +1,7 @@
 #include "../headers/packet.h"
 
+#define CRC32(old, value, length) crc32_16bytes_prefetch(value, length, old, 256)
+
 GETSET_IMPL(packet_t, ptype_t, type);
 
 GETSET_IMPL(packet_t, bool, truncated);
@@ -188,7 +190,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     }
 
     *header = *header & 0b11011111;
-    uint32_t crc = iolib_crc32(0, (void*) raw, len);
+    uint32_t crc = CRC32(0, (void*) raw, len);
     if (out->crc1 != crc) {
         errno = CRC_VALIDATION_FAILED;
 
@@ -211,7 +213,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         errno = PAYLOAD_TOO_LONG;
         return -1;
     } else if (out->payload != NULL && out->length > 0 && !out->truncated) {
-        crc = iolib_crc32(0, (void*) out->payload, (size_t) out->length);
+        crc = CRC32(0, (void*) out->payload, (size_t) out->length);
         if (out->crc2 != crc) {
             errno = PAYLOAD_VALIDATION_FAILED;
 
@@ -257,7 +259,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
     (*packet++) = (uint8_t) (timestamp >> 16);
     (*packet++) = (uint8_t) (timestamp >> 24);
 
-    uint32_t crc1 = htonl(iolib_crc32(0, (uint8_t *) raw, length));
+    uint32_t crc1 = htonl(CRC32(0, (uint8_t *) raw, length));
 
     *header = *header | (in->truncated << 5);
 
@@ -275,7 +277,7 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 
         uint32_t crc2 = ntohl(in->crc2);
         if (recompute_crc2) {
-            crc2 = htonl(iolib_crc32(0, (void *) &in->payload, in->length));
+            crc2 = htonl(CRC32(0, (void *) &in->payload, in->length));
         }
 
         (*packet++) = (uint8_t) (crc2);

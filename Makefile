@@ -37,7 +37,7 @@ ALL = $(filter-out $(MAINS), $(OBJECTS) $(TEST_OBJECTS))
 BIN := $(wildcard $(BIN_DIR)/*)
 
 # Compiler flags
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -lrt
 FLAGS = -Werror -std=$(VERSION)
 RELEASE_FLAGS = -O3
 DEBUG_FLAGS = -O0 -ggdb
@@ -50,7 +50,7 @@ all: clean build
 
 # build
 build: $(OBJECTS)
-	$(GCC) $(FLAGS) $(OBJECTS) -o $(OUT) $(LDFLAGS)
+	$(GCC) $(FLAGS) $(LDFLAGS) ./lib/Crc32.o $(OBJECTS) -o $(OUT)
 
 test_build: FLAGS += $(DEBUG_FLAGS)
 test_build: build

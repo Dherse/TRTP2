@@ -128,7 +128,7 @@ int initialize_client(
         return -1;
     }
 
-    time(&client->connection_time);
+    clock_gettime(CLOCK_MONOTONIC, &client->connection_time);
     client->transferred = 0;
 
     return 0;

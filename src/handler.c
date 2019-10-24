@@ -260,7 +260,11 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                 bytes_to_unit(client->transferred, size, &sizem);
 
-                double time = difftime(end, client->connection_time);
+                clock_gettime(CLOCK_MONOTONIC, &client->end_time);
+
+                double time = ((double)client->end_time.tv_sec + 1.0e-9*client->end_time.tv_nsec) - 
+                    ((double)client->connection_time.tv_sec + 1.0e-9*client->connection_time.tv_nsec);
+                    
                 bytes_to_unit(client->transferred / time, speed, &speedm);
 
                 fprintf(

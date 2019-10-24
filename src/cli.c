@@ -324,8 +324,6 @@ int parse_affinity_file(config_rcv_t *config) {
 	    while ((token = strsep(&line, ",")) != NULL) {
             if (i >= config->handle_num) {
                 fclose(file);
-                free(line);
-                free(line2);
                 fprintf(stderr, "[CLI] Too many HD affinities\n");
                 free(config->handle_affinities);
                 free(config->receive_affinities);
@@ -337,8 +335,6 @@ int parse_affinity_file(config_rcv_t *config) {
             int cpu;
             if (str2int(&cpu, token, 10)) {
                 fclose(file);
-                free(line);
-                free(line2);
                 fprintf(stderr, "[CLI] Failed to parse HD affinity: %s\n", token);
                 free(config->handle_affinities);
                 free(config->receive_affinities);
