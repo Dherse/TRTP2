@@ -260,9 +260,7 @@ client_t *ht_remove(ht_t *table, uint16_t port, uint8_t *ip);
 /**
  * ## Use :
  * 
- * Resizes (up **and** down) the hashtable.
- * Note that sizing down without checking the size first
- * can lead to undefined behaviour.
+ * Resizes (up) the hashtable.
  * 
  * ## Arguments :
  *

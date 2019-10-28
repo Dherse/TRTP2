@@ -1,4 +1,4 @@
-\documentclass[tikz]{article}
+\documentclass[8pt]{article}
 
 \usepackage[utf8]{inputenc}
 \usepackage{natbib}
@@ -28,10 +28,10 @@
 \usepackage{caption}
 
 \pagestyle{fancy}
-\fancyhead[R]{\includegraphics[scale=0.05]{assets/ucl.jpg}}
-\fancyhead[L]{\includegraphics[scale=0.15]{assets/epl.jpg}}
+\fancyhead[L]{\includegraphics[scale=0.05]{assets/ucl.jpg}}
+\fancyhead[R]{\includegraphics[scale=0.15]{assets/epl.jpg}}
 \fancyfoot[L]{LINGI1341}
-\fancyfoot[C]{Group \#138}
+\fancyfoot[C]{Groupe 138}
 \fancyfoot[R]{\thepage}
 \definecolor{mygreen}{RGB}{28,172,0} % color values Red, Green, Blue
 \definecolor{mylilas}{RGB}{170,55,241}
@@ -56,7 +56,13 @@ filecolor=green,
 
 \section{Abstract}
 
-We created a high performance multithreaded receiver implementation that can saturate a 1GbE connection and greatly utilize a 10GbE connection while providing reliable and repeatable data transfers. In addition, we used advanced Linux syscalls that help reduce their numbers to a minimum, improving performance and reducing CPU usage. It is also documented in great details explaining as the code flows the architectural decisions and algorithms used to make the application work. This means it would be easily modified by another team for any future modifications. Finally, the code is accompanied by a full suite of tests for almost every function in the codebase to ensure that compilation equates to reliable data transmissions.
+Nous avons conçus une implémentation du receveur TRTP multithreadé capable de saturer une connexion 1 GbE et d'utiliser en grande partie une connexion 10 GbE.
+Dans nos tests, la vitesse de transfer maximale observée était de 800 MiB/s\footnote{\hyperref[sec:performance]{cfr. section sur les performances}}. Et celle-ci
+n'était limitée non pas par notre implémentation mais notre capacité à générer les paquets assez rapidement. Ces performances sont possibles grâce à l'usage de 
+\textit{\hyperref[sec:syscalls]{syscall avancé}}, d'opération \textit{\hyperref[sec:atomics]{atomiques}} et l'usage de multiple \textit{\hyperref[sec:pipelines]{pipelines}} traitant
+l'information en parallèle tout en restant \textit{thread safe} et libre de toute fuite mémoire. De plus notre implémentation est accompagnée d'une suite
+étendue de tests couvrant la grande majorité du code et d'une documentation complète détaillant l'architecture and le fonctionnement des différents composants
+utilisés.
 
 \newpage
 
@@ -65,5 +71,9 @@ We created a high performance multithreaded receiver implementation that can sat
 
 \subfile{sections/introduction}
 \newpage
+
+\subfile{sections/architecture}
+
+
 
 \end{document}

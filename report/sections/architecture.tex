@@ -1,0 +1,58 @@
+\documentclass[../main.tex]{subfiles}
+
+\begin{document}
+
+\section{Architecture}
+\label{sec:architecture}
+
+Dés le début du projet, nous avions en tête de réaliser une implémentation multithreadé afin de maximiser les performances. Bien que l'architecture que nous
+avions originellement conçue était très naïve, elle s'est avérée être un bon point de départ pour ce qu'est notre architecture finale. Celle-ci est flexible
+fonctionnant autant en mode \textit{séquentiel}, c'est à dire sur un unique thread, que sur beaucoup de thread séparés. De plus, le fonctionnement parallèle
+est amélioré par la présence de deux fichiers de configurations permettant d'optimiser d'avantage l'exécution sans devoir changer le code source.
+
+L'architecture se base sur la possibilité en UDP d'écrire et de lire depuis un même socket depuis plusieurs thread en même temps. Ceci est possible car l'UDP
+n'est pas un protocole qui garantit l'ordre d'arrivée des paquets. Notre programme utilise donc une série de threads pour lire depuis le socket et une série
+de thread pour traiter les données et envoyer les paquets de (N)ACK. Ce premier type sera appellé \textit{receiver} tandis que le deuxième sera appellé \textit{handler}.
+
+Chacun de ces threads a ensuite été amélioré par l'usage de \textit{sycalls} avancés permettant de drastiquement diminuer non seulement le nombre de \textit{syscalls}
+exécutés mais également le nombre de paquets de types ACK que le receveur doit émettre. Ceci sera expliquer dans plus de détails dans les sections
+qui suivent.
+
+Ces threads communiquent entre eux à l'aide de deux queues de communication. La première sert à envoyer les paquets depuis le \textit{receiver} au \textit{handler}
+et la deuxième fait le chemin inverse. Bien que cela soit plus complexe, cela permet une meilleure utilisation de la mémoire allouée en réutilisant les
+\textit{buffers} précédemment alloués. De plus ce \textit{stream} utilise des opérations atomiques\footnote{ Opérations \textit{thread safe} ne requérant pas de verrou}
+lors de l'ajout d'éléments afin d'augmenter les performances et de diminuer la latence dans le \textit{receiver}.
+
+\subsection{Table de hachage type \textit{linear probing}}
+\label{sec:hash_table}
+
+Le but de cette table de hachage ou \textit{hash table} est de stocké la liste des clients concourants et de pouvoir rapidement identifié les nouvelles
+connexions. Elle stocke une structure \textit{client\_t} qui contient les données relatives à une connexion telle que l'adresse IP, le port et l'état
+de la fenêtre de réception. Cette table est partagée entre toutes les \textit{receivers} et est correctement protégée par un \textit{mutex}.
+
+La table de hachage donne un énorme avantage par rapport aux autres implémentations car elle est, en moyenne, en complexité temporelle $\mathcal{O}(1)$
+sans requérir l'usage d'un \textit{socket} par connexion qui pourrait causer problème pour un très grand nombre de connexion concourantes\footnote{
+    Le nombre de \textit{file descriptor} maximum autorisé par le système d'exploitation pourrait être atteint.}.
+
+Afin de simplifier l'implémentation de celle-ci, notre table de hachage n'utilise par l'adresse IP du client mais uniquement le port de celui-ci comme
+clé. Cela rend le calcul de l'index très simple : $Port \% M$ où $M$ est la capacité de la table de hachage. Ensuite, lors du \textit{linear probing},
+l'adresse IP est comparée en plus du port afin de garantir l'unicité de chaque client. De plus cette comparaison est expressément faite avec
+la fonction \textit{memcmp} afin d'en augmenter les performances\footnote{ \textit{memcmp} utilise SSE 4.2 comme observé dans le \textit{\hyperref[sec:annexs_call_graph]{call graph}}.}.
+Ce qui veut donc dire qu'un maximum théorique de $65536$ connexions concourantes sans collisions peuvent être traité. En pratique ce nombre
+est plus petit. De plus, avec une implémentation utilisant un \textit{socket} par client, la limite typique sur une machine linux serait
+d'environ $1024$\footnote{ Valeur typique de la limite sur le nombre de \textit{file descriptors} autorisés par processus.} connexions. Alors
+que notre implémentation pourrait en théorie traiter des millions de connexions concourantes.
+
+\subsection{\textit{Syscalls} avancés}
+\label{sec:pipelines}
+
+\subsection{Receiver thread}
+\label{sec:receiver}
+
+Le \textit{receiver} thread est responsable pour la réception des paquets, identifier l'émetteur du paquet au travers de la table de hachage
+et de les transmettre au travers du \textit{stream} aux \textit{handlers}. Elle s'occupe également d'identifier les nouveaux clients et 
+des les ajouter à la table. 
+
+
+
+\end{document}

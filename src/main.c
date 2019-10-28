@@ -32,7 +32,7 @@ void handle_stop(int signo) {
  * Just read the name
  */
 void print_usage(char *exec) {
-    fprintf(stderr, "Multithreaded TRTP receiver.\n\n");
+    fprintf(stderr, "1 milion packets per second capable TRTP receiver\n\n");
     fprintf(stderr, "Usage:\n");
     fprintf(stderr, "  %s [options] <ip> <port>\n\n", exec);
     fprintf(stderr, "Options:\n");
@@ -59,7 +59,26 @@ void print_usage(char *exec) {
     fprintf(stderr, "\t0,1\n\t2,3,4,5\n");
     fprintf(stderr, "  It means the affinities of the receivers will be on CPU 0 & 1\n");
     fprintf(stderr, "  And the affinities of the handlers will be on CPU 2, 3, 4 & 5\n");
-    fprintf(stderr, "  To learn more about affinity: https://en.wikipedia.org/wiki/Processor_affinity\n");
+    fprintf(stderr, "  To learn more about affinity: https://en.wikipedia.org/wiki/Processor_affinity\n\n");
+    fprintf(stderr, "Streams:\n");
+    fprintf(stderr, "  Streams are used for communication between the receivers and the\n");
+    fprintf(stderr, "  handlers. Since they're semi locking to void races, they lock\n");
+    fprintf(stderr, "  on reading (dequeue). This means that too many handlers wil\n");
+    fprintf(stderr, "  significantly slow down the stream. For this reason, a special\n");
+    fprintf(stderr, "  streams.cfg allows custom mapping between receivers and handlers.\n");
+    fprintf(stderr, "  Here is the file structure: \n");
+    fprintf(stderr, "\tlist of comma separated receivers : list of comma separated handlers\n");
+    fprintf(stderr, "  Each line defines a new stream. Each handler and/or receiver must be used\n");
+    fprintf(stderr, "  once and only one. Here is an example where two receivers have their own streams\n");
+    fprintf(stderr, "\t0:0,1\n");
+    fprintf(stderr, "\t1:2,3\n");
+    fprintf(stderr, "  And one where two receivers share a stream\n");
+    fprintf(stderr, "\t0,1:0,1,2,3\n");
+    fprintf(stderr, "\t2:4,5\n\n");
+    fprintf(stderr, "Maximising performance:\n");
+    fprintf(stderr, "  Performace is maximal when the receive buffer is fairly large\n");
+    fprintf(stderr, "  (few times the window). Also when each receiver has its own stream\n");
+    fprintf(stderr, "  and a few handlers (typically two or three).\n");
 }
 
 /**

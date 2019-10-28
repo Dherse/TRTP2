@@ -50,6 +50,7 @@ all: clean build
 
 # build
 build: $(OBJECTS)
+	cd lib && make all
 	$(GCC) $(FLAGS) $(LDFLAGS) ./lib/Crc32.o $(OBJECTS) -o $(OUT)
 
 test_build: FLAGS += $(DEBUG_FLAGS)
@@ -80,6 +81,7 @@ $(BIN_DIR)/%.o: $(TEST_DIR)/%.c
 
 # Cleaning stuff
 clean: 
+	cd lib && make clean
 	$(RM) -f $(BIN)
 	$(RM) -f $(OUT)
 
@@ -133,7 +135,7 @@ debug: build
 	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d -s :: 5555
 
 tcpdump:
-	sudo tcpdump -s 0 -i lo udp port 5555 -w ./bin/udpdump.pcap
+	sudo tcpdump -s 0 -i enp9s0 udp port 5555 -w ./bin/udpdump.pcap
 
 archive:
 	$(RM) -f $(ARCHIVE)
