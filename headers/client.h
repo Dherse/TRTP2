@@ -51,6 +51,8 @@ typedef struct client {
     /** The client ID (number) */
     uint32_t id;
 
+    uint32_t last_timestamp;
+
     /** The client's IP as a string */
     char ip_as_string[INET6_ADDRSTRLEN];
 

@@ -62,7 +62,7 @@ release: build
 
 # run
 run:
-	$(OUT) -o $(BIN_DIR)/%d -n 4 -N 2 -w 31 :: 5555
+	$(OUT) -o $(BIN_DIR)/%d -n 2 -N 4 -w 31 :: 64536
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -101,17 +101,17 @@ report:
 valgrind: FLAGS += $(DEBUG_FLAGS)
 valgrind: build
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose \
-		$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/valgrind.txt
+		$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/valgrind.txt
 
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
 	valgrind --tool=helgrind \
-		$(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/helgrind.txt
+		$(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/helgrind.txt
 
 memcheck: FLAGS += $(DEBUG_FLAGS)
 memcheck: build
 	valgrind --tool=memcheck --track-origins=yes \
-		$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 5555 2> $(BIN_DIR)/memcheck.txt
+		$(OUT) -n 1 -N 1 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/memcheck.txt
 
 callgrind: FLAGS += -O3 -ggdb
 callgrind: build
@@ -123,7 +123,7 @@ callgrind: build
 	@echo '----------------------------------------------------------'
 
 	valgrind --tool=callgrind --callgrind-out-file=$(BIN_DIR)/callgrind.txt \
-		$(OUT) -n 1 -N 1 -w 31 -o $(BIN_DIR)/%d :: 5555
+		$(OUT) -n 1 -N 1 -w 31 -o $(BIN_DIR)/%d :: 64536
 		
 	@echo '----------------------------------------------------------'
 
@@ -132,10 +132,10 @@ plot:
 
 debug: FLAGS += $(DEBUG_FLAGS)
 debug: build
-	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d -s :: 5555
+	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d -s :: 64536
 
 tcpdump:
-	sudo tcpdump -s 0 -i enp9s0 udp port 5555 -w ./bin/udpdump.pcap
+	sudo tcpdump -s 0 -i enp9s0 udp port 64536 -w ./bin/udpdump.pcap
 
 archive:
 	$(RM) -f $(ARCHIVE)

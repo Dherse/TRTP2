@@ -53,6 +53,7 @@ int initialize_client(
     struct sockaddr_in6 *address,
     socklen_t *addr_len
 ) {
+    client->last_timestamp = 0;
     client->id = id;
     client->active = true;
     

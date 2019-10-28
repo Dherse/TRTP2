@@ -151,7 +151,7 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     /* port number validation */
 
     int port_number;
-    if (str2int(&port_number, port, 10) == -1 || port_number < 0 || port_number > 49151) {
+    if (str2int(&port_number, port, 10) == -1 || port_number < 0) {
         errno = CLI_PORT_INVALID;
         return -1;
     }
