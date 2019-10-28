@@ -415,6 +415,7 @@ int parse_streams_file(config_rcv_t *config) {
     while (fgets(str, 128, file) != NULL) {
         if (i >= config->receive_num) {
             fprintf(stderr, "[CLI] Too many streams defined\n");
+            fclose(file);
             return -1;
         }
 

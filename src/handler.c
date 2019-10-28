@@ -93,6 +93,20 @@ inline __attribute__((always_inline)) void hd_run_once(
             int length = req->lengths[i];
 
             if (unpack(buffer, length, *decoded)) {
+                to_send.type = ACK;
+                to_send.truncated = false;
+                to_send.seqnum = window->window_low;
+                to_send.long_length = false;
+                to_send.length = 0;
+                to_send.window = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->length);
+                to_send.timestamp = client->last_timestamp;
+
+                msg[len_to_send].msg_hdr.msg_name = client->address;
+                if (pack(packets_to_send[len_to_send++], &to_send, false)) {
+                    fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                    len_to_send--;
+                }
+
                 print_unpack_error(client->ip_as_string);
                 
                 continue;
@@ -266,20 +280,20 @@ inline __attribute__((always_inline)) void hd_run_once(
                     (client->transferred / time) / speedm, speed
                 );
             }
-        }
             
-        to_send.type = ACK;
-        to_send.truncated = false;
-        to_send.long_length = false;
-        to_send.length = 0;
-        to_send.seqnum = window->window_low;
-        to_send.timestamp = last_timestamp;
-        to_send.window = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->length);
+            to_send.type = ACK;
+            to_send.truncated = false;
+            to_send.long_length = false;
+            to_send.length = 0;
+            to_send.seqnum = window->window_low;
+            to_send.timestamp = last_timestamp;
+            to_send.window = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->length);
 
-        msg[len_to_send].msg_hdr.msg_name = client->address;
-        if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-            fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, client->address->sin6_port);
-            len_to_send--;
+            msg[len_to_send].msg_hdr.msg_name = client->address;
+            if (pack(packets_to_send[len_to_send++], &to_send, false)) {
+                fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, client->address->sin6_port);
+                len_to_send--;
+            }
         }
         pthread_mutex_unlock(client_get_lock(client));
 
