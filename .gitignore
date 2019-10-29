@@ -55,3 +55,6 @@ receiver
 # compiled code except for the gitkeep file
 bin/*
 -bin/.gitkeep
+
+# crc32 stuff
+lib/Crc32Test
