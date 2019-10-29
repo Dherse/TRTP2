@@ -22,7 +22,7 @@ uint8_t ack_packet[11] = {
 
 void test_ack_decoding() {
 
-    uint32_t crc1 = crc32(0, (void*) ack_packet, 7);
+    uint32_t crc1 = crc32_16bytes_prefetch((void*) ack_packet, 7, 0);
     uint32_t crc = htonl(crc1);
     memcpy(ack_packet + 7, &crc, sizeof(uint32_t));
 
@@ -64,7 +64,7 @@ void test_data_decoding() {
     char *str = "hello, world!";
 
     int len = strlen(str) + 1;
-    uint32_t crc2 = crc32(0, (void*) str, len);
+    uint32_t crc2 = crc32_16bytes_prefetch((void*) str, len, 0);
     uint32_t crc2_n = htonl(crc2);
     //memcpy(ack_packet + 7 + strlen(str), &crc2_n, sizeof(uint32_t));
 
@@ -96,7 +96,7 @@ void test_data_decoding() {
     };
 
     // Copy CRC1
-    uint32_t crc1 = crc32(0, (void*) dat_packet, 7);
+    uint32_t crc1 = crc32_16bytes_prefetch((void*) dat_packet, 7, 0);
     uint32_t crc1_n = htonl(crc1);
     memcpy(dat_packet + 7, &crc1_n, sizeof(uint32_t));
 
@@ -126,7 +126,7 @@ void test_data_encoding() {
     char *str = "hello, world!";
 
     int len = strlen(str) + 1;
-    uint32_t crc2 = crc32(0, (void*) str, len);
+    uint32_t crc2 = crc32_16bytes_prefetch((void*) str, len, 0);
     uint32_t crc2_n = htonl(crc2);
 
     uint8_t dat_packet[29] = {
@@ -157,7 +157,7 @@ void test_data_encoding() {
     };
 
     // Copy CRC1
-    uint32_t crc1 = crc32(0, (void*) dat_packet, 7);
+    uint32_t crc1 = crc32_16bytes_prefetch((void*) dat_packet, 7, 0);
     uint32_t crc1_n = htonl(crc1);
     memcpy(dat_packet + 7, &crc1_n, sizeof(uint32_t));
 

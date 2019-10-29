@@ -61,7 +61,16 @@ de notifier une variable conditionelle sans posséder le \textit{mutex} ce qui p
 \label{sec:syscalls}
 
 Les operations typiques effectuées sur des \textit{sockets} sont \textit{recv}, \textit{recvfrom}, \textit{send} et \textit{sendto}. Bien qu'il n'y ait rien
-de mal avec ces implémentations, les auteurs de \cite{that_awesome_paper}
+de mal avec ces implémentations, l'usage des \textit{syscalls} \textit{sendmmsg} et \textit{recvmmsg} sont suggerés comme amélioration disponible\cite{that_awesome_paper}
+de ces fonctions de base. Dans notre implémentation, l'usage de \textit{recvmmsg} est particulièrement intéressant car il permet de recevoir plus d'un paquet à la fois
+rendant possible la réception d'une fenètre complète en un \textit{syscalls} au lieu de $31$ avec \textit{recvfrom}/\textit{recv}. De plus, \textit{recvmmsg} permet
+de lire l'adresse IP et le port du client afin d'effectuer une recherche dans la table de hachage. Et \textit{sendmmsg} permet d'envoyer un seul \textit{ACK} pour
+une série de paquets reçus mais également pour chaque paquet hors de séquence ou corrompu. Ce qui diminue à nouveau le nombre de \textit{syscalls} effectués.
+
+Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque 
+ce nombre augmente. De même, lorsque le nombre de client augmente, l'efficacité de ce système diminue pour faire l'aquisition d'une fenètre complète. 
+Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} reste constant. C'est donc purement l'avantage du point de vue de 
+l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}.
 
 \subsection{\textit{Buffers} - implémentation de la window}
 \label{sec:syscalls}

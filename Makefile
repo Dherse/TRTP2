@@ -69,7 +69,7 @@ test: FLAGS += $(DEBUG_FLAGS)
 test: build
 test: LDFLAGS += -lcunit 
 test: $(TEST_OBJECTS)
-	$(GCC) $(FLAGS) $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
+	$(GCC) $(FLAGS) ./lib/Crc32.o $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
 	$(BIN_DIR)/$(TEST)
 
 # build individual files
@@ -91,6 +91,9 @@ stat:
 
 # Read tectonic github repo for dependencies
 install_tectonic:
+	@echo 'Installing dependencies'
+	sudo apt-get install libfontconfig1-dev libgraphite2-dev libharfbuzz-dev libicu-dev libssl-dev zlib1g-dev
+	@echo 'Installing tectonic'
 	cargo install tectonic
 
 # Build the report using tectonic

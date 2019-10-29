@@ -201,7 +201,7 @@ void test_global() {
     CU_ASSERT(received.timestamp == 69420);
     CU_ASSERT(received.truncated == false);
     CU_ASSERT(received.length == 0);
-    CU_ASSERT(received.window == 1);
+    CU_ASSERT(received.window == 31);
 
 
 

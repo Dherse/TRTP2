@@ -39,10 +39,18 @@ inline __attribute__((always_inline)) void rx_run_once(
         client_t *contained = NULL;
         node = NULL;
         for(i = 0; i < retval; i++) {
-            if (contained != NULL && ip_equals(
+            /**
+             * Compares the previous IP address & port to the current
+             * to check if it's the same client or another one.
+             * 
+             * Allows grouping of multiple packet in a single stream
+             * node without having to go through the hash table and
+             * the associated mutex.
+             */
+            if (i > 0 && contained != NULL && ip_equals(
                 addrs[i].sin6_addr.__in6_u.__u6_addr8, 
-                contained->address->sin6_addr.__in6_u.__u6_addr8) && 
-                contained->address->sin6_port == addrs[i].sin6_port
+                addrs[i - 1].sin6_addr.__in6_u.__u6_addr8) && 
+                addrs[i - 1].sin6_port == addrs[i].sin6_port
             ) {
             } else {
                 if (node != NULL) {
