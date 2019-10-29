@@ -26,6 +26,7 @@ inline __attribute__((always_inline)) void rx_run_once(
     tmo.tv_nsec = 1000*1000;
 
     int retval = recvmmsg(rcv_cfg->sockfd, msgs, window_size, 0, &tmo); //MSG_WAITFORONE
+    
     if (retval == -1) {
         switch(errno) {
             case EAGAIN:
