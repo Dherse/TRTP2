@@ -140,6 +140,7 @@ debug: build
 tcpdump:
 	sudo tcpdump -s 0 -i enp9s0 udp port 64536 -w ./bin/udpdump.pcap
 
-archive:
+archive: clean
+archive: report
 	$(RM) -f $(ARCHIVE)
 	zip -r $(ARCHIVE) ./*

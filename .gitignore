@@ -58,3 +58,6 @@ bin/*
 
 # crc32 stuff
 lib/Crc32Test
+
+# Report
+*.pdf

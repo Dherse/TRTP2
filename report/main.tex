@@ -27,6 +27,7 @@
 \usepackage{amsmath}
 \usepackage{fancyhdr}
 \usepackage{caption}
+\usepackage{nicefrac}
 
 \usepackage[scaled]{helvet}
 \renewcommand\familydefault{\sfdefault} 
@@ -56,7 +57,7 @@ filecolor=green,
 \newcommand*{\thead}[1]{\multicolumn{1}{c}{\bfseries #1}}
 
 \setlength{\parindent}{1em}
-\setlength{\parskip}{1em}
+\setlength{\parskip}{0.2em}
 
 \begin{document}
 
@@ -82,6 +83,10 @@ utilisés.
 \newpage
 
 \subfile{sections/architecture}
+\newpage
+
+\subfile{sections/performances}
+\newpage
 
 \bibliographystyle{unsrt}
 \bibliography{project}

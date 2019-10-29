@@ -224,7 +224,7 @@ inline __attribute__((always_inline)) void hd_run_once(
                 cnt++;
                 i++;
             }
-        } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= MAX_WINDOW_SIZE);
+        } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= MAX_WINDOW_SIZE && !remove);
 
         if (cnt > 0) {
             int result = fwrite(
