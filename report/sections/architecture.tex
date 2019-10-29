@@ -28,7 +28,7 @@ lors de l'ajout d'éléments afin d'augmenter les performances et de diminuer la
 
 Le but de cette table de hachage ou \textit{hash table} est de stocké la liste des clients concourants et de pouvoir rapidement identifié les nouvelles
 connexions. Elle stocke une structure \textit{client\_t} qui contient les données relatives à une connexion telle que l'adresse IP, le port et l'état
-de la fenêtre de réception. Cette table est partagée entre toutes les \textit{receivers} et est correctement protégée par un \textit{mutex}.
+de la fenêtre de réception. Cette table est partagée entre tous les \textit{receivers} et est correctement protégée par un \textit{mutex}.
 
 La table de hachage donne un énorme avantage par rapport aux autres implémentations car elle est, en moyenne, en complexité temporelle $\mathcal{O}(1)$
 sans requérir l'usage d'un \textit{socket} par connexion qui pourrait causer problème pour un très grand nombre de connexion concourantes\footnote{
