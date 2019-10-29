@@ -47,7 +47,7 @@ que notre implémentation pourrait en traiter $1024 - N$\footnote{ $ulimit_{typi
 \newpage
 
 \subsection{\textit{Streams} - queue de communication}
-\label{sec:syscalls}
+\label{sec:steams}
 
 Comme mentionné ci-dessus, la communication entre les différents \textit{threads} est assurée par des queues de communications que nous appelons \textit{streams}.
 Il s'agit de liste chaînées d'éléments de types \textit{s\_node\_t}. Elle utilise des opérations atomiques pour l'insertion ce qui permet
@@ -73,7 +73,7 @@ Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls}
 l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}.
 
 \subsection{\textit{Buffers} - implémentation de la window}
-\label{sec:syscalls}
+\label{sec:buffer}
 
 \subsection{\textit{Receiver} thread}
 \label{sec:receiver}

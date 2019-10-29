@@ -28,6 +28,10 @@
 \usepackage{fancyhdr}
 \usepackage{caption}
 
+\usepackage[scaled]{helvet}
+\renewcommand\familydefault{\sfdefault} 
+\usepackage{fontspec}
+
 \pagestyle{fancy}
 \fancyhead[L]{\includegraphics[scale=0.05]{assets/ucl.jpg}}
 \fancyhead[R]{\includegraphics[scale=0.15]{assets/epl.jpg}}
@@ -47,10 +51,12 @@ linkcolor=black,
 urlcolor=blue,
 filecolor=green,
 }
-\setlength\parindent{0pt}
 
 \newcommand*\mean[1]{\overline{#1}}
 \newcommand*{\thead}[1]{\multicolumn{1}{c}{\bfseries #1}}
+
+\setlength{\parindent}{1em}
+\setlength{\parskip}{1em}
 
 \begin{document}
 
@@ -60,7 +66,7 @@ filecolor=green,
 \section{Abstract}
 
 Nous avons conçus une implémentation du receveur TRTP multithreadé capable de saturer une connexion 1 GbE et d'utiliser en grande partie une connexion 10 GbE.
-Dans nos tests, la vitesse de transfer maximale observée était de 800 MiB/s\footnote{\hyperref[sec:performance]{cfr. section sur les performances}}. Et celle-ci
+Dans nos tests, la vitesse de transfer maximale observée était de 700 MiB/s\footnote{\hyperref[sec:performance]{cfr. section sur les performances}}. Et celle-ci
 n'était limitée non pas par notre implémentation mais notre capacité à générer les paquets assez rapidement. Ces performances sont possibles grâce à l'usage de 
 \textit{\hyperref[sec:syscalls]{syscall avancé}}, d'opération \textit{\hyperref[sec:atomics]{atomiques}} et l'usage de multiple \textit{\hyperref[sec:pipelines]{pipelines}} traitant
 l'information en parallèle tout en restant \textit{thread safe} et libre de toute fuite mémoire. De plus notre implémentation est accompagnée d'une suite
