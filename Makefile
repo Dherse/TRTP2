@@ -51,7 +51,7 @@ all: clean build
 # build
 build: $(OBJECTS)
 	cd lib && make all
-	$(GCC) $(FLAGS) $(LDFLAGS) ./lib/Crc32.o $(OBJECTS) -o $(OUT)
+	$(GCC) $(FLAGS) ./lib/Crc32.o $(OBJECTS) -o $(OUT) $(LDFLAGS)
 
 test_build: FLAGS += $(DEBUG_FLAGS)
 test_build: build
@@ -62,7 +62,7 @@ release: build
 
 # run
 run:
-	$(OUT) -o $(BIN_DIR)/%d -n 4 -N 4 -w 31 :: 64536
+	$(OUT) -o $(BIN_DIR)/%d -n 1 -N 1 -w 31 :: 64536
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)

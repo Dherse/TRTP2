@@ -439,7 +439,7 @@ int parse_streams_file(config_rcv_t *config) {
         while (receiver_chunk != NULL) {
             if (str2int(&associated_receivers[r++], receiver_chunk, 10)) {
                 fclose(file);
-                fprintf(stderr, "[CLI] Failed to parse number: %d (in streams.cfg)\n", receiver_chunk);
+                fprintf(stderr, "[CLI] Failed to parse number: %s (in streams.cfg)\n", receiver_chunk);
                 return -1;
             }
 
@@ -465,7 +465,7 @@ int parse_streams_file(config_rcv_t *config) {
         while (handler_chunk != NULL) {
             if (str2int(&associated_handlers[h++], handler_chunk, 10)) {
                 fclose(file);
-                fprintf(stderr, "[CLI] Failed to parse number: %d (in streams.cfg)\n", handler_chunk);
+                fprintf(stderr, "[CLI] Failed to parse number: %s (in streams.cfg)\n", handler_chunk);
                 return -1;
             }
 
