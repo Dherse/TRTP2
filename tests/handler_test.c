@@ -8,10 +8,10 @@ void test_global() {
     int whatever_that_is = 28;
 
     struct sockaddr_in6 address;
-    address.sin6_addr.__in6_u.__u6_addr32[0] = 1;
     address.sin6_addr.__in6_u.__u6_addr32[0] = 0;
-    address.sin6_addr.__in6_u.__u6_addr32[0] = 0;
-    address.sin6_addr.__in6_u.__u6_addr32[0] = 0;
+    address.sin6_addr.__in6_u.__u6_addr32[1] = 0;
+    address.sin6_addr.__in6_u.__u6_addr32[2] = 0;
+    address.sin6_addr.__in6_u.__u6_addr32[3] = 0;
     address.sin6_family = AF_INET6;
     address.sin6_port = 5556;
 
@@ -273,7 +273,7 @@ void test_global() {
 }
 
 int add_global_tests() {
-    CU_pSuite pSuite = CU_add_suite("buffer_test_suite", 0, 0);
+    CU_pSuite pSuite = CU_add_suite("handler_test_suite", 0, 0);
 
     if (NULL == pSuite) {
         CU_cleanup_registry();
