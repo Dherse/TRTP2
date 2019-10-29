@@ -15,7 +15,7 @@
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "preLaunchTask": "build debug",
+            "preLaunchTask": "test_build",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
@@ -28,14 +28,14 @@
             "name": "(gdb) Launch (receiver)",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/bin/trtp_receiver",
+            "program": "${workspaceFolder}/receiver",
             "args": [ "::", "5555", "-o", "./bin/out_%d.txt", "-n", "4" ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
             "externalConsole": false,
             "MIMode": "gdb",
-            "preLaunchTask": "build debug",
+            "preLaunchTask": "test_build",
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",

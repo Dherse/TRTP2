@@ -6,6 +6,7 @@
 #include "./headers/ht_test.h"
 #include "./headers/stream_test.h"
 #include "./headers/handler_test.h"
+#include "./headers/receiver_test.h"
 
 /*#include "handler_test.c"
 #include "receiver_test.c"*/
@@ -29,9 +30,9 @@ int main() {
 
     add_global_tests();
 
-    /*add_handler_tests();
+    /*add_handler_tests();*/
 
-    add_receiver_tests();*/
+    add_receiver_test();
 
     CU_basic_run_tests();
 

@@ -155,7 +155,9 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
     }
     
     pthread_mutex_unlock(&stream->lock);
-
+    if (head) {
+        head->next = NULL;
+    }
     return head;
 
 }

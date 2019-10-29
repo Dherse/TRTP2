@@ -54,8 +54,11 @@ build: $(OBJECTS)
 	$(GCC) $(FLAGS) ./lib/Crc32.o $(OBJECTS) -o $(OUT) $(LDFLAGS)
 
 test_build: FLAGS += $(DEBUG_FLAGS)
+test_build: LDFLAGS += -lcunit 
 test_build: build
-
+test_build: $(TEST_OBJECTS)
+	$(GCC) $(FLAGS) ./lib/Crc32.o $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
+	
 # release build
 release: FLAGS += $(RELEASE_FLAGS)
 release: build
@@ -66,10 +69,8 @@ run:
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
-test: build
 test: LDFLAGS += -lcunit 
-test: $(TEST_OBJECTS)
-	$(GCC) $(FLAGS) ./lib/Crc32.o $(ALL) $(TEST_MAIN) -o $(BIN_DIR)/$(TEST) $(LDFLAGS)
+test: test_build
 	$(BIN_DIR)/$(TEST)
 
 # build individual files
