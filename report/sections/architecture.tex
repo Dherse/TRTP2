@@ -40,18 +40,44 @@ l'adresse IP est comparée en plus du port afin de garantir l'unicité de chaque
 la fonction \textit{memcmp} afin d'en augmenter les performances\footnote{ \textit{memcmp} utilise SSE 4.2 comme observé dans le \textit{\hyperref[sec:annexs_call_graph]{call graph}}.}.
 Ce qui veut donc dire qu'un maximum théorique de $65536$ connexions concourantes sans collisions peuvent être traité. En pratique ce nombre
 est plus petit. De plus, avec une implémentation utilisant un \textit{socket} par client, la limite typique sur une machine linux serait
-d'environ $1024$\footnote{ Valeur typique de la limite sur le nombre de \textit{file descriptors} autorisés par processus.} connexions. Alors
-que notre implémentation pourrait en théorie traiter des millions de connexions concourantes.
+d'environ $511$\footnote{ $\frac{1}{2} \cdot ulimit_{typique} - 1$ où $ulimit_{typique}$ est la valeur typique du nombre maximal de \textit{file descriptor} par processur,
+ le $\frac{1}{2}$ est dû au socket a à l'ouverture de fichier et le $1$ fait référence au socket global. } connexions. Alors
+que notre implémentation pourrait en traiter $1024 - N$\footnote{ $ulimit_{typique} - N$ où $N$ est le nombre de \textit{stream}.} sans modification de la limite sur le nombre de \textit{file descriptor}.
+
+\newpage
+
+\subsection{\textit{Streams} - queue de communication}
+\label{sec:syscalls}
+
+Comme mentionné ci-dessus, la communication entre les différents \textit{threads} est assurée par des queues de communications que nous appelons \textit{streams}.
+Il s'agit de liste chaînées d'éléments de types \textit{s\_node\_t}. Elle utilise des opérations atomiques pour l'insertion ce qui permet
+à l'opération \textit{enqueue} de ne bloquer que très rarement en faisant du \textit{busy waiting} au lieu d'employer des \textit{mutexes}. Cela permet
+au \textit{receiver} de ne jamais attendre pour insérer dans le stream. En revanche l'opération \textit{dequeue} est protégée par un \textit{mutex} et
+emploie une variable de condition\footnote{ Permet de déverouiller un \textit{mutex} en attendant d'être notifié. Un autre \textit{thread} peut ensuite notifier
+la condition et le \textit{mutex} sera automatiquement verouillé. Il est intéressant de noter que la documentation mentionne qu'il est autorisé
+de notifier une variable conditionelle sans posséder le \textit{mutex} ce qui permet de maintenir le \textit{dequeue} sans verrou. } pour attendre la dispobilité de nouveaux éléments.
 
 \subsection{\textit{Syscalls} avancés}
-\label{sec:pipelines}
+\label{sec:syscalls}
 
-\subsection{Receiver thread}
+Les operations typiques effectuées sur des \textit{sockets} sont \textit{recv}, \textit{recvfrom}, \textit{send} et \textit{sendto}. Bien qu'il n'y ait rien
+de mal avec ces implémentations, les auteurs de \cite{that_awesome_paper}
+
+\subsection{\textit{Buffers} - implémentation de la window}
+\label{sec:syscalls}
+
+\subsection{\textit{Receiver} thread}
 \label{sec:receiver}
 
 Le \textit{receiver} thread est responsable pour la réception des paquets, identifier l'émetteur du paquet au travers de la table de hachage
 et de les transmettre au travers du \textit{stream} aux \textit{handlers}. Elle s'occupe également d'identifier les nouveaux clients et 
 des les ajouter à la table. 
+
+\subsection{\textit{Handler} thread}
+\label{sec:handler}
+
+\subsection{Multiple \textit{Pipelines}}
+\label{sec:pipelines}
 
 
 

@@ -1,5 +1,6 @@
 \documentclass[8pt]{article}
 
+\usepackage[perpage]{footmisc}
 \usepackage[utf8]{inputenc}
 \usepackage{natbib}
 
@@ -35,6 +36,8 @@
 \fancyfoot[R]{\thepage}
 \definecolor{mygreen}{RGB}{28,172,0} % color values Red, Green, Blue
 \definecolor{mylilas}{RGB}{170,55,241}
+
+\renewcommand*{\thefootnote}{(\arabic{footnote})}
 
 
 \usepackage{hyperref}
@@ -74,6 +77,8 @@ utilisés.
 
 \subfile{sections/architecture}
 
+\bibliographystyle{unsrt}
+\bibliography{project}
 
 
 \end{document}
