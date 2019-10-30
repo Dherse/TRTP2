@@ -72,9 +72,12 @@
 /**
  * Defines boolean semantic for ease of use
  */
-#define true 1
+#define true -1
 #define false 0
 typedef int bool;
+
+/** Minimum size of a packet (in bytes) */
+#define MIN_PACKET_SIZE 11
 
 /** Maximum size of a packet (in bytes) */
 #define MAX_PACKET_SIZE  528

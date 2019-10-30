@@ -490,7 +490,7 @@ int parse_streams_file(config_rcv_t *config) {
     config->stream_count = i;
 
     if (i <= 0) {
-            fclose(file);
+        fclose(file);
         LOG("CLI", "At least one stream must be defined\n");
         return -1;
     }
@@ -511,6 +511,7 @@ int parse_streams_file(config_rcv_t *config) {
         }
     }
 
+    fclose(file);
     return 0;
 }
 

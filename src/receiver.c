@@ -25,14 +25,17 @@ inline __attribute__((always_inline)) void rx_run_once(
     tmo.tv_sec = 0;
     tmo.tv_nsec = 1000*1000;
 
-    int retval = recvmmsg(rcv_cfg->sockfd, msgs, window_size, MSG_WAITFORONE, &tmo); //MSG_WAITFORONE
+    int retval = recvmmsg(rcv_cfg->sockfd, msgs, window_size, MSG_WAITFORONE, &tmo);
     
     if (retval == -1) {
         switch(errno) {
             case EAGAIN:
                 break;
+            case EINTR:
+                TRACE("recvmmsg was interrupted\n");
+                break;
             default :
-                LOG("RX", "recvmmsg failed. (errno = %d)\n", errno);
+                LOG("RX][ERROR]", "recvmmsg failed. (errno = %d)\n", errno);
                 perror("rcvmmsg");
                 break;
         }
@@ -48,7 +51,7 @@ inline __attribute__((always_inline)) void rx_run_once(
              * node without having to go through the hash table and
              * the associated mutex.
              */
-            if (i > 0 && contained != NULL && ip_equals(
+            if (i > 0 && i < MAX_WINDOW_SIZE && contained != NULL && ip_equals(
                 addrs[i].sin6_addr.__in6_u.__u6_addr8, 
                 addrs[i - 1].sin6_addr.__in6_u.__u6_addr8) && 
                 addrs[i - 1].sin6_port == addrs[i].sin6_port
@@ -60,6 +63,18 @@ inline __attribute__((always_inline)) void rx_run_once(
 
                 contained = ht_get(rcv_cfg->clients, addrs[i].sin6_port, addrs[i].sin6_addr.__in6_u.__u6_addr8);
                 if (!contained) {
+                    /** Checks if there's any room available */
+                    if (rcv_cfg->clients->length >= rcv_cfg->max_clients) {
+                        #ifdef DEBUG
+                            char ip_as_str[46];
+                            ip_to_string(&addrs[i], ip_as_str);
+                            TRACE("Too many clients connected, refusing [%s]:%u\n", ip_as_str, ntohs(addrs[i].sin6_port));
+                        #endif
+
+                        /** If there's no room available we ignore the packet */
+                        continue;
+                    }
+
                     /** add new client in `clients` */
                     contained = (client_t *) calloc(1, sizeof(client_t));
                     if(contained == NULL) {
@@ -84,8 +99,6 @@ inline __attribute__((always_inline)) void rx_run_once(
                     
                     ht_put(rcv_cfg->clients, addrs[i].sin6_port, addrs[i].sin6_addr.__in6_u.__u6_addr8, (void *) contained);
 
-                    //pl_add(&poll_list, contained);
-
                     LOG("RX", "New client #%d at [%s]:%u\n", contained->id, contained->ip_as_string, ntohs(contained->address->sin6_port));
                 }
 
@@ -100,7 +113,7 @@ inline __attribute__((always_inline)) void rx_run_once(
 
                 req = (hd_req_t *) node->content;
                 if(req == NULL) {
-                    LOG("RX", "`content` in a node was NULL\n");
+                    TRACE("`content` in a node was NULL\n");
                     node->content = (hd_req_t *) allocate_handle_request();
                     req = (hd_req_t *) node->content;
                 }
@@ -109,9 +122,13 @@ inline __attribute__((always_inline)) void rx_run_once(
                 req->num = 0;
             }
 
-            int idx = req->num++;
-            req->lengths[idx] = msgs[i].msg_len;
-            memcpy(req->buffer[idx], buffers[i], req->lengths[idx]);
+            if (msgs[i].msg_len <= MAX_PACKET_SIZE && msgs[i].msg_len >= MIN_PACKET_SIZE) {
+                int idx = req->num++;
+                req->lengths[idx] = msgs[i].msg_len;
+                memcpy(req->buffer[idx], buffers[i], req->lengths[idx]);
+            } else {
+                TRACE("Received a packet with length: %d\n", msgs[i].msg_len);
+            }
         }
 
         stream_enqueue(rcv_cfg->tx, node, true);

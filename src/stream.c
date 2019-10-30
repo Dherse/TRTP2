@@ -31,6 +31,7 @@ int initialize_node(s_node_t *node, void *(*allocator)()) {
  * Refer to headers/stream.h
  */
 void deallocate_node(s_node_t *node) {
+    TRACE("Deallocating a stream node\n");
     if (node == NULL) {
         return;
     }
@@ -70,6 +71,7 @@ int initialize_stream(stream_t *stream) {
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
 int dealloc_stream(stream_t *stream) {
+    TRACE("Deallocating stream\n");
     if (stream == NULL) {
         return 0;
     }
@@ -156,7 +158,7 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
     
     pthread_mutex_unlock(&stream->lock);
     if (head) {
-        head->next = NULL;
+        head->next = QUEUE_POISON1;
     }
     return head;
 

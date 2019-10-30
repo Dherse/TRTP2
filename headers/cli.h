@@ -58,7 +58,7 @@ typedef struct config_receiver {
     char *format;
 
     /** Maximum number of concurrent connections */
-    uint8_t max_connections;
+    uint32_t max_connections;
 
     /** The input IP */
     struct addrinfo *addr_info;

@@ -5,34 +5,34 @@
 
 
 #define LOG_ERROR(message, id, port, ip_as_str, arg...) \
-    LOG("HANDLER][ERROR", "Error: " message " on client #%d [%s]:%u", id, ntohs(port), ip_as_str, ##arg)
+    LOG("HANDLER][ERROR", "Error on client #%d [%s]:%u: " message "\n", id, ip_as_str, ntohs(port), ##arg)
 
 
 void print_unpack_error(uint32_t id, uint16_t port, char *ip_as_str) {
     switch(errno) {
         case TYPE_IS_WRONG:
-            LOG_ERROR("Type is wrong\n", id, port, ip_as_str);
+            LOG_ERROR("Type is wrong", id, port, ip_as_str);
             break;
         case NON_DATA_TRUNCATED:
-            LOG_ERROR("Non-PData packet truncated\n", id, port, ip_as_str);
+            LOG_ERROR("Non-PData packet truncated", id, port, ip_as_str);
             break;
         case CRC_VALIDATION_FAILED:
-            LOG_ERROR("Header could not be validated\n", id, port, ip_as_str);
+            LOG_ERROR("Header could not be validated", id, port, ip_as_str);
             break;
         case PAYLOAD_VALIDATION_FAILED:
-            LOG_ERROR("Payload could not be validated\n", id, port, ip_as_str);
+            LOG_ERROR("Payload could not be validated", id, port, ip_as_str);
             break;
         case PACKET_TOO_SHORT:
-            LOG_ERROR("Packet has incorrect size (too short)\n", id, port, ip_as_str);
+            LOG_ERROR("Packet has incorrect size (too short)", id, port, ip_as_str);
             break;
         case PACKET_TOO_LONG:
-            LOG_ERROR("Packet has incorrect size (too long)\n", id, port, ip_as_str);
+            LOG_ERROR("Packet has incorrect size (too long)", id, port, ip_as_str);
             break;
         case PAYLOAD_TOO_LONG:
-            LOG_ERROR("Payload has incorrect size (too long)\n", id, port, ip_as_str);
+            LOG_ERROR("Payload has incorrect size (too long)", id, port, ip_as_str);
             break;
         default:
-            LOG_ERROR("Unknown packet error on client #%d [%s]:%u\n", id, port, ip_as_str);
+            LOG_ERROR("Unknown packet error (errno = %d)", id, port, ip_as_str, errno);
             break;
     }
 }
@@ -78,7 +78,8 @@ inline __attribute__((always_inline)) void hd_run_once(
 
     hd_req_t *req = (hd_req_t *) node_rx->content;
     if (req != NULL) {
-        if (req->stop) {
+        if (req->stop == true) {
+            LOG("HD", "Received STOP (%d)\n", cfg->id);
             free(*decoded);
             deallocate_node(node_rx);
             
@@ -306,6 +307,8 @@ inline __attribute__((always_inline)) void hd_run_once(
         }
 
         enqueue_or_free(cfg->tx, node_rx);
+    } else {
+        free(node_rx);
     }
 }
 
@@ -380,7 +383,7 @@ void *handle_thread(void *config) {
 
 /**
  * Refer to headers/receiver.h
- */
+ */ 
 s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)()) {
     s_node_t *node = stream_pop(stream, false);
 
@@ -398,10 +401,9 @@ s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)()) {
  * Refer to headers/handler.h
  */
 inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
-    if (!stream_enqueue(stream, node, false)) {
-        //TODO : replace with getter
-        free(node->content);
-        free(node);
+    if (stream_enqueue(stream, node, false) == false) {
+        TRACE("Failed to enqueue, freeing\n");
+        deallocate_node(node);
     }
 }
 

@@ -791,6 +791,11 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        if (decoded != NULL) {
+            dealloc_packet(*decoded);
+            free(decoded);
+        }
+
     } else {
         while (true) {
             pthread_mutex_lock(&stop_mutex);
