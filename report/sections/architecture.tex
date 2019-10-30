@@ -5,7 +5,7 @@
 \section{Architecture}
 \label{sec:architecture}
 
-Dés le début du projet, le but fixé était de réaliser une implémentation multithreadé afin de maximiser les performances. Bien que l'architecture 
+Dès le début du projet, le but fixé était de réaliser une implémentation multithreadée afin de maximiser les performances. Bien que l'architecture 
  originellement conçue était très naïve, elle s'est avérée être un bon point de départ pour ce qu'est notre architecture finale. Celle-ci est flexible
 fonctionnant autant en mode \hyperref[sec:sequential]{\textit{séquentiel}}, c'est à dire sur un unique thread, que sur beaucoup de thread séparés. De plus, le fonctionnement parallèle
 est amélioré par la présence de deux fichiers de configurations permettant d'optimiser d'avantage l'exécution sans devoir changer le code source.
@@ -15,7 +15,7 @@ n'est pas un protocole qui garantit l'ordre d'arrivée des paquets. Notre progra
 de thread pour traiter les données et envoyer les paquets de (N)ACK. Ce premier type sera appellé \textit{receiver} tandis que le deuxième sera appellé \textit{handler}.
 
 Chacun de ces threads a ensuite été amélioré par l'usage de \textit{sycalls} avancés permettant de drastiquement diminuer non seulement le nombre de \textit{syscalls}
-exécutés mais également le nombre de paquets de types ACK que le receveur doit émettre. Ceci sera expliquer dans plus de détails dans les sections
+exécutés mais également le nombre de paquets de types ACK que le receveur doit émettre. Ceci sera expliqué dans plus de détails dans les sections
 qui suivent.
 
 Ces threads communiquent entre eux à l'aide de deux queues de communication. La première sert à envoyer les paquets depuis le \textit{receiver} au \textit{handler}
@@ -26,7 +26,7 @@ lors de l'ajout d'éléments afin d'augmenter les performances et de diminuer la
 \subsection{Table de hachage type \textit{linear probing}}
 \label{sec:hash_table}
 
-Le but de cette table de hachage ou \textit{hash table} est de stocké la liste des clients concourants et de pouvoir rapidement identifié les nouvelles
+Le but de cette table de hachage ou \textit{hash table} est de stocker la liste des clients concourants et de pouvoir rapidement identifier les nouvelles
 connexions. Elle stocke une structure \textit{client\_t} qui contient les données relatives à une connexion telle que l'adresse IP, le port et l'état
 de la fenêtre de réception. Cette table est partagée entre tous les \textit{receivers} et est correctement protégée par un \textit{mutex}.
 
@@ -34,44 +34,44 @@ La table de hachage donne un énorme avantage par rapport aux autres implémenta
 sans requérir l'usage d'un \textit{socket} par connexion qui pourrait causer problème pour un très grand nombre de connexion concourantes\footnote{
     Le nombre de \textit{file descriptor} maximum autorisé par le système d'exploitation pourrait être atteint.}.
 
-Afin de simplifier l'implémentation de celle-ci, notre table de hachage n'utilise par l'adresse IP du client mais uniquement le port de celui-ci comme
-clé. Cela rend le calcul de l'index très simple : $Port \% M$ où $M$ est la capacité de la table de hachage. Ensuite, lors du \textit{linear probing},
+Afin de simplifier l'implémentation de celle-ci, notre table de hachage n'utilise pas l'adresse IP du client mais uniquement le port de celui-ci comme
+clé. Cela rend le calcul de l'index très simple : $Port \% M$ où $M$ est la capacité de la table de hachage. Ensuite, lors du \textit{linear probing}, %TODO : FAUX !!! c'est M-1 parce que l'index commence à 0
 l'adresse IP est comparée en plus du port afin de garantir l'unicité de chaque client. De plus cette comparaison est expressément faite avec
 la fonction \textit{memcmp} afin d'en augmenter les performances\footnote{ \textit{memcmp} utilise SSE 4.2 comme observé dans le \textit{\hyperref[sec:annexes_call_graph]{call graph}}.}.
 Ce qui veut donc dire qu'un maximum théorique de $65536$ connexions concourantes sans collisions peuvent être traité. En pratique ce nombre
 est plus petit. De plus, avec une implémentation utilisant un \textit{socket} par client, la limite typique sur une machine linux serait
 d'environ $511$\footnote{ $\frac{1}{2} \cdot (ulimit_{typique} - 1)$ où $ulimit_{typique}$ est la valeur typique du nombre maximal de \textit{file descriptor} par processur,
- le $\frac{1}{2}$ est dû au socket a à l'ouverture de fichier et le $1$ fait référence au socket global. } connexions. Alors
+ le $\frac{1}{2}$ est dû au socket à l'ouverture de fichier et le $1$ fait référence au socket global. } connexions. Alors
 que notre implémentation pourrait en traiter $1024 - N$\footnote{ $ulimit_{typique} - N$ où $N$ est le nombre de \textit{pipelines}.} soit plus du double pour
 un nombre résonnable de \textit{pipelines}.
 
 \newpage
 
-\subsection{\textit{Streams} - queue de communication}
+\subsection{\textit{Streams} - queue de communication} %%TODO : queue en francais c'est moche => file ? channel ?, autre ?
 \label{sec:steams}
 
 Comme mentionné ci-dessus, la communication entre les différents \textit{threads} est assurée par des queues de communications appelés \textit{streams}.
-Il s'agit de liste chaînées d'éléments de types \textit{s\_node\_t}. Elle utilise des opérations atomiques pour l'insertion ce qui permet
-à l'opération \textit{enqueue} de ne bloquer que très rarement en faisant du \textit{busy waiting} au lieu d'employer des \textit{mutexes}. Cela permet
+Il s'agit de liste chaînées d'éléments de types \textit{s\_node\_t}. Elles utilisent des opérations atomiques pour l'insertion ce qui permet
+à l'opération \textit{enqueue} de ne bloquer que très rarement en faisant du \textit{busy waiting} au lieu d'employer des \textit{mutexes}. Cela permet %%TODO : mutexes est peut etre le pluriel en Anglais mais en francais c'est moche
 au \textit{receiver} de ne jamais attendre pour insérer dans le stream. En revanche l'opération \textit{dequeue} est protégée par un \textit{mutex} et
-emploie une variable de condition\footnote{ Permet de déverouiller un \textit{mutex} en attendant d'être notifié. Un autre \textit{thread} peut ensuite notifier
-la condition et le \textit{mutex} sera automatiquement verouillé. Il est intéressant de noter que la documentation mentionne qu'il est autorisé
+emploie une variable de condition\footnote{ Permet de déverouiller un \textit{mutex} en attendant d'être notifié. Un autre \textit{thread} peut ensuite notifier %%TODO : conditionnal variable = variable conditionnelle; ta traduction là c'est moche
+la condition et le \textit{mutex} sera automatiquement verouillé. Il est intéressant de noter que la documentation mentionne qu'il est autorisé %%TODO : tu as pas inversé déverrouiller et verrouillé ?
 de notifier une variable conditionelle sans posséder le \textit{mutex} ce qui permet de maintenir le \textit{dequeue} sans verrou. } pour attendre la dispobilité de nouveaux éléments.
 
 \subsection{\textit{Syscalls} avancés - \textit{recvmmsg} \& \textit{sendmmsg}}
 \label{sec:syscalls}
 
 Les operations typiques effectuées sur des \textit{sockets} sont \textit{recv}, \textit{recvfrom}, \textit{send} et \textit{sendto}. Bien qu'il n'y ait rien
-de mal avec ces implémentations, l'usage des \textit{syscalls} \textit{sendmmsg} et \textit{recvmmsg} sont suggerés comme amélioration disponible\cite{that_awesome_paper}
+de mal avec ces implémentations, l'usage des \textit{syscalls} \textit{sendmmsg} et \textit{recvmmsg} sont suggerés comme amélioration disponible\cite{that_awesome_paper} %% TODO : disponible fait de trop 
 de ces fonctions de base. Dans notre implémentation, l'usage de \textit{recvmmsg} est particulièrement intéressant car il permet de recevoir plus d'un paquet à la fois
 rendant possible la réception d'une fenètre complète en un \textit{syscalls} au lieu de $31$ avec \textit{recvfrom}/\textit{recv}. De plus, \textit{recvmmsg} permet
 de lire l'adresse IP et le port du client afin d'effectuer une recherche dans la table de hachage. Et \textit{sendmmsg} permet d'envoyer un seul \textit{ACK} pour
 une série de paquets reçus mais également pour chaque paquet hors de séquence ou corrompu. Ce qui diminue à nouveau le nombre de \textit{syscalls} effectués.
 
-Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque 
+Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque  %%TODO : expliquer qu'avec une augmentation de clients , les collisions augmentent et donc le nombre d'ACK aussi
 ce nombre augmente. De même, lorsque le nombre de client augmente, l'efficacité de ce système diminue pour faire l'aquisition d'une fenètre complète. 
-Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} reste constant. C'est donc purement l'avantage du point de vue de 
-l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}.
+Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} reste constant. C'est donc purement l'avantage du point de vue de
+l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}. %%TODO : cette phrase est très bizarrement construite.
 
 \subsection{\textit{Buffers} - implémentation de la window}
 \label{sec:buffer}
@@ -80,18 +80,18 @@ Cette structure consiste d'un simple tableau acompagné de quelques informations
 Il est facile de repérer que la fenètre de réception ayant une taille maximale de $31$ elle peut elle même être vue comme une ``table de hachage'' dans le
 sens ou il est possible de prendre les 5 \textit{LSBs}\footnote{ Dans \textit{tests/buffer\_test.c} se trouve un test testant toutes les fenètres possibles.} 
 du \textit{seqnum} pour obtenir l'index d'un \textit{sequence number} dans un array de taille $32$. Il suffit ensuite de limiter le nombre maximal d'éléments dans la table 
-à $31$ et la fenêtre de réception est implémentée. L'avantage de cette implémentation est sa vitesse car elle est ordonnée et en temps constant tant à l'insertion
-qu'à la recherche d'un élément et les conflits sont impossibles. De plus, il suffit de regarder si un espace est occupé pour voir si le paquet reçu est un
+à $31$ et la fenêtre de réception est implémentée. L'avantage de cette implémentation est sa vitesse car elle est ordonnée et en temps constant, tant à l'insertion
+qu'à la recherche d'un élément, et les conflits sont impossibles. De plus, il suffit de regarder si un espace est occupé pour voir si le paquet reçu est un
 doublon ou pas. Cependant, le \textit{buffer} ne vérifie pas si un nombre fait partie de la fenêtre actuelle, cela veut dire que le numéro de séquence doit
-être vérifier à l'avance, ceci est fait en utilisant une \textit{LUT} (\textit{LookUp Table}), elle a l'avantage de ne pas avoir de logique la rendant simple
+être vérifié à l'avance, ceci est fait en utilisant une \textit{LUT} (\textit{LookUp Table}), elle a l'avantage de ne pas avoir de logique la rendant simple
 à comprendre et un temps de recherche constant sans branchement ou opération mathématique.
 
 \subsection{\textit{Receiver thread}}
 \label{sec:receiver}
 
-Le \textit{receiver thread} est responsable pour la réception des paquets, l'identification de l'émetteur du paquet au travers de la table de hachage
-et de les transmettre au travers du \textit{stream} aux \textit{handlers}. Elle s'occupe également d'identifier les nouveaux clients et 
-des les ajouter à la table et de les rejetter si celle-ci est pleine.
+Le \textit{receiver thread} est responsable de la réception des paquets, l'identification de l'émetteur du paquet au travers de la table de hachage
+et de les transmettre au travers du \textit{stream} aux \textit{handlers}. Il s'occupe également d'identifier les nouveaux clients et 
+des les ajouter à la table ou de les rejetter si celle-ci est pleine.
 
 De plus, le receiver fait un groupement basique des paquets par client afin d'utiliser un acquitement pour plusieurs paquets. Ceci est fait
 en itérant sur la liste de paquet retourné par \textit{recvmmsg}, tant que le client est le même, les paquets sont groupés, dés qu'un paquet
@@ -100,19 +100,19 @@ appartient à un autre client, un nouveau \textit{s\_node\_t} est utilisé et le
 \subsection{\textit{Handler thread} - génération des acquitements}
 \label{sec:handler}
 
-Le \textit{handler thread} quand à lui est responsable de prendre un paquet brut du réseau et son émmeteur et de le traiter en vérifiant tout
+Le \textit{handler thread}, quand à lui, est responsable de prendre un paquet brut du réseau et son émetteur et de le traiter en vérifiant tout %%TODO : "le traiter" fait référence à émetteur au lieu de paquet
 d'abord sa validité, c'est-à-dire s'il rentre dans la fenêtre de réception, si ses \textit{CRC32} sont valides, etc. Ensuite, si le paquet
-est invalide, un ACK est généré pour être envoyé au \textit{sender}. En revanche, si le paquet est valide, il est ajouté au \textit{buffer}
-du client. Une fois que tous les paquets dans le \textit{s\_node\_t} ont été traités, le \textit{handler} itère si possible sur la fenêtre en partant
+est invalide, un ACK est généré pour être envoyé au \textit{sender}. En revanche, si le paquet est valide, il est ajouté au \textit{buffer} %% TODO : expliquer qu'envoyer un ACK en cas de paquet non valide n'est pas prévu par le protocole mais permets d'éviter des deadlocks dans la connection
+du client. Une fois que tous les paquets dans le \textit{s\_node\_t} ont été traités, le \textit{handler} itère si possible sur la fenêtre en partant %%TODO : manque de consistance : tu utilisait le terme "window" mais maintenant tu mets fenêtre. c'est un peu bizarre
 du \textit{sequence number} le plus bas jusqu'à ce que $31$ éléments aient été traités ou jusqu'au premier élémént vide. Ces éléments sont ensuite
 écrits dans le fichier de sortie du client en passant par un \textit{buffer} intermédiaire afin de ne faire qu'un seul appel à \textit{fwrite}
-par groupe de paquets écrits. Si plus qu'un paquet peuvent être écrits, un ACK est généré pour cette list de paquets en utilisant le \textit{seqnum}
+par groupe de paquets écrits. Si plus d'un paquet peut être écrits, un ACK est généré pour cette liste de paquets en utilisant le \textit{seqnum}
 le plus haut de la fenètre. Enfin, l'index le plus bas de la fenêtre est mis à jour.
 
 
 Si le dernier paquet se trouvant dans le \textit{buffer} a une longueur de zéro, le client est marqué pour suppresion et son fichier de sortie
-fermé. Tout paquet arrivant pour ce client tant qu'il n'aura pas été supprimé causera l'envoi d'un ACK notifiant que la paquet de fin de transmission
-a correctement été reçu. Le client n'est pas immédiatement détruit afin de permettre le temps au \textit{sender} de réenvoyer ce paquet si le
+fermé. Tout paquet arrivant pour ce client tant qu'il n'aura pas été supprimé causera l'envoi d'un ACK notifiant que le paquet de fin de transmission
+a correctement été reçu. Le client n'est pas immédiatement détruit afin de permettre au \textit{sender} de réenvoyer ce paquet si le
 paquet d'acquitement avait été perdu.
 
 \subsection{Multiple \textit{Pipelines} \& \textit{Affinities} - optimisation de l'exécution}
