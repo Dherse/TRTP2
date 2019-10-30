@@ -29,6 +29,9 @@ typedef enum Errors {
     /** The length of an incoming packet is too long (corruption) */
     PACKET_TOO_LONG,
 
+    /** The length encoded in a packet is higher than 512 */
+    PACKET_INCORRECT_LENGTH,
+
     /** The packet type is wrong (i.e packet->type = IGNORE) */
     TYPE_IS_WRONG,
 

@@ -1,7 +1,7 @@
 #include "../headers/packet.h"
 
-#define CRC32H(old, value, length) crc32_16bytes_prefetch(value, length, old, 11)
-#define CRC32P(old, value, length) crc32_16bytes_prefetch(value, length, old, 512)
+#define CRC32H(old, value, length) crc32_16bytes(value, length, old)
+#define CRC32P(old, value, length) crc32_16bytes_prefetch(value, length, old, MAX_PAYLOAD_SIZE)
 
 GETSET_IMPL(packet_t, ptype_t, type);
 
@@ -102,99 +102,105 @@ int dealloc_packet(packet_t* packet) {
  * Refer to headers/packet.h
  */
 int unpack(uint8_t *packet, int length, packet_t *out) {
-    uint8_t *raw = packet;
+    uint8_t *buffer = packet;
+    int length_rest = length;
 
-    if (--length <= 0) {
+    if ((length_rest -= 1) <= 0) {
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
-    uint8_t *header = packet++;
+    uint8_t *header_pointer = buffer;
+    uint8_t header = *buffer++;
+    out->type      = (header & 0b11000000) >> 6;
+    out->truncated = (header & 0b00100000) >> 5;
+    out->window    = (header & 0b00011111);
 
-    uint8_t ttrwin = *header;
-    out->type = (ttrwin & 0b11000000) >> 6;
-    out->truncated = (ttrwin & 0b00100000) >> 5;
-    out->window = ttrwin & 0b00011111;
-
-    if (--length <= 0) {
+    if ((length_rest -= 1) <= 0) {
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
-    uint8_t size = *packet++;
-    out->long_length = (size & 0b10000000) >> 7;
-    if (out->long_length) {
-        if (--length <= 0) {
+    uint8_t size    = *buffer++;
+    uint8_t is_long = (size & 0b10000000) >> 7;
+    if (is_long) {
+        if ((length_rest -= 1) <= 0) {
             errno = PACKET_TOO_SHORT;
             return -1;
         }
 
-        out->length = (size & 0b01111111) | (*packet++ << 8);
-        out->length = ntohs(out->length);
+        out->long_length = is_long;
+        out->length = ntohs((size & 0b01111111) | (*buffer++ << 8));
     } else {
-        out->length = size & 0b01111111;
+        out->length = (size & 0b01111111);
+        out->long_length = false;
     }
 
-    if (--length <= 0) {
+    if ((length_rest -= 1) <= 0) {
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
-    out->seqnum = *packet++;
+    out->seqnum = *buffer++;
 
-    if ((length -= 4) <= 0) {
+    if ((length_rest -= 4) <= 0) {
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
-    out->timestamp = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-    out->timestamp = ntohl(out->timestamp);
+    out->timestamp = ntohl(*buffer++ | (*buffer++ << 8) | (*buffer++ << 16) | (*buffer++ << 24));
 
-    if ((length -= 4) < 0) {
+    if ((length_rest -= 4) < 0) {
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
-    out->crc1 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-    out->crc1 = ntohl(out->crc1);
+    out->crc1 = ntohl(*buffer++ | (*buffer++ << 8) | (*buffer++ << 16) | (*buffer++ << 24));
+
+    size_t len = 7 + is_long;
+    *header_pointer &= 0b11011111;
+
+    uint32_t crc = CRC32H(0, (void*) packet, len);
+    if (out->crc1 != crc) {
+        errno = CRC_VALIDATION_FAILED;
+
+        return -1;
+    }
+
+    if (length_rest == 0 && out->type == DATA && !out->truncated && out->length != 0) {
+        errno = PACKET_TOO_SHORT;
+        return -1;
+    }
+
+    if (out->length > MAX_PAYLOAD_SIZE) {
+        errno = PACKET_INCORRECT_LENGTH;
+        return -1;
+    }
 
     if (out->type == DATA && !out->truncated && out->length != 0) {
-        if ((length -= out->length) <= 0) {
+        if ((length_rest -= out->length) < 4) {
             errno = PACKET_TOO_SHORT;
             return -1;
         }
 
-        if (&out->payload != memcpy(&out->payload, packet, out->length)) {
+        if (&out->payload != memcpy(&out->payload, buffer, out->length)) {
             errno = FAILED_TO_COPY;
             return -1;
         }
 
-        packet += out->length;
+        buffer += out->length;
 
-        if ((length -= 4) < 0) {
+        if ((length_rest -= 4) < 0) {
             errno = PACKET_TOO_SHORT;
             return -1;
         }
 
-        out->crc2 = *packet++ | (*packet++ << 8) | (*packet++ << 16) | (*packet++ << 24);
-        out->crc2 = ntohl(out->crc2);
+        out->crc2 = ntohl(*buffer++ | (*buffer++ << 8) | (*buffer++ << 16) | (*buffer++ << 24));
     }
 
-    if (length > 0 && !out->truncated) {
+    if (length_rest > 0) {
+        LOG("PKT", "%d\n", length_rest);
         errno = PACKET_TOO_LONG;
-        return -1;
-    }
-
-    size_t len = 7;
-    if (out->long_length) {
-        len += 1;
-    }
-
-    *header = *header & 0b11011111;
-    uint32_t crc = CRC32H(0, (void*) raw, len);
-    if (out->crc1 != crc) {
-        errno = CRC_VALIDATION_FAILED;
-
         return -1;
     }
 

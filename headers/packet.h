@@ -2,12 +2,6 @@
 
 #define PACKET_H
 
-#ifndef true
-    #define true 1
-    #define false 0
-    typedef int bool;
-#endif
-
 #include "global.h"
 #include "errors.h"
 #include "lookup.h"
