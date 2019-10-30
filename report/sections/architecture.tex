@@ -70,9 +70,9 @@ une série de paquets reçus mais également pour chaque paquet hors de séquenc
 l'utilisation de la bande passante.
 
 Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque  
-ce nombre augmente car l'entropie des \textit{buffers} de réception augmente (les paquets sont moins groupés par clients). De même, lorsque le nombre de client augmente,
- l'efficacité de ce système diminue pour faire l'aquisition d'une fenètre complète. Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} 
- reste constant. C'est donc purement l'avantage du point de vue de l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}. 
+ce nombre augmente car l'entropie des \textit{buffers} de réception augmente (les paquets sont moins groupés par clients). De même, lorsque le nombre de client augmente, 
+l'efficacité de ce système diminue pour faire l'aquisition d'une fenètre complète. Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} 
+reste constant. C'est donc purement l'avantage du point de vue de l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}. 
 
 \subsection{\textit{Buffers} - implémentation de la window}
 \label{sec:buffer}
