@@ -77,11 +77,11 @@ ce nombre augmente car l'entropie des \textit{buffers} de réception augmente (l
 \label{sec:buffer}
 
 Cette structure consiste d'un simple tableau acompagné de quelques informations comme l'état d'utilisation d'un emplacement. Il y a une et une seule instance d'un \textit{buffer} par client.
-Il est facile de repérer que la fenètre de réception ayant une taille maximale de $31$ elle peut elle même être vue comme une ``table de hachage'' dans le
+Il est facile de repérer que la fenètre de réception ayant une taille maximale de $31$, elle peut elle même être vue comme une ``table de hachage'' dans le
 sens ou il est possible de prendre les 5 \textit{LSBs}\footnote{ Dans \textit{tests/buffer\_test.c} se trouve un test testant toutes les fenètres possibles.} 
 du \textit{seqnum} pour obtenir l'index d'un \textit{sequence number} dans un array de taille $32$. Il suffit ensuite de limiter le nombre maximal d'éléments dans la table 
 à $31$ et la fenêtre de réception est implémentée. L'avantage de cette implémentation est sa vitesse car elle est ordonnée et en temps constant, tant à l'insertion
-qu'à la recherche d'un élément, et les conflits sont impossibles. De plus, il suffit de regarder si un espace est occupé pour voir si le paquet reçu est un
+qu'à la recherche d'un élément, et les conflits sont impossibles si les paquets appartiennent à la même fenêtre. De plus, il suffit de regarder si un espace est occupé pour voir si le paquet reçu est un
 doublon ou pas. Cependant, le \textit{buffer} ne vérifie pas si un nombre fait partie de la fenêtre actuelle, cela veut dire que le numéro de séquence doit
 être vérifié à l'avance, ceci est fait en utilisant une \textit{LUT} (\textit{LookUp Table}), elle a l'avantage de ne pas avoir de logique la rendant simple
 à comprendre et un temps de recherche constant sans branchement ou opération mathématique.
@@ -102,8 +102,8 @@ appartient à un autre client, un nouveau \textit{s\_node\_t} est utilisé et le
 
 Le \textit{handler thread}, quand à lui, est responsable de prendre un paquet brut du réseau et de le traiter en vérifiant tout 
 d'abord sa validité, c'est-à-dire s'il rentre dans la fenêtre de réception, si ses \textit{CRC32} sont valides, etc. Ensuite, si le paquet
-est invalide, un ACK est généré pour être envoyé au \textit{sender}. Ce comportement n'est pas requis pourl'implémentation du protocole mais permet de prévenir certains 
-\textit{livelocks} dans l'échange si un ACK est perdu. En revanche, si le paquet est valide, il est ajouté au \textit{buffer} 
+est invalide, un ACK est généré pour être envoyé au \textit{sender}. Ce comportement n'est pas requis pour l'implémentation du protocole mais permet 
+de prévenir certains \textit{livelocks} dans l'échange si un ACK est perdu. En revanche, si le paquet est valide, il est ajouté au \textit{buffer} 
 du client.
 
 Une fois que tous les paquets dans le \textit{s\_node\_t} ont été traités, le \textit{handler} itère si possible sur la fenêtre en partant 
@@ -152,5 +152,13 @@ Le mode séquentiel est activé en utilisant l'option \textit{s} qui a été raj
 tourner notre implémentation sans le moindre \textit{thread} (en dehors de la \textit{main}). Ce mode a toujours de bonnes performances et ignore totalement 
 les fichiers de configurations et paramètres additionels. Il a été ajouté afin de respecter totalement la spécification et le conseil de ne pas utiliser de 
 threads. Cependant, ce n'est pas le mode de base.
+
+\subsection{Stratégie de tests}
+\label{sec:tests}
+
+Nous avons testé chaque librairie séparément pour nous assurer qu'elles effectuaient ce à quoi nous nous attendions et ce en l'absence de tout \textit{memory leak}.
+Grâce à çelà, programmer les fonctions plus complexes telles que \textit{handler} a été facilité puisque nous savions que nos librairies ne causaient pas de 
+problème d'elles mêmes.
+
 
 \end{document}
