@@ -66,7 +66,8 @@ de mal avec ces implémentations, l'usage des \textit{syscalls} \textit{sendmmsg
 de ces fonctions de base. Dans notre implémentation, l'usage de \textit{recvmmsg} est particulièrement intéressant car il permet de recevoir plus d'un paquet à la fois
 rendant possible la réception d'une fenètre complète en un \textit{syscalls} au lieu de $31$ avec \textit{recvfrom}/\textit{recv}. De plus, \textit{recvmmsg} permet
 de lire l'adresse IP et le port du client afin d'effectuer une recherche dans la table de hachage. Et \textit{sendmmsg} permet d'envoyer un seul \textit{ACK} pour
-une série de paquets reçus mais également pour chaque paquet hors de séquence ou corrompu. Ce qui diminue à nouveau le nombre de \textit{syscalls} effectués.
+une série de paquets reçus mais également pour chaque paquet hors de séquence ou corrompu. Ce qui diminue à nouveau le nombre de \textit{syscalls} effectués ainsi que 
+l'utilisation de la bande passante.
 
 Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque  
 ce nombre augmente car l'entropie des \textit{buffers} de réception augmente (les paquets sont moins groupés par clients). De même, lorsque le nombre de client augmente,
