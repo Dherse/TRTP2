@@ -4,31 +4,35 @@
 #include "../headers/global.h"
 
 
-void print_unpack_error(char *ip_as_str) {
+#define LOG_ERROR(message, id, port, ip_as_str, arg...) \
+    LOG("HANDLER][ERROR", "Error: " message " on client #%d [%s]:%u", id, ntohs(port), ip_as_str, ##arg)
+
+
+void print_unpack_error(uint32_t id, uint16_t port, char *ip_as_str) {
     switch(errno) {
         case TYPE_IS_WRONG:
-            fprintf(stderr, "[%s] Type is wrong\n", ip_as_str);
+            LOG_ERROR("Type is wrong\n", id, port, ip_as_str);
             break;
         case NON_DATA_TRUNCATED:
-            fprintf(stderr, "[%s] Non-PData packet truncated\n", ip_as_str);
+            LOG_ERROR("Non-PData packet truncated\n", id, port, ip_as_str);
             break;
         case CRC_VALIDATION_FAILED:
-            fprintf(stderr, "[%s] Header could not be validated\n", ip_as_str);
+            LOG_ERROR("Header could not be validated\n", id, port, ip_as_str);
             break;
         case PAYLOAD_VALIDATION_FAILED:
-            fprintf(stderr, "[%s] Payload could not be validated\n", ip_as_str);
+            LOG_ERROR("Payload could not be validated\n", id, port, ip_as_str);
             break;
         case PACKET_TOO_SHORT:
-            fprintf(stderr, "[%s] Packet has incorrect size (too short)\n", ip_as_str);
+            LOG_ERROR("Packet has incorrect size (too short)\n", id, port, ip_as_str);
             break;
         case PACKET_TOO_LONG:
-            fprintf(stderr, "[%s] Packet has incorrect size (too long)\n", ip_as_str);
+            LOG_ERROR("Packet has incorrect size (too long)\n", id, port, ip_as_str);
             break;
         case PAYLOAD_TOO_LONG:
-            fprintf(stderr, "[%s] Payload has incorrect size (too long)\n", ip_as_str);
+            LOG_ERROR("Payload has incorrect size (too long)\n", id, port, ip_as_str);
             break;
         default:
-            fprintf(stderr, "[%s] Unknown packet error\n", ip_as_str);
+            LOG_ERROR("Unknown packet error on client #%d [%s]:%u\n", id, port, ip_as_str);
             break;
     }
 }
@@ -103,11 +107,11 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                 msg[len_to_send].msg_hdr.msg_name = client->address;
                 if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                    fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                    LOG_ERROR("Failed to pack ACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                     len_to_send--;
                 }
 
-                print_unpack_error(client->ip_as_string);
+                print_unpack_error(client->id, client->address->sin6_port, client->ip_as_string);
                 
                 continue;
             }
@@ -125,7 +129,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                 msg[len_to_send].msg_hdr.msg_name = client->address;
                 if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                    fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                    LOG_ERROR("Failed to pack ACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                     len_to_send--;
                 }
             } else if ((*decoded)->type == DATA) {
@@ -140,7 +144,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                     msg[len_to_send].msg_hdr.msg_name = client->address;
                     if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                        fprintf(stderr, "[%s][%5u] Failed to pack NACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                        LOG_ERROR("Failed to pack NACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                         len_to_send--;
                     }
                 } else if (!sequences[window->window_low][(*decoded)->seqnum]) {
@@ -154,15 +158,14 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                     msg[len_to_send].msg_hdr.msg_name = client->address;
                     if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                        fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                        LOG_ERROR("Failed to pack ACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                         len_to_send--;
                     }
 
-                    fprintf(
-                        stderr, 
-                        "[%s][%5u] Received out of order: %d (low: %d)\n", 
-                        client->ip_as_string, ntohs(client->address->sin6_port),
-                        (*decoded)->seqnum, window->window_low
+                    TRACE(
+                        "Received out of order: %d (low: %d) for client #%d [%s]:%u\n", 
+                        (*decoded)->seqnum, window->window_low,
+                        client->id, client->ip_as_string, ntohs(client->address->sin6_port)
                     );
                 } else if(is_used(window, (*decoded)->seqnum)) {
                     to_send.type = ACK;
@@ -175,20 +178,19 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                     msg[len_to_send].msg_hdr.msg_name = client->address;
                     if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                        fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, ntohs(client->address->sin6_port));
+                        LOG_ERROR("Failed to pack ACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                         len_to_send--;
                     }
 
-                    fprintf(
-                        stderr, 
-                        "[%s][%5u] Received duplicate: %d (low: %d)\n", 
-                        client->ip_as_string, ntohs(client->address->sin6_port),
-                        (*decoded)->seqnum, window->window_low
+                    TRACE(
+                        "Received duplicate: %d (low: %d) for client #%d [%s]:%u\n", 
+                        (*decoded)->seqnum, window->window_low,
+                        client->id, client->ip_as_string, ntohs(client->address->sin6_port)
                     );
                 } else {
                     node_t *spot = next(window, (*decoded)->seqnum);
                     if (spot == NULL) {
-                        fprintf(stderr, "[HD] Internal error");
+                        LOG("HD", "Internal error");
                     }
 
                     packet_t *temp = (packet_t *) spot->value;
@@ -237,7 +239,7 @@ inline __attribute__((always_inline)) void hd_run_once(
             if (result != offset) {
                 fseek(client->out_file, -result, SEEK_SET);
 
-                fprintf(stderr, "[HD] Failed to write to file, won't be writing ACK to get retransmission timer\n");
+                LOG("HD", "Failed to write to file, won't be writing ACK to get retransmission timer\n");
                 enqueue_or_free(cfg->tx, node_rx);
 
                 pthread_mutex_unlock(client_get_lock(client));
@@ -271,13 +273,13 @@ inline __attribute__((always_inline)) void hd_run_once(
                     
                 bytes_to_unit(client->transferred / time, speed, &speedm);
 
-                fprintf(
-                    stderr,
-                    "[%s][%u] Done, total transferred: %.1f %s, in %.2fs., avg. speed of %.1f %s/s\n",
-                    client->ip_as_string, htons(client->address->sin6_port),
+                LOG(
+                    "HD",
+                    "Done, total transferred: %.1f %s, in %.2fs., avg. speed of %.1f %s/s for client #%d [%s]:%d\n",
                     client->transferred / sizem, size,
                     time,
-                    (client->transferred / time) / speedm, speed
+                    (client->transferred / time) / speedm, speed,
+                    client->id, client->ip_as_string, ntohs(client->address->sin6_port)
                 );
             }
             
@@ -291,7 +293,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
             msg[len_to_send].msg_hdr.msg_name = client->address;
             if (pack(packets_to_send[len_to_send++], &to_send, false)) {
-                fprintf(stderr, "[%s][%5u] Failed to pack ACK\n", client->ip_as_string, client->address->sin6_port);
+                LOG_ERROR("Failed to pack ACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                 len_to_send--;
             }
         }
@@ -299,7 +301,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
         int retval = sendmmsg(cfg->sockfd, msg, len_to_send, 0);
         if (retval == -1) {
-            fprintf(stderr, "[TX] sendmmsg failed\n ");
+            LOG("TX", "sendmmsg failed\n ");
             perror("sendmmsg()");
         }
 
@@ -322,9 +324,9 @@ void *handle_thread(void *config) {
 
         int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
         if (aff == -1) {
-            fprintf(stderr, "[HD] Failed to set affinity\n");
+            LOG("HD", "Failed to set affinity\n");
         } else {
-            fprintf(stderr, "[HD] Handler #%d running on CPU #%d\n", cfg->id, cfg->affinity->cpu);
+            LOG("HD", "Handler #%d running on CPU #%d\n", cfg->id, cfg->affinity->cpu);
         }
     }
 
@@ -353,7 +355,7 @@ void *handle_thread(void *config) {
 
     packet_t *decoded = (packet_t *) allocate_packet();
     if (decoded == NULL) {
-        fprintf(stderr, "[HD] Failed to start handle thread: alloc failed\n");
+        LOG("HD", "Failed to start handle thread: alloc failed\n");
         return NULL;
     }
 
@@ -371,7 +373,7 @@ void *handle_thread(void *config) {
         );
     }
     
-    fprintf(stderr, "[HD] Stopped\n");
+    LOG("HD", "Stopped\n");
     
     pthread_exit(0);
 }

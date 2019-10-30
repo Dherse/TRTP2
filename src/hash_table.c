@@ -168,7 +168,15 @@ client_t *ht_put(ht_t *table, uint16_t port, uint8_t *ip, client_t *item) {
  */
 client_t *ht_remove(ht_t *table, uint16_t port, uint8_t *ip) {
     client_t *del = ht_put(table, port, ip, NULL);
-    ht_resize(table, table->size);
+    if (del == NULL) {
+        errno = 0;
+        return del;
+    }
+
+    if (ht_resize(table, table->size)) {
+        return del;
+    }
+
     return del;
 }
 

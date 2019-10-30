@@ -25,14 +25,14 @@ inline __attribute__((always_inline)) void rx_run_once(
     tmo.tv_sec = 0;
     tmo.tv_nsec = 1000*1000;
 
-    int retval = recvmmsg(rcv_cfg->sockfd, msgs, window_size, 0, &tmo); //MSG_WAITFORONE
+    int retval = recvmmsg(rcv_cfg->sockfd, msgs, window_size, MSG_WAITFORONE, &tmo); //MSG_WAITFORONE
     
     if (retval == -1) {
         switch(errno) {
             case EAGAIN:
                 break;
             default :
-                fprintf(stderr, "[RX] recvmmsg failed. (errno = %d)\n", errno);
+                LOG("RX", "recvmmsg failed. (errno = %d)\n", errno);
                 perror("rcvmmsg");
                 break;
         }
@@ -65,7 +65,7 @@ inline __attribute__((always_inline)) void rx_run_once(
                     if(contained == NULL) {
                         char ip_as_str[46];
                         ip_to_string(&addrs[i], ip_as_str);
-                        fprintf(stderr, "[%s] Client allocation failed\n", ip_as_str);
+                        LOG("RX", "Client allocation failed [%s]:%u\n", ip_as_str, ntohs(addrs[i].sin6_port));
                         break;
                     }
 
@@ -78,7 +78,7 @@ inline __attribute__((always_inline)) void rx_run_once(
                     )) {
                         char ip_as_str[46];
                         ip_to_string(&addrs[i], ip_as_str);
-                        fprintf(stderr, "[%s] Client initialization failed\n", ip_as_str);
+                        LOG("RX", "Client initialization failed [%s]:%u\n", ip_as_str, ntohs(addrs[i].sin6_port));
                         continue;
                     }
                     
@@ -86,21 +86,21 @@ inline __attribute__((always_inline)) void rx_run_once(
 
                     //pl_add(&poll_list, contained);
 
-                    fprintf(stderr, "[%s][%5u] New client #%d\n", contained->ip_as_string, ntohs(contained->address->sin6_port), contained->id);
+                    LOG("RX", "New client #%d at [%s]:%u\n", contained->id, contained->ip_as_string, ntohs(contained->address->sin6_port));
                 }
 
                 node = stream_pop(rcv_cfg->rx, false);
                 if(node == NULL) {
                     node = malloc(sizeof(s_node_t));
                     if (initialize_node(node, allocate_handle_request)) {
-                        fprintf(stderr, "[RX] Failed to allocate node(errno: %d)\n", errno);
+                        LOG("RX", "Failed to allocate node(errno: %d)\n", errno);
                         break;
                     }
                 }
 
                 req = (hd_req_t *) node->content;
                 if(req == NULL) {
-                    fprintf(stderr, "[RX] `content` in a node was NULL\n");
+                    LOG("RX", "`content` in a node was NULL\n");
                     node->content = (hd_req_t *) allocate_handle_request();
                     req = (hd_req_t *) node->content;
                 }
@@ -143,9 +143,9 @@ void *receive_thread(void *receive_config) {
 
         int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
         if (aff == -1) {
-            fprintf(stderr, "[HD] Failed to set affinity\n");
+            LOG("HD", "Failed to set affinity\n");
         } else {
-            fprintf(stderr, "[HD] Receiver #%d running on CPU #%d\n", rcv_cfg->id, rcv_cfg->affinity->cpu);
+            LOG("HD", "Receiver #%d running on CPU #%d\n", rcv_cfg->id, rcv_cfg->affinity->cpu);
         }
     }
 
@@ -183,7 +183,7 @@ void *receive_thread(void *receive_config) {
             iovecs
         );
     }
-    fprintf(stderr, "[RX] Stopped\n");
+    LOG("RX", "Stopped\n");
 
     pthread_exit(0);
     return NULL;
