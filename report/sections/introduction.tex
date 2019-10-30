@@ -4,8 +4,17 @@
 
 \section{Introduction}
 
-The goal of this project was to implement a receiver based on the TRTP protocol capable of handling multiple clients at the same time. To try and have a more interesting and more in depth analysis we decided to realise an optionally multithreaded version. This means it can use multiple threads if desired or run on a single one. In the first mode we can reach with limited software/hardware tinkering speeds exceeding 2Gb/s and in single threaded mode speeds exceeding 1Gb/s easily saturating a typical 1GbE card. In addition, our implementation can treat hundreds of concurrent connections with an excellent success rate of over 99\%\footnote{Note that all of the failures are due to sender unable to cope with the data rate}. This means our implementation fulfills the requirements and more by providing a high performance and reliable implementation.
+The goal of this project was to implement a receiver based on the TRTP protocol capable of handling multiple clients at the same time. 
+To try and have a more interesting and more in depth analysis we decided to realise an optionally multithreaded version. This means it 
+can use multiple threads if desired or run on a single one. In the first mode we can reach with limited software/hardware tinkering speeds 
+exceeding 2$\nicefrac{Gb}{s}$ and in single threaded mode speeds exceeding 1$\nicefrac{Gb}{s}$ easily saturating a typical 1GbE card. In 
+addition, our implementation can treat hundreds of concurrent connections with an excellent success rate of over 99\%\footnote{Note that 
+all of the failures are due to sender unable to cope with the data rate}. This means our implementation fulfills the requirements and 
+more by providing a high performance and reliable implementation.
 
-In this document the architectural decisions and the techniques employed will be explained followed by in-depth performance analysis in different conditions including stress tests and link simulation. The end goal is to understand why a multithreaded implementation is interesting and why the specifics of our implementation give great performance with reasonable CPU usage. It will also try to explain the hard limit seen at 2.1Gb/s during testing.
+In this document the architectural decisions and the techniques employed will be explained followed by in-depth performance analysis 
+in different conditions including stress tests and link simulation. The end goal is to understand why a multithreaded implementation 
+is interesting and why the specifics of our implementation give great performance with reasonable CPU usage. It will also try to explain
+ the hard limit seen at 2.1$\nicefrac{Gb}{s}$ during testing.
 
 \end{document}

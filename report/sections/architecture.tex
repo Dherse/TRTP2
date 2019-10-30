@@ -18,7 +18,7 @@ Chacun de ces threads a ensuite été amélioré par l'usage de \textit{sycalls}
 exécutés mais également le nombre de paquets de types ACK que le receveur doit émettre. Ceci sera expliqué dans plus de détails dans les sections
 qui suivent.
 
-Ces threads communiquent entre eux à l'aide de deux queues de communication. La première sert à envoyer les paquets depuis le \textit{receiver} au \textit{handler}
+Ces threads communiquent entre eux à l'aide de deux files de communication. La première sert à envoyer les paquets depuis le \textit{receiver} au \textit{handler}
 et la deuxième fait le chemin inverse. Bien que cela soit plus complexe, cela permet une meilleure utilisation de la mémoire allouée en réutilisant les
 \textit{buffers} précédemment alloués. De plus ce \textit{stream} utilise des opérations atomiques\footnote{ Opérations \textit{thread safe} ne requérant pas de verrou}
 lors de l'ajout d'éléments afin d'augmenter les performances et de diminuer la latence dans le \textit{receiver}.
@@ -35,7 +35,7 @@ sans requérir l'usage d'un \textit{socket} par connexion qui pourrait causer pr
     Le nombre de \textit{file descriptor} maximum autorisé par le système d'exploitation pourrait être atteint.}.
 
 Afin de simplifier l'implémentation de celle-ci, notre table de hachage n'utilise pas l'adresse IP du client mais uniquement le port de celui-ci comme
-clé. Cela rend le calcul de l'index très simple : $Port \% M$ où $M$ est la capacité de la table de hachage. Ensuite, lors du \textit{linear probing}, %TODO : FAUX !!! c'est M-1 parce que l'index commence à 0
+clé. Cela rend le calcul de l'index très simple : $Port \% M$ où $M$ est la capacité de la table de hachage. Ensuite, lors du \textit{linear probing}, 
 l'adresse IP est comparée en plus du port afin de garantir l'unicité de chaque client. De plus cette comparaison est expressément faite avec
 la fonction \textit{memcmp} afin d'en augmenter les performances\footnote{ \textit{memcmp} utilise SSE 4.2 comme observé dans le \textit{\hyperref[sec:annexes_call_graph]{call graph}}.}.
 Ce qui veut donc dire qu'un maximum théorique de $65536$ connexions concourantes sans collisions peuvent être traité. En pratique ce nombre
@@ -47,31 +47,31 @@ un nombre résonnable de \textit{pipelines}.
 
 \newpage
 
-\subsection{\textit{Streams} - queue de communication} %%TODO : queue en francais c'est moche => file ? channel ?, autre ?
+\subsection{\textit{Streams} - file de communication} 
 \label{sec:steams}
 
-Comme mentionné ci-dessus, la communication entre les différents \textit{threads} est assurée par des queues de communications appelés \textit{streams}.
+Comme mentionné ci-dessus, la communication entre les différents \textit{threads} est assurée par des files de communications appelés \textit{streams}.
 Il s'agit de liste chaînées d'éléments de types \textit{s\_node\_t}. Elles utilisent des opérations atomiques pour l'insertion ce qui permet
-à l'opération \textit{enqueue} de ne bloquer que très rarement en faisant du \textit{busy waiting} au lieu d'employer des \textit{mutexes}. Cela permet %%TODO : mutexes est peut etre le pluriel en Anglais mais en francais c'est moche
+à l'opération \textit{enqueue} de ne bloquer que très rarement en faisant du \textit{busy waiting} au lieu d'employer des \textit{mutex}. Cela permet
 au \textit{receiver} de ne jamais attendre pour insérer dans le stream. En revanche l'opération \textit{dequeue} est protégée par un \textit{mutex} et
-emploie une variable de condition\footnote{ Permet de déverouiller un \textit{mutex} en attendant d'être notifié. Un autre \textit{thread} peut ensuite notifier %%TODO : conditionnal variable = variable conditionnelle; ta traduction là c'est moche
-la condition et le \textit{mutex} sera automatiquement verouillé. Il est intéressant de noter que la documentation mentionne qu'il est autorisé %%TODO : tu as pas inversé déverrouiller et verrouillé ?
+emploie une variable conditionnelle\footnote{ Permet de déverouiller un \textit{mutex} en attendant d'être notifié. Un autre \textit{thread} peut ensuite notifier
+la condition et le \textit{mutex} sera automatiquement reverouillé. Il est intéressant de noter que la documentation mentionne qu'il est autorisé
 de notifier une variable conditionelle sans posséder le \textit{mutex} ce qui permet de maintenir le \textit{dequeue} sans verrou. } pour attendre la dispobilité de nouveaux éléments.
 
 \subsection{\textit{Syscalls} avancés - \textit{recvmmsg} \& \textit{sendmmsg}}
 \label{sec:syscalls}
 
 Les operations typiques effectuées sur des \textit{sockets} sont \textit{recv}, \textit{recvfrom}, \textit{send} et \textit{sendto}. Bien qu'il n'y ait rien
-de mal avec ces implémentations, l'usage des \textit{syscalls} \textit{sendmmsg} et \textit{recvmmsg} sont suggerés comme amélioration disponible\cite{that_awesome_paper} %% TODO : disponible fait de trop 
+de mal avec ces implémentations, l'usage des \textit{syscalls} \textit{sendmmsg} et \textit{recvmmsg} sont suggerés comme améliorations possibles\cite{that_awesome_paper}
 de ces fonctions de base. Dans notre implémentation, l'usage de \textit{recvmmsg} est particulièrement intéressant car il permet de recevoir plus d'un paquet à la fois
 rendant possible la réception d'une fenètre complète en un \textit{syscalls} au lieu de $31$ avec \textit{recvfrom}/\textit{recv}. De plus, \textit{recvmmsg} permet
 de lire l'adresse IP et le port du client afin d'effectuer une recherche dans la table de hachage. Et \textit{sendmmsg} permet d'envoyer un seul \textit{ACK} pour
 une série de paquets reçus mais également pour chaque paquet hors de séquence ou corrompu. Ce qui diminue à nouveau le nombre de \textit{syscalls} effectués.
 
-Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque  %%TODO : expliquer qu'avec une augmentation de clients , les collisions augmentent et donc le nombre d'ACK aussi
-ce nombre augmente. De même, lorsque le nombre de client augmente, l'efficacité de ce système diminue pour faire l'aquisition d'une fenètre complète. 
-Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} reste constant. C'est donc purement l'avantage du point de vue de
-l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}. %%TODO : cette phrase est très bizarrement construite.
+Il est intéressant de noter que cet avantage est très important\footnote{ cfr. partie performance} pour un nombre limité de \textit{receiver} mais diminue lorsque  
+ce nombre augmente car l'entropie des \textit{buffers} de réception augmente (les paquets sont moins groupés par clients). De même, lorsque le nombre de client augmente,
+ l'efficacité de ce système diminue pour faire l'aquisition d'une fenètre complète. Cependant, l'avantage premier qui est de diminuer le nombre de \textit{syscalls} 
+ reste constant. C'est donc purement l'avantage du point de vue de l'usage de la bande passante qui diminue et non celui du nombre réduit de \textit{syscalls}. 
 
 \subsection{\textit{Buffers} - implémentation de la window}
 \label{sec:buffer}
@@ -100,15 +100,17 @@ appartient à un autre client, un nouveau \textit{s\_node\_t} est utilisé et le
 \subsection{\textit{Handler thread} - génération des acquitements}
 \label{sec:handler}
 
-Le \textit{handler thread}, quand à lui, est responsable de prendre un paquet brut du réseau et son émetteur et de le traiter en vérifiant tout %%TODO : "le traiter" fait référence à émetteur au lieu de paquet
+Le \textit{handler thread}, quand à lui, est responsable de prendre un paquet brut du réseau et de le traiter en vérifiant tout 
 d'abord sa validité, c'est-à-dire s'il rentre dans la fenêtre de réception, si ses \textit{CRC32} sont valides, etc. Ensuite, si le paquet
-est invalide, un ACK est généré pour être envoyé au \textit{sender}. En revanche, si le paquet est valide, il est ajouté au \textit{buffer} %% TODO : expliquer qu'envoyer un ACK en cas de paquet non valide n'est pas prévu par le protocole mais permets d'éviter des deadlocks dans la connection
-du client. Une fois que tous les paquets dans le \textit{s\_node\_t} ont été traités, le \textit{handler} itère si possible sur la fenêtre en partant %%TODO : manque de consistance : tu utilisait le terme "window" mais maintenant tu mets fenêtre. c'est un peu bizarre
+est invalide, un ACK est généré pour être envoyé au \textit{sender}. Ce comportement n'est pas requis pourl'implémentation du protocole mais permet de prévenir certains 
+\textit{livelocks} dans l'échange si un ACK est perdu. En revanche, si le paquet est valide, il est ajouté au \textit{buffer} 
+du client.
+
+Une fois que tous les paquets dans le \textit{s\_node\_t} ont été traités, le \textit{handler} itère si possible sur la fenêtre en partant 
 du \textit{sequence number} le plus bas jusqu'à ce que $31$ éléments aient été traités ou jusqu'au premier élémént vide. Ces éléments sont ensuite
 écrits dans le fichier de sortie du client en passant par un \textit{buffer} intermédiaire afin de ne faire qu'un seul appel à \textit{fwrite}
-par groupe de paquets écrits. Si plus d'un paquet peut être écrits, un ACK est généré pour cette liste de paquets en utilisant le \textit{seqnum}
+par groupe de paquets écrits. Si plus d'un paquet peut être écrits, un seul ACK est généré pour cette liste de paquets en utilisant le \textit{seqnum}
 le plus haut de la fenètre. Enfin, l'index le plus bas de la fenêtre est mis à jour.
-
 
 Si le dernier paquet se trouvant dans le \textit{buffer} a une longueur de zéro, le client est marqué pour suppresion et son fichier de sortie
 fermé. Tout paquet arrivant pour ce client tant qu'il n'aura pas été supprimé causera l'envoi d'un ACK notifiant que le paquet de fin de transmission
@@ -118,21 +120,22 @@ paquet d'acquitement avait été perdu.
 \subsection{Multiple \textit{Pipelines} \& \textit{Affinities} - optimisation de l'exécution}
 \label{sec:pipelines}
 
-Lors de tests de performances une étrange limite aux alentours de 370 $\nicefrac{MiB}{s}$ a rapidement été découverte. Ayant déjà atteint
-le but original de 100 $kpps$ sans trop de difficulté, une amélioration jusqu'à 1 $Mpps$ semblait raisonable, plusieurs sources\cite{that_awesome_paper,1mmps_article}
+Lors de tests de performances une étrange limite aux alentours de 370 $\nicefrac{MiB}{s}$ a rapidement été découverte. Ayant déjà atteint 
+le but original de 100 $\nicefrac{kp}{s}$ sans trop de difficulté, une amélioration jusqu'à 1 $\nicefrac{Mp}{s}$ semblait raisonable, plusieurs sources\cite{that_awesome_paper,1mmps_article}
 suggéraient d'utiliser plusieurs \textit{socket} en parallèle en utilisant les paramètres \textit{SO\_REUSEADDR} et \textit{SO\_REUSEPORT} afin d'éviter
 les conflits entre les sockets. En plus d'augmenter le nombre de \textit{sockets}, un fichier de configuration totalement optionnel a également été créé
 permettant de définir des groupes de un ou plusieurs \textit{receivers} avec un ou plusieur \textit{handlers} partageant un \textit{stream} et un \textit{socket}.
-Ceci s'est avéré être une idée judicieuse car cela a permis de largment dépasser les 1,5 $Mpps$.
+Ceci s'est avéré être une idée judicieuse car cela a permis de largment dépasser les 1,5 $\nicefrac{Mp}{s}$.
 
 Ce premier fichier de configuration est accompagné d'un deuxième fichier de configuration, lui aussi tout à fait optionnel, qui permet de définir les affinités
 de chaque \textit{receiver} et de chaque \textit{handler}. Cela revient à manuellement définir le coeur physique du \textit{CPU} sur lequel le \textit{thread}
-doit tourner. Cela permet de faire deux choses très importantes pour maximiser les performances, la première, cela permet de stabiliser la vitesse de transfer
-en évitant que le \textit{scheduler} déplace les \textit{threads} pendant l'exécution mais cela permet aussi de bénéficier de la \textit{core locality}.
+doit tourner. Cela permet de faire deux choses très importantes pour maximiser les performances : la première étant de stabiliser la vitesse de transfer 
+en évitant que le \textit{scheduler} déplace les \textit{threads} pendant l'exécution, la deuxième étant de bénéficier de la \textit{core locality}. 
 
-Le nombre de \textit{receiver} et \textit{handler threads} est contrôllé par deux paramètres additionels respectivements \textit{N} et \textit{n}. Le nombre
-de chaque référencés dans les fichiers de configurations doit être le même que les paramètres définis par ces options. Les valeurs de bases de ces options sont
-1 et 2 afin de maintenir un rapport (trouvé expérimentalement) de 0.5 qui semble être idéal dans la plupart des cas.
+Le nombre de \textit{receiver} et \textit{handler threads} sont respectivement contrôllés par deux paramètres additionels : \textit{N} et \textit{n}. Ces deux
+valeurs doivent évidemment correspondre avec les fichiers de configuration. Les valeurs de base de ces options sont 1 et 2 afin de maintenir un rapport 
+(trouvé expérimentalement) de 0.5 qui semble être idéal dans la plupart des cas.
+
 
 \subsubsection{\textit{Core locality}}
 
@@ -145,7 +148,7 @@ les performances dans les tests.
 \subsection{Mode séquentiel}
 \label{sec:sequential}
 
-Le mode séquentiel est activé en utilisant une l'option \textit{s} qui a été rajoutée au \textit{receiver}. Il permet simplement de faire 
+Le mode séquentiel est activé en utilisant l'option \textit{s} qui a été rajoutée au \textit{receiver}. Il permet simplement de faire 
 tourner notre implémentation sans le moindre \textit{thread} (en dehors de la \textit{main}). Ce mode a toujours de bonnes performances et ignore totalement 
 les fichiers de configurations et paramètres additionels. Il a été ajouté afin de respecter totalement la spécification et le conseil de ne pas utiliser de 
 threads. Cependant, ce n'est pas le mode de base.
