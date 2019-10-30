@@ -40,7 +40,8 @@
         "param.h": "c",
         "crc32.h": "c",
         "client.h": "c",
-        "limits.h": "c"
+        "limits.h": "c",
+        "string.h": "c"
     },
     "cSpell.enabledLanguageIds": [
         "asciidoc",

@@ -32,7 +32,7 @@ int main() {
 
     /*add_handler_tests();*/
 
-    add_receiver_test();
+    add_receiver_tests();
 
     CU_basic_run_tests();
 

@@ -2,6 +2,22 @@
 
 #define GLOBAL_H
 
+#define LOG(component, fmt, arg...) \
+    do { fprintf(stderr, "[" component "] " fmt, ##arg); } while(0)
+
+#ifdef DEBUG
+    #define TRACE(fmt, arg...) \
+        LOG("DEBUG][%s:%d:%s()", fmt, __FILE__, __LINE__, __func__, ##arg)
+#else
+    #define TRACE(...)
+#endif
+
+/** close and sleep */
+#include <unistd.h>
+
+/** isspace */
+#include <ctype.h>
+
 /** Standard library */
 #include <stdlib.h>
 
@@ -18,8 +34,7 @@
 #include <string.h>
 
 /** CRC32 */
-/*#define IOLIB_CRC
-#include "crc32.h"*/
+#include "../lib/Crc32.h"
 
 /** Required for recvmmsg & sendmmsg */
 #include <sys/socket.h>

@@ -40,7 +40,7 @@ BIN := $(wildcard $(BIN_DIR)/*)
 LDFLAGS = -lpthread -lrt
 FLAGS = -Werror -std=$(VERSION)
 RELEASE_FLAGS = -O3
-DEBUG_FLAGS = -O0 -ggdb
+DEBUG_FLAGS = -O0 -ggdb -DDEBUG=true
 
 # does not need verification
 .PHONY: clean report stat install_tectonic
@@ -65,7 +65,7 @@ release: build
 
 # run
 run:
-	$(OUT) -o $(BIN_DIR)/%d -n 1 -N 1 -w 31 :: 64536
+	$(OUT) -o $(BIN_DIR)/%d -n 12 -N 4 -W 124 -w 31 :: 64536
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -110,7 +110,7 @@ valgrind: build
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
 	valgrind --tool=helgrind \
-		$(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/helgrind.txt
+		$(OUT) -s -n 4 -N 2 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/helgrind.txt
 
 memcheck: FLAGS += $(DEBUG_FLAGS)
 memcheck: build
@@ -134,8 +134,7 @@ callgrind: build
 plot:
 	./tools/gprof2dot.py -f callgrind $(BIN_DIR)/callgrind.txt | dot -Tpng -o callgraph.png
 
-debug: FLAGS += $(DEBUG_FLAGS)
-debug: build
+debug: test_build
 	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d -s :: 64536
 
 tcpdump:

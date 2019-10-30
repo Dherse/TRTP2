@@ -76,7 +76,7 @@ int initialize_client(
     sprintf(name, format, id);
     client->out_file = fopen(name, "wb");
     if (client->out_file == NULL) {
-        fprintf(stderr, "[RX] Failed to create file: %s", name);
+        LOG("RX", "Failed to create file: %s", name);
         pthread_mutex_destroy(client->lock);
         free(client->lock);
         free(client);
