@@ -35,6 +35,8 @@ int main() {
     add_receiver_tests();
 
     CU_basic_run_tests();
+    
+    CU_cleanup_registry();
 
     return CU_get_error();
 }

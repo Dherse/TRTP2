@@ -1,7 +1,34 @@
 #include "./headers/cli_test.h"
 
+void free_config_contents(config_rcv_t *config) {
+    if (config->format && config->deallocate_format) {
+        free(config->format);
+    }
+
+    if (config->addr_info != NULL) {
+        freeaddrinfo(config->addr_info);
+    }
+
+    if (config->receive_affinities != NULL) {
+        free(config->receive_affinities);
+    }
+
+    if (config->handle_affinities != NULL) {
+        free(config->handle_affinities);
+    }
+
+    if (config->handle_streams != NULL) {
+        free(config->handle_streams);
+    }
+
+    if (config->receive_streams != NULL) {
+        free(config->receive_streams);
+    }
+}
+
 void test_cli_noopt() {
     config_rcv_t config;
+    memset(&config, 0, sizeof(config_rcv_t));
 
     char *p_1 = "trtp_receiver";
     char *p0 = "::1";
@@ -13,10 +40,13 @@ void test_cli_noopt() {
     CU_ASSERT(strcmp(config.format, "%d") == 0);
     CU_ASSERT(config.max_connections == 100);
     CU_ASSERT(config.port == 1234);
+
+    free_config_contents(&config);
 }
 
 void test_cli_all_opt() {
     config_rcv_t config;
+    memset(&config, 0, sizeof(config_rcv_t));
 
     char *p_1 = "trtp_receiver";
     char *p0 = "-m";
@@ -31,6 +61,8 @@ void test_cli_all_opt() {
     CU_ASSERT(strcmp(config.format, "my_file_with_space_%d") == 0);
     CU_ASSERT(config.max_connections == 128);
     CU_ASSERT(config.port == 1234);
+
+    free_config_contents(&config);
 }
 
 int add_cli_tests() {

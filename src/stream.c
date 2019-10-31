@@ -31,7 +31,7 @@ int initialize_node(s_node_t *node, void *(*allocator)()) {
  * Refer to headers/stream.h
  */
 void deallocate_node(s_node_t *node) {
-    TRACE("Deallocating a stream node\n");
+    //TRACE("Deallocating a stream node\n");
     if (node == NULL) {
         return;
     }

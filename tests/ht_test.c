@@ -3,6 +3,7 @@
 
 void test_ht_put_and_get() {
     ht_t table;
+    memset(&table, 0, sizeof(ht_t));
     int res = allocate_ht(&table);
     CU_ASSERT(res == 0);
     if (res != 0) {
@@ -16,6 +17,7 @@ void test_ht_put_and_get() {
     uint16_t i;
     for (i = 0; i < N; i++) {
         client_t *client = malloc(sizeof(client_t));
+        memset(client, 0, sizeof(client_t));
         client->lock = NULL;
         client->out_file = NULL;
         client->active = false;

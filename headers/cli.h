@@ -53,6 +53,9 @@ typedef struct config_receiver {
 
     /** Output file name format length */
     size_t format_len;
+    
+    /** Is the format on the heap or the stack? */
+    bool deallocate_format;
 
     /** Output file name format */
     char *format;
@@ -65,8 +68,6 @@ typedef struct config_receiver {
     
     /** The input port */
     uint16_t port;
-
-
 } config_rcv_t;
 
 /**

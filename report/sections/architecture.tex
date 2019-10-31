@@ -56,7 +56,7 @@ Il s'agit de liste chaînées d'éléments de types \textit{s\_node\_t}. Elles u
 au \textit{receiver} de ne jamais attendre pour insérer dans le stream. En revanche l'opération \textit{dequeue} est protégée par un \textit{mutex} et
 emploie une variable conditionnelle\footnote{ Permet de déverouiller un \textit{mutex} en attendant d'être notifié. Un autre \textit{thread} peut ensuite notifier
 la condition et le \textit{mutex} sera automatiquement reverouillé. Il est intéressant de noter que la documentation mentionne qu'il est autorisé
-de notifier une variable conditionelle sans posséder le \textit{mutex} ce qui permet de maintenir le \textit{dequeue} sans verrou. } pour attendre la dispobilité de nouveaux éléments.
+de notifier une variable conditionelle sans posséder le \textit{mutex} ce qui permet de maintenir le \textit{dequeue} sans verrou. } pour attendre la disponibilité de nouveaux éléments.
 
 \subsection{\textit{Syscalls} avancés - \textit{recvmmsg} \& \textit{sendmmsg}}
 \label{sec:syscalls}
@@ -130,12 +130,12 @@ Ceci s'est avéré être une idée judicieuse car cela a permis de largment dép
 
 Ce premier fichier de configuration est accompagné d'un deuxième fichier de configuration, lui aussi tout à fait optionnel, qui permet de définir les affinités
 de chaque \textit{receiver} et de chaque \textit{handler}. Cela revient à manuellement définir le coeur physique du \textit{CPU} sur lequel le \textit{thread}
-doit tourner. Cela permet de faire deux choses très importantes pour maximiser les performances : la première étant de stabiliser la vitesse de transfer 
+doit tourner. Cela permet de faire deux choses très importantes pour maximiser les performances : la première étant de stabiliser la vitesse de transfert 
 en évitant que le \textit{scheduler} déplace les \textit{threads} pendant l'exécution, la deuxième étant de bénéficier de la \textit{core locality}. 
 
 Le nombre de \textit{receiver} et \textit{handler threads} sont respectivement contrôllés par deux paramètres additionels : \textit{N} et \textit{n}. Ces deux
 valeurs doivent évidemment correspondre avec les fichiers de configuration. Les valeurs de base de ces options sont 1 et 2 afin de maintenir un rapport 
-(trouvé expérimentalement) de 0.5 qui semble être idéal dans la plupart des cas.
+(trouvé expérimentalement) de 0.5 qui semble donner de bons résultats dans la majorité des cas.
 
 
 \subsubsection{\textit{Core locality}}
@@ -144,7 +144,7 @@ Dans les processeurs modernes, les coeurs physiques sont souvant groupé par gro
 Cela veut dire que la communication entre ces coeurs se fera plus rapidement qu'entre des coeurs de groupes séparés. Ce phénomène est normalement gênant, mais
 en utilisant l'affinité et la configuration des \textit{streams}, il est possible d'agencer les \textit{threads} d'une façon optimale sans procéder à des essais
 mais juste en comprenant l'architecture du processeurs. A nouveau, c'est une optimisation tout à fait optionelle qui est simplement utilisée afin de maximiser
-les performances dans les tests.
+les performances dans les tests. L'impact de la localité sera encore discuté dans les annexes en parlant de l'environement de test.
 
 \subsection{Mode séquentiel}
 \label{sec:sequential}
@@ -152,14 +152,15 @@ les performances dans les tests.
 Le mode séquentiel est activé en utilisant l'option \textit{s} qui a été rajoutée au \textit{receiver}. Il permet simplement de faire 
 tourner notre implémentation sans le moindre \textit{thread} (en dehors de la \textit{main}). Ce mode a toujours de bonnes performances et ignore totalement 
 les fichiers de configurations et paramètres additionels. Il a été ajouté afin de respecter totalement la spécification et le conseil de ne pas utiliser de 
-threads. Cependant, ce n'est pas le mode de base.
+threads. Cependant, ce n'est pas le mode de base et donne de moins bons résultats car tous les \textit{mutex} et les opérations sur les fichiers font partis
+de la boucle d'exécution ce qui ralenti très fort l'exécution. Le \textit{bottleneck} dans ce mode rest cependant le calcul des \textit{CRC32}.
 
 \subsection{Stratégie de tests}
 \label{sec:tests}
 
-Nous avons testé chaque librairie séparément pour nous assurer qu'elles effectuaient ce à quoi nous nous attendions et ce en l'absence de tout \textit{memory leak}.
-Grâce à çelà, programmer les fonctions plus complexes telles que \textit{handler} a été facilité puisque nous savions que nos librairies ne causaient pas de 
-problème d'elles mêmes.
+Chaque composant a été séparément testé pour s'assurer qu'ils effectuaient ce pour quoi ils avaient été conçus sans le moindre \textit{memory leak}.
+Grâce à çelà, la programmation des fonctions plus complexes telles que \textit{handler} a été facilités par l'usage des différents composants et dans
+l'assurance que les problèmes ne viendraient pas desdits composants.
 
 
 \end{document}

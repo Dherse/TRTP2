@@ -47,7 +47,7 @@ void test_many() {
         CU_ASSERT(node != NULL);
         if (node != NULL) {
             CU_ASSERT(*((int *) node->content) == i);
-            free(node);
+            deallocate_node(node);
         }
 
         //CU_ASSERT(stream.length == 1023 - i);

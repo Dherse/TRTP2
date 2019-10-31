@@ -19,6 +19,7 @@ inline uint16_t ht_hash(ht_t *table, uint16_t port) {
  */
 int allocate_ht(ht_t *table) {
     table->size = INITIAL_SIZE;
+    table->length = 0;
 
     table->items = calloc(INITIAL_SIZE, sizeof(item_t));
     if (table->items == NULL) {

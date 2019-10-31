@@ -113,6 +113,10 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
 
         memcpy(o, old, len - 1);
         o[len-1] = '\0';
+
+        config->deallocate_format = true;
+    } else {
+        config->deallocate_format = false;
     }
 
     /* format regex - to ensure one and only one %d in format */

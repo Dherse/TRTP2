@@ -14,6 +14,7 @@ void test_receiver() {
     struct iovec iovecs[31]; //done
 
     struct sockaddr_in6 address;
+    memset(&address, 0, sizeof(struct sockaddr_in6));
     address.sin6_addr.__in6_u.__u6_addr32[0] = 0;
     address.sin6_addr.__in6_u.__u6_addr32[1] = 0;
     address.sin6_addr.__in6_u.__u6_addr32[2] = 0;
@@ -23,6 +24,7 @@ void test_receiver() {
 
     int i;
     for(i = 0; i < 31; i++) {
+        memset(&buffers[i], 0, MAX_PACKET_SIZE);
         memset(&iovecs[i], 0, sizeof(struct iovec));
         memset(&msgs[i], 0, sizeof(struct mmsghdr));
         
@@ -46,10 +48,8 @@ void test_receiver() {
     ht_t clients;
     CU_ASSERT(allocate_ht(&clients) == 0);
 
-
-
-
     rx_cfg_t cfg;
+    memset(&cfg, 0, sizeof(rx_cfg_t));
     cfg.id = 0;
     cfg.thread = NULL;
     int idx = 0;

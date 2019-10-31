@@ -54,10 +54,9 @@ void test_ack_encoding() {
     uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
     CU_ASSERT(pack(packed, &packet, false) == 0);
 
-    int i;
-    for(i = 0; i < sizeof(ack_packet); i++) {
-        CU_ASSERT(ack_packet[i] == (*packed++));
-    }
+    CU_ASSERT(memcmp(ack_packet, packed, sizeof(ack_packet)) == 0);
+
+    free(packed);
 }
 
 void test_data_decoding() {
@@ -129,7 +128,7 @@ void test_data_encoding() {
     uint32_t crc2 = crc32_16bytes_prefetch((void*) str, len, 0, len);
     uint32_t crc2_n = htonl(crc2);
 
-    uint8_t dat_packet[29] = {
+    uint8_t dat_packet[] = {
         // Type + TR + Window
         0b01001010,
 
@@ -168,6 +167,7 @@ void test_data_encoding() {
     memcpy(dat_packet + 11 + len, &crc2_n, sizeof(uint32_t));
 
     packet_t packet;
+    init_packet(&packet);
     packet.type = DATA;
     packet.truncated = false;
     packet.window = 0b01010;
@@ -178,13 +178,13 @@ void test_data_encoding() {
     memcpy(&packet.payload, (uint8_t *) str, strlen(str));
     packet.crc2 = crc2;
 
-    uint8_t *packed = malloc(sizeof(uint8_t) * 1024);
-    CU_ASSERT(pack(packed, &packet, false) == 0);
+    uint8_t *packed = malloc(sizeof(uint8_t) * MAX_PACKET_SIZE);
+    memset(packed, 0, sizeof(uint8_t) * MAX_PACKET_SIZE);
+    CU_ASSERT(pack(packed, &packet, true) == 0);
 
-    int i;
-    for(i = 0; i < sizeof(dat_packet); i++) {
-        CU_ASSERT(dat_packet[i] == (*packed++));
-    }
+    CU_ASSERT(memcmp(dat_packet, packed, sizeof(dat_packet)) == 0);
+
+    free(packed);
 }
 
 int add_packet_tests() {

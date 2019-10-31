@@ -5,9 +5,10 @@
 #include "../headers/handler.h"
 
 void test_global() {
-    int whatever_that_is = 28;
+    int addrlen = sizeof(struct sockaddr_in6);
 
     struct sockaddr_in6 address;
+    memset(&address, 0, addrlen);
     address.sin6_addr.__in6_u.__u6_addr32[0] = 0;
     address.sin6_addr.__in6_u.__u6_addr32[1] = 0;
     address.sin6_addr.__in6_u.__u6_addr32[2] = 0;
@@ -17,7 +18,7 @@ void test_global() {
 
     int send_sock = socket(AF_INET6, SOCK_DGRAM|SOCK_NONBLOCK, 0);
     CU_ASSERT(send_sock > 0);
-    CU_ASSERT( bind(send_sock, &address, whatever_that_is) == 0);
+    CU_ASSERT( bind(send_sock, &address, addrlen) == 0);
 
     uint8_t buf[528];
     packet_t received;
@@ -44,7 +45,7 @@ void test_global() {
     cfg->sockfd = sockfd;
 
     client_t client;
-    CU_ASSERT(initialize_client(&client, 0, "./bin/%d", &address, &whatever_that_is) == 0);
+    CU_ASSERT(initialize_client(&client, 0, "./bin/%d", &address, &addrlen) == 0);
     
     packet_t **decoded = alloca(sizeof(packet_t *));
     CU_ASSERT(decoded != NULL);
@@ -69,6 +70,7 @@ void test_global() {
 
         memset(&msg[i], 0, sizeof(struct mmsghdr));
         msg[i].msg_hdr.msg_iov = &hd_iovecs[i];
+        msg[i].msg_hdr.msg_name = NULL;
         msg[i].msg_hdr.msg_iovlen = 1;
         msg[i].msg_hdr.msg_namelen = sizeof(struct sockaddr_in6);
     }
