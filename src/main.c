@@ -246,22 +246,41 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    parse_affinity_file(&config);
+    if (config.sequential) {
+        config.handle_num = 1;
+        config.receive_num = 1;
+        config.stream_count = 1;
+    }
 
-    if (parse_streams_file(&config)) {
+    if (!config.sequential) {
+        parse_affinity_file(&config);
+    }
+
+    if (config.sequential || parse_streams_file(&config)) {
+        if (config.handle_streams == NULL) {
+            config.handle_streams = calloc(config.handle_num, sizeof(sts_t));
+            if (config.handle_streams == NULL) {
+                LOG("MAIN", "Failed to allocate\n");
+                return -1;
+            }
+        }
+        if (config.receive_streams == NULL) {
+            config.receive_streams = calloc(config.receive_num, sizeof(sts_t));
+            if (config.receive_streams == NULL) {
+                LOG("MAIN", "Failed to allocate\n");
+                return -1;
+            }
+        }
+
         config.stream_count = 1;
         int i;
         for (i = 0; i < config.handle_num; i++) {
             config.handle_streams[i].stream = 0;
         }
+        
         for (i = 0; i < config.receive_num; i++) {
             config.receive_streams[i].stream = 0;
         }
-    }
-
-    if (config.sequential) {
-        config.handle_num = 1;
-        config.receive_num = 1;
     }
 
     print_config(&config);

@@ -11,7 +11,7 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     char *m = STR(DEFAULT_MAX_CAPACITY);
 
     /** Maximum number of packets received in a single syscall */
-    char *W = STR(MAX_BUFFER_SIZE);
+    char *W = STR(MAX_WINDOW_SIZE);
 
     /** Maximum advertised window size */
     char *w = STR(MAX_WINDOW_SIZE);
