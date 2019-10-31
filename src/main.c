@@ -726,12 +726,12 @@ int main(int argc, char *argv[]) {
             return -1;
         }
 
-        uint8_t packets_to_send[MAX_WINDOW_SIZE][12];
-        struct mmsghdr msg[MAX_WINDOW_SIZE];
-        struct iovec hd_iovecs[MAX_WINDOW_SIZE];
+        uint8_t packets_to_send[MAX_WINDOW_SIZE + 1][12];
+        struct mmsghdr msg[MAX_WINDOW_SIZE + 1];
+        struct iovec hd_iovecs[MAX_WINDOW_SIZE + 1];
 
         memset(hd_iovecs, 0, sizeof(iovecs));
-        for(i = 0; i < MAX_WINDOW_SIZE; i++) {
+        for(i = 0; i < MAX_WINDOW_SIZE + 1; i++) {
             memset(&hd_iovecs[i], 0, sizeof(struct iovec));
             hd_iovecs[i].iov_base = packets_to_send[i];
             hd_iovecs[i].iov_len  = 11;
