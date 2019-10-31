@@ -127,7 +127,7 @@ callgrind: build
 	@echo '----------------------------------------------------------'
 
 	valgrind --tool=callgrind --callgrind-out-file=$(BIN_DIR)/callgrind.txt \
-		$(OUT) -n 1 -N 1 -w 31 -o $(BIN_DIR)/%d :: 64536
+		$(OUT) -s -w 31 -o $(BIN_DIR)/%d :: 64536
 		
 	@echo '----------------------------------------------------------'
 

@@ -5,5 +5,22 @@
 \section{Performances}
 \label{sec:performances}
 
+Les performances de l'implémentation du protocole ont été mesurées en s'efforçant de réduire les perturbations externes. Les tests ont donc été 
+effectués en écrivant sur des \textit{RAM disks} pour retirer le délais d'écriture de l'équation. Ces tests ont aussi été effectués sur un serveur 
+possédant un grand nombre de \textit{threads} pour pouvoir faire plein usage des affinités.
+
+Le premier test compare les performances de l'implémentation multithreadée avec un seul \textit{receiver} et un nombre variable de \textit{handlers}  %TODO: note de bas de page
+en fonction du nombre de clients avec, comme référence, celles de l'implémentation de base\footnote{Le \textit{receiver} base rencontrant des 
+difficutés à transmettre des fichier pour un nombre de clients trop élevés, les débits pour plus de 10 clients n'ont pas été indiquées mais sont 
+supposées constante.} ainsi que celles de l'implémentation en mode séquentiel.          %TODO : add reference to figure
+On observe sur la figure une nette augmentation du débit avec le nombre de \textit{handlers}, ce qui corresponds à nos attentes. Néanmoins, cette 
+tendance s'inverse à très petit nombre de clients (moins de 50) où l'exécution séquentielle deviens plus performante et l'exécution avec trois \textit{handlers} étant 
+presque deux fois plus lente que l'implémentation de base.
+
+Un deuxième test compare ces performances en augmentant aussi le nombre de \textit{receiver}, tout en gardant la même référence. On peut voir qu'ajouter 
+des \textit{receiver} permet, d'une part, de réduire les pertes de performances à bas nombre de clients ()
+
+
+
 
 \end{document}
