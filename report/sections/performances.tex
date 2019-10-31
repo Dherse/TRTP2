@@ -21,14 +21,17 @@ presque deux fois plus lente que l'implémentation de base. Il faut bien noter q
 
 Un deuxième test (cfr : \hyperref[sec:plot_mul_recv]{\textit{test 2}}) compare ces performances en augmentant aussi le nombre de \textit{receiver}, tout en gardant la même référence. On peut voir qu'ajouter 
 des \textit{receiver} permet, d'une part, de réduire les pertes de performances à bas nombre de clients et, d'autre part, d'augmenter les performances à 
-grand nombre de clients\footnote{l'exécution avec 2 \textit{handler} passe de 170 \nicefrac{MB}{s} à 215 pour 100 clients}. De plus, avec un seul 
+grand nombre de clients\footnote{l'exécution avec 2 \textit{handler} passe de 170 \nicefrac{MiB}{s} à 215 pour 100 clients}. De plus, avec un seul 
 \textit{receiver}, les performances finissent par plafonner à une valeur égale au débit maximal de données traitées par un \textit{receiver}. Augmenter 
 la valeur de l'argument N peret donc de multiplier la valeur de ce plafond.
 
 Finalement, les limites de l'implémentation ont été testées : les paramètres $N = 4$ et $n = 12$ donnant les meilleurs résultats, leur performances ont été 
 testées sur un nombre de clients bien plus grand (cfr : \hyperref[sec:plot_max]{\textit{test 3}}). Des valeurs plus élevées que 1000 clients n'ont pas été 
 testées à cause de problème pour générer assez de clients assez vite rendant toute mesure inutile.
-Ce test nous montre le comportement de notre application dans des conditions optimales: Une forte variation de débit jusqu'à ~ 12 clients puis un plafond à 625 \nicefrac{MB}{s}.
+Ce test nous montre le comportement de notre application dans des conditions optimales: Une forte variation de débit jusqu'à dizaine clients puis un plafond à 625 \nicefrac{MiB}{s}.
+Cependant, en utilisant plus que deux machines (celle avec le \textit{receiver} et celle avec les \textit{sender}), nous avons pu atteindre des vitesses
+encore bien plus rapide de l'ordre de 700 \nicefrac{MiB}{s} mais lors de cette suite de test, nous avons choisi de n'utiliser que deux machines pour retirer
+un maximum de variables.
 
 
 
