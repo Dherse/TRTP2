@@ -135,7 +135,7 @@ plot:
 	./tools/gprof2dot.py -f callgrind $(BIN_DIR)/callgrind.txt | dot -Tpng -o callgraph.png
 
 debug: test_build
-	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d -s :: 64536
+	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 64536
 
 tcpdump:
 	sudo tcpdump -s 0 -i enp9s0 udp port 64536 -w ./bin/udpdump.pcap

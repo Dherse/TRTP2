@@ -367,7 +367,6 @@ int parse_affinity_file(config_rcv_t *config) {
         
         fclose(file);
     } else {
-        fclose(file);
         free(config->handle_affinities);
         free(config->receive_affinities);
         config->handle_affinities = NULL;
