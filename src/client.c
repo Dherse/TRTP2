@@ -56,6 +56,7 @@ int initialize_client(
     client->last_timestamp = 0;
     client->id = id;
     client->active = true;
+    client->end_time = NULL;
     
     client->lock = (pthread_mutex_t *) malloc(sizeof(pthread_mutex_t));
     if(client->lock == NULL) {
@@ -158,6 +159,10 @@ void deallocate_client(client_t *client, bool dealloc_addr, bool close_file) {
 
     if (client->window != NULL) {
         deallocate_buffer(client->window);
+    }
+
+    if (client->end_time) {
+        free(client->end_time);
     }
 
     free(client);

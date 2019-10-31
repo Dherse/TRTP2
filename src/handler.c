@@ -218,7 +218,7 @@ inline __attribute__((always_inline)) void hd_run_once(
                     offset += pak->length;
 
                     remove = false;
-                } else {
+                } else if (pak->length == 0 && !remove) {
                     remove = true;
                 }
 
@@ -267,9 +267,14 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                 bytes_to_unit(client->transferred, size, &sizem);
 
-                clock_gettime(CLOCK_MONOTONIC, &client->end_time);
+                client->end_time = malloc(sizeof(struct timespec));
+                if (!client->end_time) {
+                    LOG("MAIN][ERROR", "Failed to allocate timespec\n");
+                }
 
-                double time = ((double)client->end_time.tv_sec + 1.0e-9*client->end_time.tv_nsec) - 
+                clock_gettime(CLOCK_MONOTONIC, client->end_time);
+
+                double time = ((double)client->end_time->tv_sec + 1.0e-9*client->end_time->tv_nsec) - 
                     ((double)client->connection_time.tv_sec + 1.0e-9*client->connection_time.tv_nsec);
                     
                 bytes_to_unit(client->transferred / time, speed, &speedm);
@@ -302,7 +307,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
         int retval = sendmmsg(cfg->sockfd, msg, len_to_send, 0);
         if (retval == -1) {
-            LOG("TX", "sendmmsg failed\n ");
+            LOG("TX", "sendmmsg failed (fd: %d, len_to_send: %d)\n ", cfg->sockfd, len_to_send);
             perror("sendmmsg()");
         }
 
