@@ -227,7 +227,7 @@ inline __attribute__((always_inline)) void hd_run_once(
                 cnt++;
                 i++;
             }
-        } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt <= MAX_WINDOW_SIZE && !remove);
+        } while(sequences[client->window->window_low][i & 0xFF] && node != NULL && cnt < MAX_WINDOW_SIZE && !remove);
 
         if (cnt > 0) {
             int result = fwrite(
@@ -304,7 +304,7 @@ inline __attribute__((always_inline)) void hd_run_once(
             }
         }
         pthread_mutex_unlock(client_get_lock(client));
-
+    
         int retval = sendmmsg(cfg->sockfd, msg, len_to_send, 0);
         if (retval == -1) {
             LOG("TX", "sendmmsg failed (fd: %d, len_to_send: %d)\n ", cfg->sockfd, len_to_send);
@@ -341,13 +341,13 @@ void *handle_thread(void *config) {
     packet_t to_send;
 
     uint8_t len_to_send;
-    uint8_t packets_to_send[MAX_WINDOW_SIZE][12];
-    struct mmsghdr msg[MAX_WINDOW_SIZE];
-    struct iovec iovecs[MAX_WINDOW_SIZE];
+    uint8_t packets_to_send[MAX_WINDOW_SIZE + 1][12];
+    struct mmsghdr msg[MAX_WINDOW_SIZE + 1];
+    struct iovec iovecs[MAX_WINDOW_SIZE + 1];
 
     memset(iovecs, 0, sizeof(iovecs));
     int i = 0;
-    for(; i < MAX_WINDOW_SIZE; i++) {
+    for(; i < MAX_WINDOW_SIZE + 1; i++) {
         memset(&iovecs[i], 0, sizeof(struct iovec));
         iovecs[i].iov_base = packets_to_send[i];
         iovecs[i].iov_len  = 11;
@@ -362,6 +362,7 @@ void *handle_thread(void *config) {
     uint8_t file_buffer[MAX_PAYLOAD_SIZE * MAX_WINDOW_SIZE];
 
     packet_t *decoded = (packet_t *) allocate_packet();
+    init_packet(decoded);
     if (decoded == NULL) {
         LOG("HD", "Failed to start handle thread: alloc failed\n");
         return NULL;

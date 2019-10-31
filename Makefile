@@ -65,7 +65,7 @@ release: build
 
 # run
 run:
-	$(OUT) -o $(BIN_DIR)/%d -n 12 -N 4 -W 124 -w 31 -m 1 :: 64536
+	$(OUT) -o $(BIN_DIR)/%d -n 3 -N 1 -W 31 -m 1 :: 64536
 
 # Build and run tests
 test: FLAGS += $(DEBUG_FLAGS)
@@ -105,17 +105,17 @@ report:
 valgrind: FLAGS += $(DEBUG_FLAGS)
 valgrind: build
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose \
-		$(OUT) -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/valgrind.txt
+		$(OUT) -o $(BIN_DIR)/%d -m 1 -n 4 -N 2 :: 64536 2> $(BIN_DIR)/valgrind.txt
 
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
 	valgrind --tool=helgrind \
-		$(OUT) -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/helgrind.txt
+		$(OUT) -o $(BIN_DIR)/%d -m 1 -n 4 -N 2 :: 64536 2> $(BIN_DIR)/helgrind.txt
 
 memcheck: FLAGS += $(DEBUG_FLAGS)
 memcheck: build
 	valgrind --tool=memcheck --track-origins=yes \
-		$(OUT) -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/memcheck.txt
+		$(OUT) -o $(BIN_DIR)/%d -m 1 :: 64536 2> $(BIN_DIR)/memcheck.txt
 
 callgrind: FLAGS += -O3 -ggdb
 callgrind: build
@@ -135,7 +135,7 @@ plot:
 	./tools/gprof2dot.py -f callgrind $(BIN_DIR)/callgrind.txt | dot -Tpng -o callgraph.png
 
 debug: test_build
-	gdb -ex run --args $(OUT) -n 4 -N 2 -o $(BIN_DIR)/%d :: 64536
+	gdb -ex run --args $(OUT) -n 4 -N 2 -m 1 -W 124 -o $(BIN_DIR)/%d :: 64536
 
 tcpdump:
 	sudo tcpdump -s 0 -i enp9s0 udp port 64536 -w ./bin/udpdump.pcap

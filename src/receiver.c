@@ -51,26 +51,32 @@ inline __attribute__((always_inline)) void rx_run_once(
              * node without having to go through the hash table and
              * the associated mutex.
              */
-            if (i > 0 && i < MAX_WINDOW_SIZE && contained != NULL && ip_equals(
+            if ((contained != NULL && ip_equals(
                 addrs[i].sin6_addr.__in6_u.__u6_addr8, 
                 addrs[i - 1].sin6_addr.__in6_u.__u6_addr8) && 
-                addrs[i - 1].sin6_port == addrs[i].sin6_port
+                addrs[i - 1].sin6_port == addrs[i].sin6_port) && (i >= 0 && i < MAX_WINDOW_SIZE)
             ) {
             } else {
                 if (node != NULL) {
                     stream_enqueue(rcv_cfg->tx, node, true);
+                    node = NULL;
                 }
 
                 contained = ht_get(rcv_cfg->clients, addrs[i].sin6_port, addrs[i].sin6_addr.__in6_u.__u6_addr8);
                 if (!contained) {
+                    pthread_mutex_lock(rcv_cfg->clients->lock);
                     /** Checks if there's any room available */
                     if (rcv_cfg->clients->length >= rcv_cfg->max_clients) {
+                        contained = NULL;
+
+
                         #ifdef DEBUG
                             char ip_as_str[46];
                             ip_to_string(&addrs[i], ip_as_str);
                             TRACE("Too many clients connected, refusing [%s]:%u\n", ip_as_str, ntohs(addrs[i].sin6_port));
                         #endif
 
+                        pthread_mutex_unlock(rcv_cfg->clients->lock);
                         /** If there's no room available we ignore the packet */
                         continue;
                     }
@@ -97,6 +103,8 @@ inline __attribute__((always_inline)) void rx_run_once(
                         continue;
                     }
                     
+                    pthread_mutex_unlock(rcv_cfg->clients->lock);
+
                     ht_put(rcv_cfg->clients, addrs[i].sin6_port, addrs[i].sin6_addr.__in6_u.__u6_addr8, (void *) contained);
 
                     LOG("RX", "New client #%d at [%s]:%u\n", contained->id, contained->ip_as_string, ntohs(contained->address->sin6_port));
@@ -131,7 +139,9 @@ inline __attribute__((always_inline)) void rx_run_once(
             }
         }
 
-        stream_enqueue(rcv_cfg->tx, node, true);
+        if (node) {
+            stream_enqueue(rcv_cfg->tx, node, true);
+        }
     }
 }
 

@@ -150,9 +150,9 @@ s_node_t *stream_pop(stream_t *stream, bool wait) {
         }
     }
 
+    _fas(&stream->length, 1);
     s_node_t *head = stream->out_queue;
     if (head) {
-        _fas(&stream->length, 1);
         stream->out_queue = head->next;
     }
     
