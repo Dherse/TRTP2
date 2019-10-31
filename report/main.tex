@@ -64,18 +64,6 @@ filecolor=green,
 \subfile{sections/cover}
 \newpage
 
-\section{Abstract}
-
-Nous avons conçus une implémentation du receveur TRTP multithreadée capable de saturer une connexion 1 GbE et d'utiliser en grande partie une connexion 10 GbE.
-Dans nos tests, la vitesse de transfer maximale observée était de 700 $\nicefrac{MiB}{s}$\footnote{\hyperref[sec:performance]{cfr. section sur les performances}}. Et celle-ci
-était limitée non pas par notre implémentation mais notre capacité à générer les paquets du côté des \textit{senders} assez rapidement. Ces performances sont possibles grâce à l'usage de
-\textit{\hyperref[sec:syscalls]{syscalls avancés}}, d'opération \textit{\hyperref[sec:atomics]{atomiques}} et l'usage de multiple \textit{\hyperref[sec:pipelines]{pipelines}} traitant
-l'information en parallèle tout en restant \textit{thread safe} et libre de toute fuite mémoire. De plus notre implémentation est accompagnée d'une suite
-étendue de tests couvrant la grande majorité du code et d'une documentation complète détaillant l'architecture et le fonctionnement des différents composants
-utilisés.
-
-\newpage
-
 \tableofcontents
 \newpage
 
