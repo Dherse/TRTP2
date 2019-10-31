@@ -76,8 +76,12 @@
 #define false 0
 typedef int bool;
 
+/** Converts from an DEFINE to a string, used for CLI */
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 /** Minimum size of a packet (in bytes) */
-#define MIN_PACKET_SIZE 11
+#define MIN_PACKET_SIZE  11
 
 /** Maximum size of a packet (in bytes) */
 #define MAX_PACKET_SIZE  528
@@ -88,23 +92,19 @@ typedef int bool;
 /** Maximum size of a receive window */
 #define MAX_WINDOW_SIZE  31
 
-/** Maximum size of a receive window as a string */
-#define MAX_WINDOW_SIZE_STR "31"
-
 /** Maximum size of a buffer */
-#define MAX_BUFFER_SIZE     32
+#define MAX_BUFFER_SIZE  32
 
-/** Default concurrent capacity as string */
-#define DEFAULT_MAX_CAPACITY_STR "100"
-
-/** Default number of receiver thread as string */
-#define DEFAULT_RECEIVER_NUM_STR "1"
-
-/** Default number of handler thread as string */
-#define DEFAULT_HANDLER_NUM_STR  "2"
+#define DEFAULT_MAX_CAPACITY 100
 
 /** Default output file name format as string */
-#define DEFAULT_OUT_FORMAT       "%d"
+#define DEFAULT_OUT_FORMAT "%d"
+
+/** Default number of handlers */
+#define DEFAULT_HANDLER_COUNT  2
+
+/** Default number of receivers */
+#define DEFAULT_RECEIVER_COUNT 1
 
 #ifndef GETSET
 

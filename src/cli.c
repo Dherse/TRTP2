@@ -8,19 +8,19 @@ int parse_receiver(int argc, char *argv[], config_rcv_t *config) {
     int c;
 
     /** Maximum number of active connections */
-    char *m = DEFAULT_MAX_CAPACITY_STR;
+    char *m = STR(DEFAULT_MAX_CAPACITY);
 
     /** Maximum number of packets received in a single syscall */
-    char *W = MAX_WINDOW_SIZE_STR;
+    char *W = STR(MAX_BUFFER_SIZE);
 
     /** Maximum advertised window size */
-    char *w = MAX_WINDOW_SIZE_STR;
+    char *w = STR(MAX_WINDOW_SIZE);
 
     /** Number of handler thread */
-    char *n = DEFAULT_HANDLER_NUM_STR;
+    char *n = STR(DEFAULT_HANDLER_COUNT);
 
     /** Number of receiver thread */
-    char *N = DEFAULT_RECEIVER_NUM_STR;
+    char *N = STR(DEFAULT_RECEIVER_COUNT);
 
     /** Output file format */
     char *o = DEFAULT_OUT_FORMAT;

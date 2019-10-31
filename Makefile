@@ -105,17 +105,17 @@ report:
 valgrind: FLAGS += $(DEBUG_FLAGS)
 valgrind: build
 	valgrind --leak-check=full --show-leak-kinds=all --track-origins=yes --verbose \
-		$(OUT) -s -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/valgrind.txt
+		$(OUT) -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/valgrind.txt
 
 helgrind: FLAGS += $(DEBUG_FLAGS)
 helgrind: build
 	valgrind --tool=helgrind \
-		$(OUT) -s -n 12 -N 4 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/helgrind.txt
+		$(OUT) -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/helgrind.txt
 
 memcheck: FLAGS += $(DEBUG_FLAGS)
 memcheck: build
 	valgrind --tool=memcheck --track-origins=yes \
-		$(OUT) -n 12 -N 4 -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/memcheck.txt
+		$(OUT) -o $(BIN_DIR)/%d :: 64536 2> $(BIN_DIR)/memcheck.txt
 
 callgrind: FLAGS += -O3 -ggdb
 callgrind: build

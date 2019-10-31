@@ -10,13 +10,14 @@
  * A window lookup table used to check if a seqnum
  * is in a particular window. The way to check if
  * it is in the window is by doing :
+ * 
  * ```c
  * sequences[window_low][seqnum]
  * ```
  * 
  * Where `window_low` is the lowest seqnum present
  * in the window and `seqnum` is the sequence number
- * of check.
+ * to check.
  * 
  * The value is `1` if it is in the window and `0`
  * otherwise.

@@ -14,7 +14,7 @@ void test_ht_put_and_get() {
         0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
     };
     
-    uint16_t i;
+    int i;
     for (i = 0; i < N; i++) {
         client_t *client = malloc(sizeof(client_t));
         memset(client, 0, sizeof(client_t));

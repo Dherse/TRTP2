@@ -1,9 +1,11 @@
 #include "./headers/buffer_test.h"
 
+#define INCREMENT 1
+
 void test_fill_and_empty() {
     int i = 0;
     int j = 0;
-    for (j = 0; j < 256; j += 16) {
+    for (j = 0; j < 256; j += INCREMENT) {
         buf_t *buf = malloc( sizeof(buf_t));
         int alloc = initialize_buffer(buf, &allocate_packet);
         CU_ASSERT(alloc == 0);

@@ -14,10 +14,10 @@ void test_single() {
     CU_ASSERT(initialize_node(node, empty_allocator) == 0);
 
     CU_ASSERT(stream_enqueue(&stream, node, false) == true);
-    //CU_ASSERT(stream.length == 1);
+    CU_ASSERT(stream.length == 1);
 
     CU_ASSERT(stream_pop(&stream, false) != NULL);
-    //CU_ASSERT(stream.length == 0);
+    CU_ASSERT(stream.length == 0);
 
     dealloc_stream(&stream);
 
@@ -39,7 +39,7 @@ void test_many() {
 
 
         CU_ASSERT(stream_enqueue(&stream, node, false) == true);
-        //CU_ASSERT(stream.length == i + 1);
+        CU_ASSERT(stream.length == i + 1);
     }
 
     for (i = 0; i < 1024; i++) {
@@ -50,7 +50,7 @@ void test_many() {
             deallocate_node(node);
         }
 
-        //CU_ASSERT(stream.length == 1023 - i);
+        CU_ASSERT(stream.length == 1023 - i);
     }
 
     dealloc_stream(&stream);
