@@ -785,9 +785,9 @@ int main(int argc, char *argv[]) {
 
                 for (i = 0; i < clients->size; i++) {
                     client_t *client = clients->items[i].value;
-                    if (clients->items[i].used && !client->active) {
+                    if (clients->items[i].used && client->end_time != NULL && !client->active) {
                         double time_inactive = ((double) time.tv_sec + 1.0e-9 * time.tv_nsec) - 
-                            ((double) client->end_time.tv_sec + 1.0e-9 * client->end_time.tv_nsec);
+                            ((double) client->end_time->tv_sec + 1.0e-9 * client->end_time->tv_nsec);
                         if (time_inactive > 30.0) {
                             client_to_remove[len_to_remove++] = client;
                         }
@@ -834,10 +834,10 @@ int main(int argc, char *argv[]) {
 
             for (i = 0; i < clients->size; i++) {
                 client_t *client = clients->items[i].value;
-                if (clients->items[i].used && !client->active) {
+                if (clients->items[i].used && client->end_time != NULL && client->active == false) {
                     double time_inactive = ((double) time.tv_sec + 1.0e-9 * time.tv_nsec) - 
-                        ((double) client->end_time.tv_sec + 1.0e-9 * client->end_time.tv_nsec);
-                    if (time_inactive > 30.0) {
+                        ((double) client->end_time->tv_sec + 1.0e-9 * client->end_time->tv_nsec);
+                    if (time_inactive >= 30.0) {
                         client_to_remove[len_to_remove++] = client;
                     }
                 }
@@ -846,13 +846,17 @@ int main(int argc, char *argv[]) {
             pthread_mutex_unlock(clients->lock);
 
             for (i = 0; i < len_to_remove; i++) {
-                ht_remove(
+                client_t* removed = ht_remove(
                     clients, 
                     client_to_remove[i]->address->sin6_port, 
                     client_to_remove[i]->address->sin6_addr.__in6_u.__u6_addr8
                 );
 
-                LOG("MAIN", "Client #%d removed\n", client_to_remove[i]->id);
+                LOG(
+                    "MAIN", "Client #%d removed (ok: %s)\n", 
+                    client_to_remove[i]->id,
+                    removed ? "yes" : "no"
+                );
 
                 deallocate_client(client_to_remove[i], true, true);
             }

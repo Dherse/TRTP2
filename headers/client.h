@@ -60,7 +60,7 @@ typedef struct client {
     struct timespec connection_time;
 
     /** The time the client was set as inactive */
-    struct timespec end_time;
+    struct timespec *end_time;
 
     /** Total bytes transferred */
     uint64_t transferred;
