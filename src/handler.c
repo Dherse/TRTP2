@@ -137,10 +137,10 @@ inline __attribute__((always_inline)) void hd_run_once(
                 if ((*decoded)->truncated) {
                     to_send.type = NACK;
                     to_send.truncated = false;
-                    to_send.window = MAX_WINDOW_SIZE - window->window_low;
+                    to_send.window = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->window_low);
                     to_send.long_length = false;
                     to_send.length = 0;
-                    to_send.seqnum = min(cfg->max_window_size, MAX_WINDOW_SIZE - window->length);
+                    to_send.seqnum = (*decoded)->seqnum;
                     to_send.timestamp = (*decoded)->timestamp;
 
                     msg[len_to_send].msg_hdr.msg_name = client->address;
@@ -148,6 +148,12 @@ inline __attribute__((always_inline)) void hd_run_once(
                         LOG_ERROR("Failed to pack NACK (errno = %d)", client->id, client->address->sin6_port, client->ip_as_string, errno);
                         len_to_send--;
                     }
+
+                    TRACE(
+                        "Received truncated: %d (low: %d) for client #%d [%s]:%u\n", 
+                        (*decoded)->seqnum, window->window_low,
+                        client->id, client->ip_as_string, ntohs(client->address->sin6_port)
+                    );
                 } else if (!sequences[window->window_low][(*decoded)->seqnum]) {
                     to_send.type = ACK;
                     to_send.truncated = false;
