@@ -7,7 +7,7 @@
 void test_receiver() {
 
 
-    uint8_t buffers[31][MAX_PACKET_SIZE]; //dopne
+    uint8_t buffers[31][MAX_PACKET_SIZE]; //done
     socklen_t addr_len = sizeof(struct sockaddr_in6); //done
     struct sockaddr_in6 addrs[31]; //done
     struct mmsghdr msgs[31]; //done

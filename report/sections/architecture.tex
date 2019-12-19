@@ -152,8 +152,8 @@ les performances dans les tests. L'impact de la localité sera encore discuté d
 Le mode séquentiel est activé en utilisant l'option \textit{s} qui a été rajoutée au \textit{receiver}. Il permet simplement de faire 
 tourner notre implémentation sans le moindre \textit{thread} (en dehors de la \textit{main}). Ce mode a toujours de bonnes performances et ignore totalement 
 les fichiers de configurations et paramètres additionels. Il a été ajouté afin de respecter totalement la spécification et le conseil de ne pas utiliser de 
-threads. Cependant, ce n'est pas le mode de base et donne de moins bons résultats car tous les \textit{mutex} et les opérations sur les fichiers font partis
-de la boucle d'exécution ce qui ralenti très fort l'exécution. Le \textit{bottleneck} dans ce mode rest cependant le calcul des \textit{CRC32}.
+threads. Cependant, ce n'est pas le mode de base et donne de moins bons résultats car tous les \textit{mutex} et les opérations sur les fichiers font partie
+de la boucle d'exécution ce qui ralenti très fort l'exécution. Le \textit{bottleneck} dans ce mode reste cependant le calcul des \textit{CRC32}.
 
 \subsection{Stratégie de tests}
 \label{sec:tests}
