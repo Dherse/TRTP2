@@ -2,15 +2,27 @@
 
 #define GLOBAL_H
 
-#define LOG(component, fmt, arg...) \
-    do { fprintf(stderr, "[" component "] " fmt, ##arg); } while(0)
+#define LOGN(component, fmt) \
+    do { fprintf(stderr, "[" component "] " fmt); } while(0)
+
+#define LOG(component, fmt, ...) \
+    do { fprintf(stderr, "[" component "] " fmt, __VA_ARGS__); } while(0)
 
 #ifdef DEBUG
-    #define TRACE(fmt, arg...) \
-        LOG("DEBUG][%s:%d:%s()", fmt, __FILE__, __LINE__, __func__, ##arg)
+    #define TRACE(fmt, ...) \
+        LOG("DEBUG][%s:%d:%s()", fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)
 #else
     #define TRACE(...)
 #endif
+
+/** Uses IPv4/6 */
+#define __USE_XOPEN2K 1
+
+/** We're always on a POSIX system */
+#define __USE_POSIX 1
+
+/** stack allocation */
+#include <alloca.h>
 
 /** close and sleep */
 #include <unistd.h>
@@ -27,7 +39,7 @@
 /** Required for IO operations */
 #include <stdio.h>
 
-/** Integer limits (for cli.h/str2int()) */
+/** Integer limits (for cli.h/str2size()) */
 #include <limits.h>
 
 /** String operations */
@@ -35,6 +47,9 @@
 
 /** CRC32 */
 #include "../lib/Crc32.h"
+
+/** Required for networ stuff */
+#include <sys/types.h>
 
 /** Required for recvmmsg & sendmmsg */
 #include <sys/socket.h>
@@ -105,23 +120,5 @@ typedef int bool;
 
 /** Default number of receivers */
 #define DEFAULT_RECEIVER_COUNT 1
-
-#ifndef GETSET
-
-#define GETSET(owner, type, var) \
-    // Gets ##var from type \
-    void set_##var(owner *self, type val);\
-    // Sets ##var from type \
-    type get_##var(owner *self);
-
-#define GETSET_IMPL(owner, type, var) \
-    inline void set_##var(owner *self, type val) {\
-        self->var = val;\
-    }\
-    inline type get_##var(owner *self) {\
-        return self->var;\
-    }
-
-#endif
 
 #endif

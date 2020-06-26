@@ -53,21 +53,6 @@ typedef struct handle_request {
     uint8_t buffer[MAX_WINDOW_SIZE][MAX_PACKET_SIZE];
 } hd_req_t;
 
-/**
- * Macro to create getters and setters
- */
-GETSET(hd_req_t, bool, stop);
-
-/**
- * Macro to create getters and setters
- */
-GETSET(hd_req_t, client_t *, client);
-
-/**
- * Macro to create getters and setters
- */
-GETSET(hd_req_t, size_t, length);
-
 uint8_t *get_buffer(hd_req_t* self);
 
 void set_buffer(hd_req_t* self, uint8_t *buffer, uint16_t len);
@@ -181,7 +166,6 @@ void enqueue_or_free(stream_t *stream, s_node_t *node);
  * - `file_buffer`     - temporary file buffer (on the stack)
  * - `packets_to_send` - buffers for the (N)ACK to send (on the stack)
  * - `msg`             - messages for sendmmsg (on the stack)
- * - `iovecs`          - io vectors for sendmmsg (on the stack)
  */
 void hd_run_once(
     bool wait,
@@ -190,8 +174,7 @@ void hd_run_once(
     bool *exit,
     uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE],
     uint8_t packets_to_send[][12],
-    struct mmsghdr *msg, 
-    struct iovec *iovecs
+    struct mmsghdr *msg
 );
 
 #endif

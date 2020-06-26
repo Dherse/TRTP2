@@ -1,13 +1,5 @@
 #include "../headers/client.h"
 
-GETSET_IMPL(client_t, FILE *, out_file);
-
-GETSET_IMPL(client_t, struct sockaddr_in6 *, address);
-
-GETSET_IMPL(client_t, socklen_t, addr_len);
-
-GETSET_IMPL(client_t, uint32_t, id);
-
 /*
  * Refer to headers/client.h
  */
@@ -130,7 +122,7 @@ int initialize_client(
         return -1;
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &client->connection_time);
+    clock_gettime(1, &client->connection_time);
     client->transferred = 0;
 
     return 0;

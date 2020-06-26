@@ -2,20 +2,13 @@
 
 #define CRC32H(old, value, length) crc32_16bytes(value, length, old)
 #define CRC32P(old, value, length) crc32_16bytes_prefetch(value, length, old, MAX_PAYLOAD_SIZE)
-
-GETSET_IMPL(packet_t, ptype_t, type);
-
-GETSET_IMPL(packet_t, bool, truncated);
-
-GETSET_IMPL(packet_t, uint8_t, window);
-
-GETSET_IMPL(packet_t, uint8_t, seqnum);
-
-GETSET_IMPL(packet_t, uint32_t, timestamp);
-
-GETSET_IMPL(packet_t, uint32_t, crc1);
-
-GETSET_IMPL(packet_t, uint32_t, crc2);
+#define U32_FROM_BUFFER(buffer) __extension__ ({ \
+    uint8_t a = *(buffer++); \
+    uint8_t b = *(buffer++); \
+    uint8_t c = *(buffer++); \
+    uint8_t d = *(buffer++); \
+    a | (b << 8) | (c << 16) | (d << 24); \
+})
 
 /**
  * Refer to headers/packet.h
@@ -39,7 +32,7 @@ void set_length(packet_t *self, uint16_t length) {
         return;
     }
 
-    if (length & 0x11111 != length) {
+    if ((length & 0x11111) != length) {
         self->long_length = true;
     }
 
@@ -112,9 +105,9 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
 
     uint8_t *header_pointer = buffer;
     uint8_t header = *buffer++;
-    out->type      = (header & 0b11000000) >> 6;
-    out->truncated = (header & 0b00100000) >> 5;
-    out->window    = (header & 0b00011111);
+    out->type      = (header & 0xC0) >> 6;
+    out->truncated = (header & 0x20) >> 5;
+    out->window    = (header & 0x1F);
 
     if ((length_rest -= 1) <= 0) {
         errno = PACKET_TOO_SHORT;
@@ -122,7 +115,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     }
 
     uint8_t size    = *buffer++;
-    uint8_t is_long = (size & 0b10000000) >> 7;
+    uint8_t is_long = (size & 0x80) >> 7;
     if (is_long) {
         if ((length_rest -= 1) <= 0) {
             errno = PACKET_TOO_SHORT;
@@ -130,9 +123,9 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         }
 
         out->long_length = is_long;
-        out->length = ntohs((size & 0b01111111) | (*buffer++ << 8));
+        out->length = ntohs((size & 0x7F) | (*buffer++ << 8));
     } else {
-        out->length = (size & 0b01111111);
+        out->length = (size & 0x7F);
         out->long_length = false;
     }
 
@@ -148,17 +141,17 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
         return -1;
     }
 
-    out->timestamp = ntohl(*buffer++ | (*buffer++ << 8) | (*buffer++ << 16) | (*buffer++ << 24));
+    out->timestamp = ntohl(U32_FROM_BUFFER(buffer));
 
     if ((length_rest -= 4) < 0) {
         errno = PACKET_TOO_SHORT;
         return -1;
     }
 
-    out->crc1 = ntohl(*buffer++ | (*buffer++ << 8) | (*buffer++ << 16) | (*buffer++ << 24));
+    out->crc1 = ntohl(U32_FROM_BUFFER(buffer));
 
     size_t len = 7 + is_long;
-    *header_pointer &= 0b11011111;
+    *header_pointer &= 0xDF;
 
     uint32_t crc = CRC32H(0, (void*) packet, len);
     if (out->crc1 != crc) {
@@ -195,7 +188,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
             return -1;
         }
 
-        out->crc2 = ntohl(*buffer++ | (*buffer++ << 8) | (*buffer++ << 16) | (*buffer++ << 24));
+        out->crc2 = ntohl(U32_FROM_BUFFER(buffer));
     }
 
     if (length_rest > 0) {
@@ -219,7 +212,7 @@ int unpack(uint8_t *packet, int length, packet_t *out) {
     if (out->length > MAX_PAYLOAD_SIZE) {
         errno = PAYLOAD_TOO_LONG;
         return -1;
-    } else if (out->payload != NULL && out->length > 0 && !out->truncated) {
+    } else if (out->length > 0 && !out->truncated) {
         crc = CRC32P(0, (void*) out->payload, (size_t) out->length);
         if (out->crc2 != crc) {
             errno = PAYLOAD_VALIDATION_FAILED;
@@ -244,17 +237,17 @@ int pack(uint8_t *packet, packet_t *in, bool recompute_crc2) {
 
     uint8_t *header = packet++;
 
-    *header = (in->type << 6) | (in->window & 0b00011111);
+    *header = (in->type << 6) | (in->window & 0x1F);
 
     uint8_t length = 7;
     if (in->long_length) {
         length++;
 
         uint16_t len = htons(in->length);
-        (*packet++) = (uint8_t) (0b10000000 | (len & 0b01111111));
+        (*packet++) = (uint8_t) (0x80 | (len & 0x7F));
         (*packet++) = (uint8_t) (len >> 7);
     } else {
-        (*packet++) = (uint8_t) (in->length & 0b01111111);
+        (*packet++) = (uint8_t) (in->length & 0x7F);
     }
 
     (*packet++) = in->seqnum;
@@ -306,27 +299,27 @@ int packet_to_string(packet_t* packet, bool print_payload) {
     }
 
     char s_type[15];
-    switch(get_type(packet)) {
+    switch(packet->type) {
         case 0: strcpy(s_type, "IGNORE (00)"); break;
         case 1: strcpy(s_type, "DATA (01)"); break;
         case 2: strcpy(s_type, "ACK (10)"); break;
         case 3: strcpy(s_type, "NACK (11)"); break;
     }
 
-    uint16_t len = get_length(packet);
+    uint16_t len = packet->length;
 
     fprintf(stderr, " - - - - - - - - PACKET - - - - - - - - \n");
     fprintf(stderr, "TYPE:       %s\n", s_type);
-    fprintf(stderr, "TRUNCATED:  %s\n", get_truncated(packet) ? "true" : "false");
-    fprintf(stderr, "WINDOW:     %u\n", get_window(packet));
-    fprintf(stderr, "SEQNUM:     %u\n", get_seqnum(packet));
-    fprintf(stderr, "LENGTH (L): %u (%s)\n", len, is_long(packet) ? "true" : "false");
-    fprintf(stderr, "TIMESTAMP:  %u\n", get_timestamp(packet));
+    fprintf(stderr, "TRUNCATED:  %s\n", packet->truncated ? "true" : "false");
+    fprintf(stderr, "WINDOW:     %u\n", packet->window);
+    fprintf(stderr, "SEQNUM:     %u\n", packet->seqnum);
+    fprintf(stderr, "LENGTH (L): %u (%s)\n", len, packet->long_length ? "true" : "false");
+    fprintf(stderr, "TIMESTAMP:  %u\n", packet->timestamp);
 
     if (print_payload) {
         fprintf(stderr, "\n");
 
-        uint8_t *payload = get_payload(packet);
+        uint8_t *payload = packet->payload;
 
         uint16_t i;
         for(i = 0; i < len; i= i + 8) {

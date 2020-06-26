@@ -47,7 +47,7 @@ int allocate_ht(ht_t *table) {
 }
 
 int dealloc_items(size_t len, item_t *items) {
-    int i = 0;
+    size_t i = 0;
     for (; i < len; i++) {
         if (items[i].value != NULL) {
             deallocate_client(items[i].value, true, true);
@@ -55,6 +55,8 @@ int dealloc_items(size_t len, item_t *items) {
     }
 
     free(items);
+
+    return 1;
 }
 
 /*
@@ -196,7 +198,7 @@ int ht_resize(ht_t *table, size_t new_size) {
         return -1;
     }
 
-    int i;
+    size_t i;
     for(i = 0; i < old_size; i++) {
         if (old_values[i].used) {
             ht_put_nolock(table, old_values[i].port, old_values[i].ip, old_values[i].value, false);

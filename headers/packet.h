@@ -6,24 +6,6 @@
 #include "errors.h"
 #include "lookup.h"
 
-#ifndef GETSET
-
-#define GETSET(owner, type, var) \
-    // Gets ##var from type \
-    void set_##var(owner *self, type val);\
-    // Sets ##var from type \
-    type get_##var(owner *self);
-
-#define GETSET_IMPL(owner, type, var) \
-    inline void set_##var(owner *self, type val) {\
-        self->var = val;\
-    }\
-    inline type get_##var(owner *self) {\
-        return self->var;\
-    }
-
-#endif
-
 typedef enum PType {
     IGNORE = 0,
     DATA = 1,
@@ -66,20 +48,6 @@ typedef struct Packet {
     /** The payload */
     uint8_t payload[MAX_PAYLOAD_SIZE];
 } packet_t;
-
-GETSET(packet_t, ptype_t, type);
-
-GETSET(packet_t, bool, truncated);
-
-GETSET(packet_t, uint8_t, window);
-
-GETSET(packet_t, uint8_t, seqnum);
-
-GETSET(packet_t, uint32_t, timestamp);
-
-GETSET(packet_t, uint32_t, crc1);
-
-GETSET(packet_t, uint32_t, crc2);
 
 /**
  * ## Use

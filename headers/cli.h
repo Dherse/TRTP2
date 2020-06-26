@@ -10,11 +10,11 @@
 
 /** An affinity on `cpu` */
 typedef struct affinity_setting {
-    int cpu;
+    size_t cpu;
 } afs_t;
 
 typedef struct stream_setting {
-    int stream;
+    size_t stream;
 } sts_t;
 
 /**
@@ -25,10 +25,10 @@ typedef struct config_receiver {
     bool sequential;
 
     /** Number of streams to use */
-    int stream_count;
+    size_t stream_count;
 
     /** Number of handler thread, ignored if `sequential` equals true */
-    int handle_num;
+    size_t handle_num;
 
     /** CPU core affinities for the handler threads */
     afs_t *handle_affinities;
@@ -37,7 +37,7 @@ typedef struct config_receiver {
     sts_t *handle_streams;
 
     /** Number of receiver thread, ignored if `sequential` equals true */
-    int receive_num;
+    size_t receive_num;
 
     /** CPU core affinities for the receiver threads */
     afs_t *receive_affinities;
@@ -46,10 +46,10 @@ typedef struct config_receiver {
     sts_t *receive_streams;
 
     /** Maximum window size to advertise, by default 31 */
-    int max_window;
+    size_t max_window;
 
     /** How many packet to read in a single syscall, see recvmmsg */
-    int receive_window_size;
+    size_t receive_window_size;
 
     /** Output file name format length */
     size_t format_len;
@@ -163,11 +163,11 @@ void* get_socket_addr(const struct sockaddr *sa);
 /**
  * ## Use :
  *
- * Parses an integer from a string
+ * Parses an long (size_t) from a string
  * 
  * ## Arguments
  *
- * - `out` - a pointer to an output int
+ * - `out` - a pointer to an output size_t
  * - `s` - the string to parse
  * - `base` - the base (e.g base 10)
  *
@@ -182,6 +182,6 @@ void* get_socket_addr(const struct sockaddr *sa);
  * https://github.com/cirosantilli/cpp-cheat/blob/c6087065b6b499b949360830aa2edeb4ec2ab276/c/string_to_int.c
  *
  */
-int str2int(int *out, char *s, int base);
+int str2size(size_t *out, char *s, int base);
 
 #endif

@@ -41,7 +41,8 @@
         "crc32.h": "c",
         "client.h": "c",
         "limits.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "condition_variable": "c"
     },
     "cSpell.enabledLanguageIds": [
         "asciidoc",

@@ -13,8 +13,8 @@ volatile uint32_t idx = 0;
 /**
  * Handles the SIGINT signal
  */
-void handle_stop(int signo) {
-    LOG("MAIN", "Received SIGINT, stopping\n");
+void handle_stop() {
+    LOG("MAIN", "Received SIGINT, stopping\n", NULL);
 
     if (global_stop) {
         exit(-1);
@@ -93,13 +93,13 @@ void deallocate_everything(
     rx_cfg_t **rx_configs,
     hd_cfg_t **hd_configs
 ) {
-    LOG("STOP", "Deallocation called\n");
-    int i, j;
+    LOGN("STOP", "Deallocation called\n");
+    size_t i, j;
     for (i = 0; i < config->receive_num; i++) {
         if (rx_configs[i] != NULL) {
             if (rx_configs[i]->thread != NULL) {
                 rx_configs[i]->stop = true;
-                LOG("STOP", "Waiting for RX #%d\n", i);
+                LOG("STOP", "Waiting for RX #%zu\n", i);
                 pthread_join(*rx_configs[i]->thread, NULL);
                 free(rx_configs[i]->thread);
             }
@@ -117,7 +117,7 @@ void deallocate_everything(
                 hd_req_t *stop_req = (hd_req_t *) stop_node->content;
                 stop_req->stop = true;
                 
-                stream_enqueue(rx_to_hd[j], stop_node, true);
+                stream_enqueue(rx_to_hd[j], stop_node);
             }
         }
     }
@@ -126,7 +126,7 @@ void deallocate_everything(
         for(i = 0; i < config->handle_num; i++) {
             if (hd_configs[i] != NULL) {
                 if (hd_configs[i]->thread != NULL) {
-                    LOG("STOP", "Waiting for HD #%d\n", i);
+                    LOG("STOP", "Waiting for HD #%zu\n", i);
                     pthread_join(*hd_configs[i]->thread, NULL);
                     free(hd_configs[i]->thread);
                 }
@@ -199,43 +199,43 @@ int main(int argc, char *argv[]) {
     if (parse != 0) {
         switch(errno) {
             case CLI_O_VALUE_MISSING:
-                LOG("MAIN", "Argument value missing\n");
+                LOGN("MAIN", "Argument value missing\n");
                 print_usage(argv[0]);
                 break;
             case CLI_UNKNOWN_OPTION:
-                LOG("MAIN", "Unknown option\n");
+                LOGN("MAIN", "Unknown option\n");
                 print_usage(argv[0]);
                 break;
             case CLI_IP_MISSING:
-                LOG("MAIN", "IP mask missing\n");
+                LOGN("MAIN", "IP mask missing\n");
                 print_usage(argv[0]);
                 break;
             case CLI_PORT_MISSING:
-                LOG("MAIN", "Port missing\n");
+                LOGN("MAIN", "Port missing\n");
                 print_usage(argv[0]);
                 break;
             case CLI_TOO_MANY_ARGUMENTS:
-                LOG("MAIN", "Too many arguments\n");
+                LOGN("MAIN", "Too many arguments\n");
                 print_usage(argv[0]);
                 break;
             case CLI_FORMAT_VALIDATION_FAILED:
-                LOG("MAIN", "File format is incorrect\n");
+                LOGN("MAIN", "File format is incorrect\n");
                 print_usage(argv[0]);
                 break;
             case CLI_MAX_INVALID:
-                LOG("MAIN", "Invalid maximum number of connections\n");
+                LOGN("MAIN", "Invalid maximum number of connections\n");
                 print_usage(argv[0]);
                 break;
             case CLI_PORT_INVALID:
-                LOG("MAIN", "Invalid port number\n");
+                LOGN("MAIN", "Invalid port number\n");
                 print_usage(argv[0]);
                 break;
             case CLI_HANDLE_INVALID:
-                LOG("MAIN", "Invalid handler thread count\n");
+                LOGN("MAIN", "Invalid handler thread count\n");
                 print_usage(argv[0]);
                 break;
             case CLI_IP_INVALID:
-                LOG("MAIN", "Invalid IP mask\n");
+                LOGN("MAIN", "Invalid IP mask\n");
                 print_usage(argv[0]);
                 break;
             default:
@@ -260,20 +260,20 @@ int main(int argc, char *argv[]) {
         if (config.handle_streams == NULL) {
             config.handle_streams = calloc(config.handle_num, sizeof(sts_t));
             if (config.handle_streams == NULL) {
-                LOG("MAIN", "Failed to allocate\n");
+                LOGN("MAIN", "Failed to allocate\n");
                 return -1;
             }
         }
         if (config.receive_streams == NULL) {
             config.receive_streams = calloc(config.receive_num, sizeof(sts_t));
             if (config.receive_streams == NULL) {
-                LOG("MAIN", "Failed to allocate\n");
+                LOGN("MAIN", "Failed to allocate\n");
                 return -1;
             }
         }
 
         config.stream_count = 1;
-        int i;
+        size_t i;
         for (i = 0; i < config.handle_num; i++) {
             config.handle_streams[i].stream = 0;
         }
@@ -285,13 +285,13 @@ int main(int argc, char *argv[]) {
 
     print_config(&config);
 
-    stream_t **rx_to_hd;
-    stream_t **hd_to_rx;
+    stream_t **rx_to_hd = NULL;
+    stream_t **hd_to_rx = NULL;
 
-    ht_t *clients;
+    ht_t *clients = NULL;
 
-    rx_cfg_t **rx_configs;
-    hd_cfg_t **hd_configs;
+    rx_cfg_t **rx_configs = NULL;
+    hd_cfg_t **hd_configs = NULL;
 
     int sockfds[config.stream_count];
     memset(sockfds, -1, config.stream_count);
@@ -300,7 +300,7 @@ int main(int argc, char *argv[]) {
     // Socket initialization
     // -------------------------------------------------------------------------
 
-    int i;
+    size_t i;
     for (i = 0; i < config.stream_count; i++) {
         int sockfd = socket(
             config.addr_info->ai_family, 
@@ -311,7 +311,7 @@ int main(int argc, char *argv[]) {
         sockfds[i] = sockfd;
 
         if (sockfd == -1) {
-            LOG("MAIN", "Failed to create socket\n");
+            LOGN("MAIN", "Failed to create socket\n");
             perror("socket");
 
             return -1;
@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
 
         int one = 1;
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one))) {
-            LOG("MAIN", "Failed to set reuse address");
+            LOGN("MAIN", "Failed to set reuse address");
             perror("setsockopt");
 
             close(sockfd);
@@ -330,7 +330,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEPORT, &one, sizeof(one))) {
-            LOG("MAIN", "Failed to set reuse port");
+            LOGN("MAIN", "Failed to set reuse port");
             perror("setsockopt");
 
             close(sockfd);
@@ -343,7 +343,7 @@ int main(int argc, char *argv[]) {
         tv.tv_usec = 100000;
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv))) {
-            LOG("MAIN", "Failed to set receive timeout");
+            LOGN("MAIN", "Failed to set receive timeout");
             perror("setsockopt");
 
             close(sockfd);
@@ -354,7 +354,7 @@ int main(int argc, char *argv[]) {
         int size = 4000000;
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_SNDBUF, &size, sizeof(size))) {
-            LOG("MAIN", "Failed to set send buffer size");
+            LOGN("MAIN", "Failed to set send buffer size");
             perror("setsockopt");
 
             close(sockfd);
@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
         }
 
         if (setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size))) {
-            LOG("MAIN", "Failed to set receive buffer size");
+            LOGN("MAIN", "Failed to set receive buffer size");
             perror("setsockopt");
 
             close(sockfd);
@@ -373,7 +373,7 @@ int main(int argc, char *argv[]) {
 
         int status = bind(sockfd, config.addr_info->ai_addr, config.addr_info->ai_addrlen);
         if (status) {
-            LOG("MAIN", "Failed to bind socket");
+            LOGN("MAIN", "Failed to bind socket");
             perror("bind");
 
             close(sockfd);
@@ -387,7 +387,7 @@ int main(int argc, char *argv[]) {
     // -------------------------------------------------------------------------
     rx_to_hd = calloc(config.stream_count, sizeof(stream_t *));
     if (rx_to_hd == NULL) {
-        LOG("MAIN", "Failed to initialize 'rx_to_hd'\n");
+        LOGN("MAIN", "Failed to initialize 'rx_to_hd'\n");
         
         deallocate_everything(
             &config,
@@ -405,7 +405,7 @@ int main(int argc, char *argv[]) {
     for(i = 0; i < config.stream_count; i++) {
         rx_to_hd[i] = calloc(config.stream_count, sizeof(stream_t));
         if (rx_to_hd[i] == NULL || initialize_stream(rx_to_hd[i])) {
-            LOG("MAIN", "Failed to initialize 'hd_to_rx'\n");
+            LOGN("MAIN", "Failed to initialize 'hd_to_rx'\n");
             
             deallocate_everything(
                 &config,
@@ -423,7 +423,7 @@ int main(int argc, char *argv[]) {
 
     hd_to_rx = calloc(config.stream_count, sizeof(stream_t *));
     if (hd_to_rx == NULL) {
-        LOG("MAIN", "Failed to initialize 'hd_to_rx'\n");
+        LOGN("MAIN", "Failed to initialize 'hd_to_rx'\n");
         
         deallocate_everything(
             &config,
@@ -441,7 +441,7 @@ int main(int argc, char *argv[]) {
     for(i = 0; i < config.stream_count; i++) {
         hd_to_rx[i] = calloc(config.stream_count, sizeof(stream_t));
         if (hd_to_rx[i] == NULL || initialize_stream(hd_to_rx[i])) {
-            LOG("MAIN", "Failed to initialize 'hd_to_rx'\n");
+            LOGN("MAIN", "Failed to initialize 'hd_to_rx'\n");
             
             deallocate_everything(
                 &config,
@@ -459,7 +459,7 @@ int main(int argc, char *argv[]) {
 
     clients = calloc(1, sizeof(ht_t));
     if (clients == NULL || allocate_ht(clients)) {
-        LOG("MAIN", "Failed to initialize 'clients'\n");
+        LOGN("MAIN", "Failed to initialize 'clients'\n");
         
         deallocate_everything(
             &config,
@@ -476,7 +476,7 @@ int main(int argc, char *argv[]) {
 
     rx_configs = calloc(config.receive_num, sizeof(rx_cfg_t *));
     if (rx_configs == NULL) {
-        LOG("MAIN", "Failed to initialize 'rx_config'\n");
+        LOGN("MAIN", "Failed to initialize 'rx_config'\n");
         
         deallocate_everything(
             &config,
@@ -494,7 +494,7 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < config.receive_num; i++) {
         rx_configs[i] = calloc(1, sizeof(rx_cfg_t));
         if (rx_configs[i] == NULL) {
-            LOG("MAIN", "Failed to initialize 'rx_config'\n");
+            LOGN("MAIN", "Failed to initialize 'rx_config'\n");
             
             deallocate_everything(
                 &config,
@@ -512,7 +512,7 @@ int main(int argc, char *argv[]) {
 
     hd_configs = (hd_cfg_t **) calloc(config.handle_num, sizeof(hd_cfg_t *));
     if (hd_configs == NULL) {
-        LOG("MAIN", "Failed to initialize 'hd_configs'\n");
+        LOGN("MAIN", "Failed to initialize 'hd_configs'\n");
         
         deallocate_everything(
             &config,
@@ -530,7 +530,7 @@ int main(int argc, char *argv[]) {
     for (i = 0; i < config.handle_num; i++) {
         hd_configs[i] = calloc(1, sizeof(hd_cfg_t));
         if (hd_configs[i] == NULL) {
-            LOG("MAIN", "Failed to initialize 'hd_configs[%d]'\n", i);
+            LOG("MAIN", "Failed to initialize 'hd_configs[%zu]'\n", i);
         
             deallocate_everything(
                 &config,
@@ -583,7 +583,7 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < config.receive_num; i++) {
             rx_configs[i]->thread = malloc(sizeof(pthread_t));
             if (rx_configs[i]->thread == NULL) {
-                LOG("MAIN", "Failed to initialize 'rx_config[%d]->thread'\n", i);
+                LOG("MAIN", "Failed to initialize 'rx_config[%zu]->thread'\n", i);
                 
                 deallocate_everything(
                     &config,
@@ -599,7 +599,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (pthread_create(rx_configs[i]->thread, NULL, &receive_thread, (void *) rx_configs[i])) {
-                LOG("MAIN", "Failed to start 'rx_configs[%d]->thread'\n", i);
+                LOG("MAIN", "Failed to start 'rx_configs[%zu]->thread'\n", i);
                 
                 deallocate_everything(
                     &config,
@@ -618,7 +618,7 @@ int main(int argc, char *argv[]) {
         for (i = 0; i < config.handle_num; i++) {
             hd_configs[i]->thread = calloc(1, sizeof(hd_cfg_t));
             if (hd_configs[i]->thread == NULL) {
-                LOG("MAIN", "Failed to initialize 'hd_configs[%d]->thread'\n", i);
+                LOG("MAIN", "Failed to initialize 'hd_configs[%zu]->thread'\n", i);
             
                 deallocate_everything(
                     &config,
@@ -634,7 +634,7 @@ int main(int argc, char *argv[]) {
             }
 
             if (pthread_create(hd_configs[i]->thread, NULL, &handle_thread, (void *) hd_configs[i])) {
-                LOG("MAIN", "Failed to start 'hd_configs[%d]->thread'\n", i);
+                LOG("MAIN", "Failed to start 'hd_configs[%zu]->thread'\n", i);
                 
                 deallocate_everything(
                     &config,
@@ -658,7 +658,7 @@ int main(int argc, char *argv[]) {
     global_stop = false;
 
     if (pthread_mutex_init(&stop_mutex, NULL)) {
-        LOG("MAIN", "Failed to initialize 'stop_mutex'");
+        LOGN("MAIN", "Failed to initialize 'stop_mutex'");
 
         deallocate_everything(
             &config,
@@ -672,7 +672,7 @@ int main(int argc, char *argv[]) {
     }
 
     if (pthread_cond_init(&stop_cond, NULL)) {
-        LOG("MAIN", "Failed to initialize 'stop_mutex'");
+        LOGN("MAIN", "Failed to initialize 'stop_mutex'");
 
         pthread_mutex_destroy(&stop_mutex);
 
@@ -696,7 +696,7 @@ int main(int argc, char *argv[]) {
         struct mmsghdr msgs[config.receive_window_size];
         struct iovec iovecs[config.receive_window_size];
 
-        int i;
+        size_t i;
         for(i = 0; i < config.receive_window_size; i++) {
             memset(&addrs[i], 0, sizeof(struct sockaddr_in6));
             memset(&iovecs[i], 0, sizeof(struct iovec));
@@ -717,12 +717,12 @@ int main(int argc, char *argv[]) {
         uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE];
         packet_t **decoded = malloc(sizeof(packet_t *));
         if (decoded == NULL) {
-            LOG("MAIN", "Failed to start handle thread: alloc failed\n");
+            LOGN("MAIN", "Failed to start handle thread: alloc failed\n");
             return -1;
         }
         *decoded = allocate_packet();
         if (*decoded == NULL) {
-            LOG("MAIN", "Failed to start handle thread: alloc failed\n");
+            LOGN("MAIN", "Failed to start handle thread: alloc failed\n");
             return -1;
         }
 
@@ -757,8 +757,7 @@ int main(int argc, char *argv[]) {
                 buffers,
                 addr_len,
                 addrs,
-                msgs,
-                iovecs
+                msgs
             );
 
             while(hd_configs[0]->rx->length != 0) {
@@ -769,8 +768,7 @@ int main(int argc, char *argv[]) {
                     &exit,
                     file_buffer,
                     packets_to_send,
-                    msg,
-                    hd_iovecs
+                    msg
                 );
             }
 
@@ -781,7 +779,7 @@ int main(int argc, char *argv[]) {
                 pthread_mutex_lock(clients->lock);
 
                 client_t *client_to_remove[clients->size];
-                int len_to_remove = 0;
+                size_t len_to_remove = 0;
 
                 for (i = 0; i < clients->size; i++) {
                     client_t *client = clients->items[i].value;
@@ -797,7 +795,7 @@ int main(int argc, char *argv[]) {
                 pthread_mutex_unlock(clients->lock);
 
                 for (i = 0; i < len_to_remove; i++) {
-                    client_t *old = ht_remove(
+                    ht_remove(
                         clients, 
                         client_to_remove[i]->address->sin6_port, 
                         client_to_remove[i]->address->sin6_addr.__in6_u.__u6_addr8
@@ -830,7 +828,7 @@ int main(int argc, char *argv[]) {
             pthread_mutex_lock(clients->lock);
 
             client_t *client_to_remove[clients->size];
-            int len_to_remove = 0;
+            size_t len_to_remove = 0;
 
             for (i = 0; i < clients->size; i++) {
                 client_t *client = clients->items[i].value;
@@ -882,7 +880,7 @@ int main(int argc, char *argv[]) {
         hd_configs
     );
 
-    LOG("STOP", "Goodbye\n");
+    LOGN("STOP", "Goodbye\n");
 
     return 0;
 }

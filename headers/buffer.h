@@ -5,24 +5,6 @@
 #include "global.h"
 #include "packet.h"
 
-#ifndef GETSET
-
-#define GETSET(owner, type, var) \
-    // Gets ##var from type \
-    void set_##var(owner *self, type val);\
-    // Sets ##var from type \
-    type get_##var(owner *self);
-
-#define GETSET_IMPL(owner, type, var) \
-    inline void set_##var(owner *self, type val) {\
-        self->var = val;\
-    }\
-    inline type get_##var(owner *self) {\
-        return self->var;\
-    }
-
-#endif
-
 typedef struct node {
     /** Pointer to the contained value */
     void *value;
@@ -30,10 +12,6 @@ typedef struct node {
     /** Is the value in use? */
     bool used;
 } node_t;
-
-GETSET(node_t, void *, value);
-
-GETSET(node_t, bool, used);
 
 typedef struct buf {
     /** Low index in the buffer */
@@ -45,8 +23,6 @@ typedef struct buf {
     /** Array of nodes contained in the buffer */
     node_t nodes[MAX_BUFFER_SIZE];
 } buf_t;
-
-GETSET(buf_t, uint8_t, window_low);
 
 uint8_t buf_get_length(buf_t *self);
 

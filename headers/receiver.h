@@ -12,27 +12,9 @@
 
 #define RX_H
 
-#ifndef GETSET
-
-#define GETSET(owner, type, var) \
-    // Gets ##var from type \
-    void set_##var(owner *self, type val);\
-    // Sets ##var from type \
-    type get_##var(owner *self);
-
-#define GETSET_IMPL(owner, type, var) \
-    inline void set_##var(owner *self, type val) {\
-        self->var = val;\
-    }\
-    inline type get_##var(owner *self) {\
-        return self->var;\
-    }
-
-#endif
-
 typedef struct receive_thread_config {
     /** Thread ID */
-    int id;
+    size_t id;
 
     /** Thread reference */
     pthread_t *thread;
@@ -64,10 +46,10 @@ typedef struct receive_thread_config {
     afs_t *affinity;
     
     /** Maximum number of clients */
-    int max_clients;
+    size_t max_clients;
 
     /** Maximum number of packets per syscall */
-    int window_size;
+    size_t window_size;
 } rx_cfg_t;
 
 /**
@@ -137,7 +119,6 @@ void *receive_thread(void *);
  * - `addr_len` - length of an IPv6 address
  * - `addrs`    - addresses for recvmmsg (on the stack)
  * - `msgs`     - messages for recvmmsg (on the stack)
- * - `iovecs`   - io vectors for recvmmsg (on the stack)
  * 
  */
 void rx_run_once(
@@ -145,8 +126,7 @@ void rx_run_once(
     uint8_t buffers[][MAX_PACKET_SIZE],
     socklen_t addr_len,
     struct sockaddr_in6 *addrs, 
-    struct mmsghdr *msgs, 
-    struct iovec *iovecs
+    struct mmsghdr *msgs
 );
 
 /**

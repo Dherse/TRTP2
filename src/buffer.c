@@ -10,23 +10,8 @@
  * REALLY IMPORTANT, REFER TO headers/buffer.h
  */
 inline uint8_t hash(uint8_t seqnum) {
-    return seqnum & 0b00011111;
+    return seqnum & 0x1F;
 }
-
-/*
- * Refer to headers/buffer.h
- */
-GETSET_IMPL(node_t, void *, value);
-
-/*
- * Refer to headers/buffer.h
- */
-GETSET_IMPL(node_t, bool, used);
-
-/*
- * Refer to headers/buffer.h
- */
-GETSET_IMPL(buf_t, uint8_t, window_low);
 
 /*
  * Refer to headers/buffer.h
@@ -44,7 +29,6 @@ bool is_used(buf_t *buffer, uint8_t seqnum) {
         return false;
     }
     
-    uint8_t next_written = seqnum;
     uint8_t next_index = hash(seqnum);
 
     node_t *node = &buffer->nodes[next_index];
@@ -65,7 +49,6 @@ node_t *next(buf_t *buffer, uint8_t seqnum) {
         return NULL;
     }
 
-    uint8_t next_written = seqnum;
     uint8_t next_index = hash(seqnum);
     
     node_t *node = &buffer->nodes[next_index];

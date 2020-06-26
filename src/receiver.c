@@ -8,13 +8,12 @@ pthread_mutex_t receiver_mutex;
 /*
  * Refer to headers/receiver.h
  */
-inline __attribute__((always_inline)) void rx_run_once(
+void rx_run_once(
     rx_cfg_t *rcv_cfg, 
     uint8_t buffers[][MAX_PACKET_SIZE],
     socklen_t addr_len,
     struct sockaddr_in6 *addrs, 
-    struct mmsghdr *msgs, 
-    struct iovec *iovecs
+    struct mmsghdr *msgs
 ) {
     int i;
     int window_size = rcv_cfg->window_size;
@@ -58,7 +57,7 @@ inline __attribute__((always_inline)) void rx_run_once(
             ) {
             } else {
                 if (node != NULL) {
-                    stream_enqueue(rcv_cfg->tx, node, true);
+                    stream_enqueue(rcv_cfg->tx, node);
                     node = NULL;
                 }
 
@@ -140,7 +139,7 @@ inline __attribute__((always_inline)) void rx_run_once(
         }
 
         if (node) {
-            stream_enqueue(rcv_cfg->tx, node, true);
+            stream_enqueue(rcv_cfg->tx, node);
         }
     }
 }
@@ -150,7 +149,7 @@ inline __attribute__((always_inline)) void rx_run_once(
  */
 void *receive_thread(void *receive_config) {
     if(receive_config == NULL) {
-        pthread_exit(NULL_ARGUMENT);
+        pthread_exit(NULL);
     }
 
     if (!init) {
@@ -170,9 +169,9 @@ void *receive_thread(void *receive_config) {
 
         int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
         if (aff == -1) {
-            LOG("HD", "Failed to set affinity\n");
+            LOGN("HD", "Failed to set affinity\n");
         } else {
-            LOG("HD", "Receiver #%d running on CPU #%d\n", rcv_cfg->id, rcv_cfg->affinity->cpu);
+            LOG("HD", "Receiver #%zu running on CPU #%zu\n", rcv_cfg->id, rcv_cfg->affinity->cpu);
         }
     }
 
@@ -199,18 +198,16 @@ void *receive_thread(void *receive_config) {
         msgs[i].msg_hdr.msg_control = NULL;
     }
     
-    int retval;
     while(!rcv_cfg->stop) {
         rx_run_once(
             rcv_cfg,
             buffers,
             addr_len,
             addrs,
-            msgs,
-            iovecs
+            msgs
         );
     }
-    LOG("RX", "Stopped\n");
+    LOGN("RX", "Stopped\n");
 
     pthread_exit(0);
     return NULL;

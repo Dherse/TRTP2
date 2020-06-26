@@ -10,9 +10,6 @@ typedef struct s_node {
     struct s_node *next;
 } s_node_t;
 
-GETSET(s_node_t, void *, content);
-GETSET(s_node_t, s_node_t *, next);
-
 /**
  * /!\ READ THIS CAREFULLY IF YOU DON'T UNDERSTAND STREAMS/FIFOs
  * 
@@ -193,15 +190,11 @@ int dealloc_stream(stream_t *stream);
  *
  * - `stream` - a pointer to an already allocated stream
  * - `node`   - the node to enqueue
- * - `wait`   - will wait for room to be available if set to true
  *
  * ## Return value
- * 
- * - if wait == true: always returns true
- * - if wait == false: returns true if there was room in the stream
- * and false otherwise
+ * always returns true
  */
-bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait);
+bool stream_enqueue(stream_t *stream, s_node_t *node);
 
 /**
  * ## Use

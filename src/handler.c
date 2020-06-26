@@ -4,32 +4,35 @@
 #include "../headers/global.h"
 
 
-#define LOG_ERROR(message, id, port, ip_as_str, arg...) \
-    LOG("HANDLER][ERROR", "Error on client #%d [%s]:%u: " message "\n", id, ip_as_str, ntohs(port), ##arg)
+#define LOG_ERROR(message, id, port, ip_as_str, ...) \
+    LOG("HANDLER][ERROR", "Error on client #%d [%s]:%u: " message "\n", id, ip_as_str, ntohs(port), __VA_ARGS__)
+
+#define LOG_ERRORN(message, id, port, ip_as_str) \
+    LOG("HANDLER][ERROR", "Error on client #%d [%s]:%u: " message "\n", id, ip_as_str, ntohs(port))
 
 
 void print_unpack_error(uint32_t id, uint16_t port, char *ip_as_str) {
     switch(errno) {
         case TYPE_IS_WRONG:
-            LOG_ERROR("Type is wrong", id, port, ip_as_str);
+            LOG_ERRORN("Type is wrong", id, port, ip_as_str);
             break;
         case NON_DATA_TRUNCATED:
-            LOG_ERROR("Non-PData packet truncated", id, port, ip_as_str);
+            LOG_ERRORN("Non-PData packet truncated", id, port, ip_as_str);
             break;
         case CRC_VALIDATION_FAILED:
-            LOG_ERROR("Header could not be validated", id, port, ip_as_str);
+            LOG_ERRORN("Header could not be validated", id, port, ip_as_str);
             break;
         case PAYLOAD_VALIDATION_FAILED:
-            LOG_ERROR("Payload could not be validated", id, port, ip_as_str);
+            LOG_ERRORN("Payload could not be validated", id, port, ip_as_str);
             break;
         case PACKET_TOO_SHORT:
-            LOG_ERROR("Packet has incorrect size (too short)", id, port, ip_as_str);
+            LOG_ERRORN("Packet has incorrect size (too short)", id, port, ip_as_str);
             break;
         case PACKET_TOO_LONG:
-            LOG_ERROR("Packet has incorrect size (too long)", id, port, ip_as_str);
+            LOG_ERRORN("Packet has incorrect size (too long)", id, port, ip_as_str);
             break;
         case PAYLOAD_TOO_LONG:
-            LOG_ERROR("Payload has incorrect size (too long)", id, port, ip_as_str);
+            LOG_ERRORN("Payload has incorrect size (too long)", id, port, ip_as_str);
             break;
         default:
             LOG_ERROR("Unknown packet error (errno = %d)", id, port, ip_as_str, errno);
@@ -58,15 +61,14 @@ void bytes_to_unit(uint64_t total, char *size, double *multiplier) {
 /*
  * Refer to headers/buffer.h
  */
-inline __attribute__((always_inline)) void hd_run_once(
+void hd_run_once(
     bool wait,
     hd_cfg_t *cfg,
     packet_t **decoded,
     bool *exit,
     uint8_t file_buffer[MAX_PACKET_SIZE * MAX_WINDOW_SIZE],
     uint8_t packets_to_send[][12],
-    struct mmsghdr *msg, 
-    struct iovec *iovecs
+    struct mmsghdr *msg
 ) {
     packet_t to_send;
     int len_to_send = 0;
@@ -92,7 +94,7 @@ inline __attribute__((always_inline)) void hd_run_once(
         pthread_mutex_lock(client_get_lock(client));
         uint32_t last_timestamp = client->last_timestamp;
 
-        int i = 0;
+        size_t i = 0;
         for (i = 0; i < req->num; i++) {
             uint8_t *buffer = req->buffer[i];
             int length = req->lengths[i];
@@ -197,7 +199,7 @@ inline __attribute__((always_inline)) void hd_run_once(
                 } else {
                     node_t *spot = next(window, (*decoded)->seqnum);
                     if (spot == NULL) {
-                        LOG("HD", "Internal error");
+                        LOGN("HD", "Internal error");
                     }
 
                     packet_t *temp = (packet_t *) spot->value;
@@ -246,7 +248,7 @@ inline __attribute__((always_inline)) void hd_run_once(
             if (result != offset) {
                 fseek(client->out_file, -result, SEEK_SET);
 
-                LOG("HD", "Failed to write to file, won't be writing ACK to get retransmission timer\n");
+                LOGN("HD", "Failed to write to file, won't be writing ACK to get retransmission timer\n");
                 enqueue_or_free(cfg->tx, node_rx);
 
                 pthread_mutex_unlock(client_get_lock(client));
@@ -275,7 +277,7 @@ inline __attribute__((always_inline)) void hd_run_once(
 
                 client->end_time = malloc(sizeof(struct timespec));
                 if (!client->end_time) {
-                    LOG("MAIN][ERROR", "Failed to allocate timespec\n");
+                    LOGN("MAIN][ERROR", "Failed to allocate timespec\n");
                 }
 
                 clock_gettime(CLOCK_MONOTONIC, client->end_time);
@@ -338,15 +340,12 @@ void *handle_thread(void *config) {
 
         int aff = pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpuset);
         if (aff == -1) {
-            LOG("HD", "Failed to set affinity\n");
+            LOGN("HD", "Failed to set affinity\n");
         } else {
-            LOG("HD", "Handler #%d running on CPU #%d\n", cfg->id, cfg->affinity->cpu);
+            LOG("HD", "Handler #%hhu running on CPU #%zu\n", cfg->id, cfg->affinity->cpu);
         }
     }
 
-    packet_t to_send;
-
-    uint8_t len_to_send;
     uint8_t packets_to_send[MAX_WINDOW_SIZE + 1][12];
     struct mmsghdr msg[MAX_WINDOW_SIZE + 1];
     struct iovec iovecs[MAX_WINDOW_SIZE + 1];
@@ -364,13 +363,12 @@ void *handle_thread(void *config) {
         msg[i].msg_hdr.msg_namelen = sizeof(struct sockaddr_in6);
     }
 
-    uint16_t offset;
     uint8_t file_buffer[MAX_PAYLOAD_SIZE * MAX_WINDOW_SIZE];
 
     packet_t *decoded = (packet_t *) allocate_packet();
     init_packet(decoded);
     if (decoded == NULL) {
-        LOG("HD", "Failed to start handle thread: alloc failed\n");
+        LOGN("HD", "Failed to start handle thread: alloc failed\n");
         return NULL;
     }
 
@@ -383,15 +381,15 @@ void *handle_thread(void *config) {
             &exit,
             file_buffer,
             packets_to_send,
-            msg,
-            iovecs
+            msg
         );
     }
     
-    LOG("HD", "Stopped\n");
+    LOGN("HD", "Stopped\n");
     
     pthread_exit(0);
 }
+
 
 /**
  * Refer to headers/receiver.h
@@ -413,7 +411,7 @@ s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)()) {
  * Refer to headers/handler.h
  */
 inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
-    if (stream_enqueue(stream, node, false) == false) {
+    if (stream_enqueue(stream, node) == false) {
         TRACE("Failed to enqueue, freeing\n");
         deallocate_node(node);
     }

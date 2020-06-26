@@ -7,7 +7,7 @@
 # Tools
 GCC = gcc
 RM = rm
-VERSION = gnu89
+VERSION = gnu17
 
 # Binary names
 OUT = ./receiver
@@ -21,6 +21,7 @@ BIN_DIR = ./bin
 
 # Source file
 SRC := $(basename $(shell find $(SRC_DIR) -name *.c))
+SRCS := $(shell find $(SRC_DIR) -name *.c)
 OBJECTS := $(SRC:$(SRC_DIR)/%=$(BIN_DIR)/%.o)
 
 # Tests
@@ -62,6 +63,10 @@ test_build: $(TEST_OBJECTS)
 # release build
 release: FLAGS += $(RELEASE_FLAGS)
 release: build
+
+clang:
+	cd lib && make all
+	clang $(SRCS) ./lib/Crc32.o -Wall -Wpedantic -Wextra -Werror -std=$(VERSION) -Ofast -march=native -lpthread -o bin/receiver
 
 # run
 run:

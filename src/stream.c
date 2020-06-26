@@ -6,9 +6,6 @@
  */
 #include "../headers/stream.h"
 
-GETSET_IMPL(s_node_t, void *, content);
-GETSET_IMPL(s_node_t, s_node_t *, next);
-
 /**
  * Refer to headers/stream.h
  */
@@ -95,7 +92,7 @@ int dealloc_stream(stream_t *stream) {
 /**
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
-bool stream_enqueue(stream_t *stream, s_node_t *node, bool wait) {
+bool stream_enqueue(stream_t *stream, s_node_t *node) {
     if (node == NULL) {
         return false;
     }

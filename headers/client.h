@@ -5,24 +5,6 @@
 
 #define CLIENT_H
 
-#ifndef GETSET
-
-#define GETSET(owner, type, var) \
-    // Gets ##var from type \
-    void set_##var(owner *self, type val);\
-    // Sets ##var from type \
-    type get_##var(owner *self);
-
-#define GETSET_IMPL(owner, type, var) \
-    inline void set_##var(owner *self, type val) {\
-        self->var = val;\
-    }\
-    inline type get_##var(owner *self) {\
-        return self->var;\
-    }
-
-#endif
-
 
 typedef struct client {
     /**
@@ -65,12 +47,6 @@ typedef struct client {
     /** Total bytes transferred */
     uint64_t transferred;
 } client_t;
-
-GETSET(client_t, FILE *, out_file);
-GETSET(client_t, struct sockaddr_in6 *, address);
-GETSET(client_t, socklen_t, addr_len);
-GETSET(client_t, buf_t *, window);
-GETSET(client_t, uint32_t, id);
 
 /**
  * ## Use
