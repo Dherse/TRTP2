@@ -14,7 +14,7 @@ volatile uint32_t idx = 0;
  * Handles the SIGINT signal
  */
 void handle_stop() {
-    LOG("MAIN", "Received SIGINT, stopping\n", NULL);
+    LOGN("MAIN", "Received SIGINT, stopping\n");
 
     if (global_stop) {
         exit(-1);

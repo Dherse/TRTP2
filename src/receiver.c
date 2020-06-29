@@ -31,7 +31,7 @@ void rx_run_once(
             case EAGAIN:
                 break;
             case EINTR:
-                TRACE("recvmmsg was interrupted\n");
+                TRACEN("recvmmsg was interrupted\n");
                 break;
             default :
                 LOG("RX][ERROR]", "recvmmsg failed. (errno = %d)\n", errno);
@@ -120,7 +120,7 @@ void rx_run_once(
 
                 req = (hd_req_t *) node->content;
                 if(req == NULL) {
-                    TRACE("`content` in a node was NULL\n");
+                    TRACEN("`content` in a node was NULL\n");
                     node->content = (hd_req_t *) allocate_handle_request();
                     req = (hd_req_t *) node->content;
                 }

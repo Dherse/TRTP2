@@ -7,7 +7,7 @@
 # Tools
 GCC = gcc
 RM = rm
-VERSION = gnu17
+VERSION = gnu11
 
 # Binary names
 OUT = ./receiver

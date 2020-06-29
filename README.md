@@ -1,4 +1,15 @@
-# 🎅 TRTP2
+# TRTP2
+
+This is an implementation of a file receiver based on the TRTP protocol for the LINGI1341 courses taught at UCLouvain in Belgium. It is a full C implementation written for a project during the semester. It is capable of handling well in excess of a million packets per second. Since the end of the project (November 2019) we still come back from time to time to tweak little things and improve performance where necessary. The code is built with `-Wpedantic` flag to ensure relatively clean code.
+
+Final grade : **full mark (20/20)**
+Here was the comment of the teacher on the project :
+
+> Très bonne implémentation. Les choix posés sont bien expliqués et pertinents. Les expériences rapportées appuies bien ceux-ci. La suite de tests couvre bien l'implémentation. Des tests démarrant votre receiver et le sender de référence dans une série de réseaux différents auraient été un plus. Félicitations.
+
+Translated to English it is :
+
+> Very good implementation. The decisions made are well explained and relevant. The experiments validates those (decisions). The test suite covers the implementation well. (Automated) Tests running the final receiver using the reference implementation on multiple networks would've been a plus. Congratulations.
 
 ## Authors
 
@@ -9,46 +20,50 @@
 
 ## Project structure
 
-The project structure is as follows :
-
-- `base/` - the base implementation, instructions, etc. for the project
-- `bin/` - the binary output files, normally empty, cleaned using `make clean`
-- `headers/` - header definitions for the project
-- `report/` - contains the LateX source code and resources for the report
-- `src/` - contains the C source code of the project, `src/main.c` is the main function
-- `tests/` - contains test definitions, best ran using `make clean && make test`
+- `base/`       - the base implementation, instructions, etc. for the project
+- `bin/`        - the binary output files, normally empty, cleaned using `make clean`
+- `headers/`    - header definitions for the project
+- `lib/`        - faster CRC32 implementation (instead of ZLIB)
+- `report/`     - contains the LateX source code and resources for the report
+- `src/`        - contains the C source code of the project, `src/main.c` is the main function
+- `tests/`      - contains test definitions, best ran using `make clean && make test`
 - `gitlog.stat` - required `git log --stat` output, generated using `make stat`
-- `Makefile` - the make file
-- `README.md` - informations about the project for the code review
-- `rapport.pdf` - the required report in PDF format, generated using `make report`
+- `Makefile`    - the make file
+- `README.md`   - informations about the project for the code review
+- `rapport.pdf` - the required report in PDF format, generated using `make report` (note that it is exclusively in French)
+- `setup.sh`    - used during testing to create a RAM disk for performance testing
 
 ## Makefile
 
 - `all`: cleans and builds the code
-- `clean`: deletes all build artifacts
-- `release`: builds are release version (max optimization, no debug symbol)
 - `build`: builds the code
+- `test_build`: builds the debug version
+- `release`: builds are release version (max optimization, no debug symbol)
+- `clang`: builds using clang, slightly better performance the the tested GCC, but marginal
 - `run`: run the release version (**does not build**)
-- `debug`: builds a version with debug symbols and no optimization
 - `test`: builds & tests the code
+- `clean`: deletes all build artifacts
 - `stat`: generates gitlog.stat
 - `install_tectonic`: installs the report builder, requires [cargo/rust](https://rust-lang.org)
-- `report`: uses tectonic to build a PDF version (can take a **loooong** time the first time)
-- `valgrind`: runs valgrind. Please read the valgrind section for details
-- `helgrind`: runs helgrind. Please read the helgrind section for details
-- `memcheck`: runs memcheck
-- `callgrind`: runs callgrind in order to generate ca callgraph.
-- `plot`: plots the callgraph into `callgraph.png`
+- `report`: uses tectonic to build a PDF version (can take a **long** time the first time)
+- `valgrind`: runs valgrind on the final executable
+- `helgrind`: runs helgrind on the final executable
+- `memcheck`: runs memcheck on the final executable
+- `callgrind`: runs callgrind in order to generate a callgraph.
+- `plot`: plots the callgraph into `callgraph.png`, requires python2 and graphviz
+- `debug`: builds a version with debug symbols and no optimization
+- `tcpdump`: runs tcpdumb to get a UDP network trace
+- `archive`: cleans, build the report and pack the final archive that had to be submitted for the project
 
 ## Command line arguments
 
 Here is the printed usage for the application :
 
 ```
-Multithreaded TRTP receiver.
+1 milion packets per second capable TRTP receiver
 
 Usage:
-  ./receiver [options] <ip> <port>
+  ./bin/receiver [options] <ip> <port>
 
 Options:
   -m  Max. number of connection   [default: 100]
@@ -79,52 +94,28 @@ Affinities:
   It means the affinities of the receivers will be on CPU 0 & 1
   And the affinities of the handlers will be on CPU 2, 3, 4 & 5
   To learn more about affinity: https://en.wikipedia.org/wiki/Processor_affinity
+
+Streams:
+  Streams are used for communication between the receivers and the
+  handlers. Since they're semi locking to void races, they lock
+  on reading (dequeue). This means that too many handlers wil
+  significantly slow down the stream. For this reason, a special
+  streams.cfg allows custom mapping between receivers and handlers.
+  Here is the file structure: 
+        list of comma separated receivers : list of comma separated handlers
+  Each line defines a new stream. Each handler and/or receiver must be used
+  once and only one. Here is an example where two receivers have their own streams
+        0:0,1
+        1:2,3
+  And one where two receivers share a stream
+        0,1:0,1,2,3
+        2:4,5
+
+Maximising performance:
+  Performace is maximal when the receive buffer is fairly large
+  (few times the window). Also when each receiver has its own stream
+  and a few handlers (typically two or three).
 ```
-
-## Objectives
-
-As we already passed the project last year, we decided to restart from scratch but use our
-previous knowledge to create a better and simpler implementation. In order to do this,
-we decided to go with a better project structure made of simple, composable components
-and assembled into larger functional units to reach the complete functionality required.
-
-We also set some objectives for ourselves including, better performance, cleaner and
-simpler code and no on-the-go allocations. These objectives are achieved in different
-ways explained below.
-
-### Better performance
-
-We designed our architecture to have as high a performance as we can have while using
-techniques available in the course and with limited dependencies. For this reason,
-we implemented a near allocation free code that uses multithreading to improve 
-the performance. Every buffer allocated is reused. We also try and
-use limited mutexes and locks as those have a high latency associated with them.
-
-We also used more advanced data structures such as hash tables to improve performance
-by removing the need of iterative lookup by having an average execution speed of O(1).
-We also use a stream to communicate allowing both the head and the tail to be manipulated
-without having interlocks. The data structure used by the stream is a double-ended linked-list
-removing the need for iterative operations once again.
-
-### Cleaner & simpler code
-
-The code is split into numerous small files containing single function units such as
-the definition of a hash-table, packet related functions, etc. This makes reading,
-debugging and working as a group easier. In addition, we have commented the entire
-codebase with in-depth comments explaining he inner workings, inputs and outputs
-of every function we defined.
-
-### recvmmsg
-
-The syscall [`recvmmsg`](http://man7.org/linux/man-pages/man2/recvmmsg.2.html) allows receiving
-more than one message at a time from the network. This enables us to send a single ACK
-for more than one packet more often relying not on out-of-order packets to achieve this
-but by including this in the design of our application. In our testing, this method reduces
-the ACK rate by 33% lowering the upload bandwidth consumed by acknowledges.
-
-## Architecture
-
-TODO
 
 ## Callgraph
 

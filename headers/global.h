@@ -11,8 +11,11 @@
 #ifdef DEBUG
     #define TRACE(fmt, ...) \
         LOG("DEBUG][%s:%d:%s()", fmt, __FILE__, __LINE__, __func__, __VA_ARGS__)
+    #define TRACEN(fmt) \
+        LOG("DEBUG][%s:%d:%s()", fmt, __FILE__, __LINE__, __func__)
 #else
     #define TRACE(...)
+    #define TRACEN(...)
 #endif
 
 /** Uses IPv4/6 */

@@ -99,7 +99,7 @@ void test_receiver() {
     sin6.sin6_addr.__in6_u.__u6_addr32[2] = 0;
     sin6.sin6_addr.__in6_u.__u6_addr32[3] = htonl(1);
     
-    rx_run_once(&cfg, buffers, addr_len, addrs, msgs, iovecs);
+    rx_run_once(&cfg, buffers, addr_len, addrs, msgs);
 
     client_t *client = ht_get(&clients, send_port, sin6.sin6_addr.__in6_u.__u6_addr8);
     CU_ASSERT(client != NULL);
@@ -140,7 +140,7 @@ void test_receiver() {
     n_sent = sendto(send_sock, send_buf, pkt.length + 11 + 4, 0, &address, addr_len);
     CU_ASSERT(n_sent > 0);
 
-    rx_run_once(&cfg, buffers, addr_len, addrs, msgs, iovecs);
+    rx_run_once(&cfg, buffers, addr_len, addrs, msgs);
 
     client = ht_get(&clients, send_port, sin6.sin6_addr.__in6_u.__u6_addr8);
     CU_ASSERT(client != NULL);

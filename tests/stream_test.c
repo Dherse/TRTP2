@@ -13,7 +13,7 @@ void test_single() {
     s_node_t *node = calloc(1, sizeof(s_node_t));
     CU_ASSERT(initialize_node(node, empty_allocator) == 0);
 
-    CU_ASSERT(stream_enqueue(&stream, node, false) == true);
+    CU_ASSERT(stream_enqueue(&stream, node) == true);
     CU_ASSERT(stream.length == 1);
 
     CU_ASSERT(stream_pop(&stream, false) != NULL);
@@ -38,7 +38,7 @@ void test_many() {
         node->content = cnt;
 
 
-        CU_ASSERT(stream_enqueue(&stream, node, false) == true);
+        CU_ASSERT(stream_enqueue(&stream, node) == true);
         CU_ASSERT(stream.length == i + 1);
     }
 

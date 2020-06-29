@@ -171,9 +171,9 @@ void test_global() {
 
 
 
-    stream_enqueue(&rx_to_hd, node1, true);
+    stream_enqueue(&rx_to_hd, node1);
 
-    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg, hd_iovecs);
+    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg);
 
     size_t nreceived = recv(send_sock, buf, sizeof(buf), 0);
     CU_ASSERT(nreceived > 0);
@@ -189,9 +189,9 @@ void test_global() {
 
 
 
-    stream_enqueue(&rx_to_hd, node2, true);
+    stream_enqueue(&rx_to_hd, node2);
 
-    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg, hd_iovecs);
+    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg);
     
     memset(buf, 0, 528);
     memset(&received, 0, sizeof(packet_t));
@@ -209,9 +209,9 @@ void test_global() {
 
 
 
-    stream_enqueue(&rx_to_hd, node3, true);
+    stream_enqueue(&rx_to_hd, node3);
 
-    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg, hd_iovecs);
+    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg);
     
     memset(buf, 0, 528);
     memset(&received, 0, sizeof(packet_t));
@@ -229,9 +229,9 @@ void test_global() {
 
 
 
-    stream_enqueue(&rx_to_hd, node4, true);
+    stream_enqueue(&rx_to_hd, node4);
 
-    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg, hd_iovecs);
+    hd_run_once(wait, cfg, decoded, &exit, file_buffer, packets_to_send, msg);
     
     memset(buf, 0, 528);
     memset(&received, 0, sizeof(packet_t));

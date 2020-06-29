@@ -412,7 +412,7 @@ s_node_t *pop_and_check_req(stream_t *stream, void *(*allocator)()) {
  */
 inline void enqueue_or_free(stream_t *stream, s_node_t *node) {
     if (stream_enqueue(stream, node) == false) {
-        TRACE("Failed to enqueue, freeing\n");
+        TRACEN("Failed to enqueue, freeing\n");
         deallocate_node(node);
     }
 }

@@ -68,7 +68,7 @@ int initialize_stream(stream_t *stream) {
  * /!\ REALLY IMPORTANT, REFER TO headers/stream.h !
  */
 int dealloc_stream(stream_t *stream) {
-    TRACE("Deallocating stream\n");
+    TRACEN("Deallocating stream\n");
     if (stream == NULL) {
         return 0;
     }
