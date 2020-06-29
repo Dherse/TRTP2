@@ -1,7 +1,7 @@
 #include "../headers/packet.h"
 
-#define CRC32H(old, value, length) crc32_16bytes(value, length, old)
-#define CRC32P(old, value, length) crc32_16bytes_prefetch(value, length, old, MAX_PAYLOAD_SIZE)
+#define CRC32H(old, value, length) crc32_8bytes(value, length, old)
+#define CRC32P(old, value, length) crc32_16bytes(value, length, old)
 #define U32_FROM_BUFFER(buffer) __extension__ ({ \
     uint8_t a = *(buffer++); \
     uint8_t b = *(buffer++); \
