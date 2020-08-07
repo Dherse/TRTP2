@@ -1,9 +1,9 @@
 # TRTP2
 
-This is an implementation of a file receiver based on the TRTP protocol for the LINGI1341 courses taught at UCLouvain in Belgium. It is a full C implementation written for a project during the semester. It is capable of handling well in excess of a million packets per second. Since the end of the project (November 2019) we still come back from time to time to tweak little things and improve performance where necessary. The code is built with `-Wpedantic` flag to ensure relatively clean code.
+This is an implementation of a file receiver based on the TRTP protocol for the LINGI1341 course taught at UCLouvain in Belgium. It is a full C implementation written for a project during the semester. It is capable of handling well in excess of a million packets per second. Since the end of the project (November 2019) we still come back from time to time to tweak little things and improve performance where necessary. The code is built with `-Wpedantic` flag to ensure relatively clean code.
 
 Final grade : **full mark (20/20)**
-Here was the comment of the teacher on the project :
+Here was the comment of the TA on the project :
 
 > Très bonne implémentation. Les choix posés sont bien expliqués et pertinents. Les expériences rapportées appuies bien ceux-ci. La suite de tests couvre bien l'implémentation. Des tests démarrant votre receiver et le sender de référence dans une série de réseaux différents auraient été un plus. Félicitations.
 
